@@ -42,6 +42,13 @@ const STATE_STYLE: Record<JobState, string> = {
   error: 'border-poor/40 bg-poor/10 text-poor',
 };
 
+/** Заявка по вакансии уже начата — предлагаем вернуться к ней, а не создавать. */
+const PREPARE_LABEL: Partial<Record<JobState, string>> = {
+  application_preparing: 'Продолжить заявку',
+  application_ready: 'Открыть заявку',
+  submitted: 'Открыть заявку',
+};
+
 export function JobCard({
   job,
   analysis,
@@ -54,7 +61,10 @@ export function JobCard({
 }: Props) {
   const matched = analysis?.matchedSkills.slice(0, 6) ?? [];
   const missing = analysis?.missingSkills.slice(0, 4) ?? [];
-  const saved = job.state === 'saved';
+  // Состояние уходит вперёд (готовится заявка, отправлена), а отметка о
+  // сохранении остаётся в savedAt — иначе кнопка снова предлагает сохранить.
+  const saved = job.savedAt !== null || job.state === 'saved';
+  const prepareLabel = PREPARE_LABEL[job.state] ?? 'Подготовить заявку';
 
   return (
     <article className="jp-card flex flex-col gap-2.5 transition duration-150 hover:border-border-strong">
@@ -135,7 +145,7 @@ export function JobCard({
           disabled={busy}
         >
           <Icon name="send" size={13} />
-          Подготовить заявку
+          {prepareLabel}
         </button>
         <button
           type="button"

@@ -9,6 +9,7 @@ import { getSettings, saveSettings } from '@/database/repositories/settingsRepos
 import {
   getJob,
   listJobs,
+  markJobSaved,
   updateJob,
   upsertExtractedJob,
   deleteJob,
@@ -118,6 +119,24 @@ describe('репозиторий вакансий', () => {
     await expect(updateJob(job.id, { state: 'submitted' })).rejects.toThrow(
       /Недопустимый переход вакансии/,
     );
+  });
+
+  it('помечает вакансию сохранённой и запоминает момент', async () => {
+    const { job } = await upsertExtractedJob(makeJob());
+    const saved = await markJobSaved(job.id);
+    expect(saved.state).toBe('saved');
+    expect(saved.savedAt).not.toBeNull();
+  });
+
+  it('не откатывает состояние, если по вакансии уже готова заявка', async () => {
+    const { job } = await upsertExtractedJob(makeJob());
+    await markJobSaved(job.id);
+    await updateJob(job.id, { state: 'application_preparing' });
+    const ready = await updateJob(job.id, { state: 'application_ready' });
+
+    const saved = await markJobSaved(job.id);
+    expect(saved.state).toBe('application_ready');
+    expect(saved.savedAt).toBe(ready.savedAt);
   });
 
   it('удаляет вместе с вакансией её анализы и заявки', async () => {
