@@ -66,7 +66,8 @@ const FRIENDLY: Partial<Record<ErrorCode, string>> = {
     'AI-провайдер не настроен. Добавьте провайдера и API-ключ в настройках.',
   [ERROR_CODES.AI_DISABLED]: 'Запросы к AI выключены. Включите их в «Настройки → Приватность».',
   [ERROR_CODES.AI_AUTH_FAILED]: 'AI-провайдер отклонил API-ключ. Проверьте его в настройках.',
-  [ERROR_CODES.AI_RATE_LIMITED]: 'AI-провайдер ограничивает частоту запросов. Повторите чуть позже.',
+  [ERROR_CODES.AI_RATE_LIMITED]:
+    'AI-провайдер ограничивает частоту запросов. Повторите чуть позже.',
   [ERROR_CODES.AI_TIMEOUT]: 'AI-провайдер не ответил вовремя.',
   [ERROR_CODES.AI_BUDGET_EXCEEDED]:
     'Достигнут дневной лимит запросов к AI. Увеличьте его в «Настройки → Контроль расходов».',
@@ -76,7 +77,8 @@ const FRIENDLY: Partial<Record<ErrorCode, string>> = {
   [ERROR_CODES.RESTRICTED_PAGE]: 'Chrome не разрешает расширениям работать на этой странице.',
   [ERROR_CODES.NO_JOB_ON_PAGE]: 'На этой странице не найдено вакансии.',
   [ERROR_CODES.NO_FORM_ON_PAGE]: 'На этой странице не найдено формы заявки.',
-  [ERROR_CODES.PROFILE_INCOMPLETE]: 'Сначала заполните профиль, чтобы можно было считать совпадение.',
+  [ERROR_CODES.PROFILE_INCOMPLETE]:
+    'Сначала заполните профиль, чтобы можно было считать совпадение.',
 };
 
 export function describeError(error: SerializedError): string {

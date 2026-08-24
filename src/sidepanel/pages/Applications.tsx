@@ -42,8 +42,7 @@ export function Applications() {
               </div>
               <p className="mt-1 text-[11px] text-muted">
                 {application.coverLetter ? '✓ письмо готово' : '· письма нет'} · вопросов:{' '}
-                {application.questions.length} · полей размечено:{' '}
-                {application.fieldMappings.length}
+                {application.questions.length} · полей размечено: {application.fieldMappings.length}
               </p>
             </button>
           </li>

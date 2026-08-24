@@ -17,7 +17,7 @@ export interface TechEntry {
  * по нормализованной строке, а пользователь может добавить в профиль любую.
  */
 export const TECH_DICTIONARY: TechEntry[] = [
-  // Frontend
+  // Фронтенд
   {
     canonical: 'JavaScript',
     category: 'frontend',
@@ -91,7 +91,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
     implies: ['React'],
   },
 
-  // Backend
+  // Бэкенд
   {
     canonical: 'Node.js',
     category: 'backend',
@@ -170,7 +170,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
   { canonical: 'Prometheus', category: 'devops', aliases: [] },
   { canonical: 'Grafana', category: 'devops', aliases: [] },
 
-  // Database
+  // Базы данных
   { canonical: 'PostgreSQL', category: 'database', aliases: ['postgres', 'psql', 'postgre sql'] },
   { canonical: 'MySQL', category: 'database', aliases: ['mariadb'] },
   { canonical: 'SQLite', category: 'database', aliases: [] },
@@ -183,7 +183,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
   { canonical: 'TypeORM', category: 'database', aliases: [] },
   { canonical: 'Sequelize', category: 'database', aliases: [] },
 
-  // Other
+  // Прочее
   {
     canonical: 'Git',
     category: 'other',

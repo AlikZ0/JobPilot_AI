@@ -2,8 +2,8 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
 /**
- * The content script must be a single classic script (no ESM imports) because
- * it is injected with chrome.scripting.executeScript({ files: [...] }).
+ * Content-скрипт должен быть одним классическим скриптом без ESM-импортов,
+ * потому что его внедряют через chrome.scripting.executeScript({ files: [...] }).
  */
 export default defineConfig({
   resolve: {

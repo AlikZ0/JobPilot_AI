@@ -1,79 +1,84 @@
-# Publishing to the Chrome Web Store
+# Публикация в Chrome Web Store
 
-## Before you upload
+## Перед загрузкой
 
 ```bash
 npm run lint && npm run typecheck && npm run test && npm run build
-xvfb-run -a npm run test:e2e
-npm run zip          # produces dist.zip
+npm run test:e2e
+npm run zip          # создаёт dist.zip
 ```
 
-Checklist:
+Чек-лист:
 
-- [ ] `version` in `public/manifest.json` bumped (and `package.json` to match)
-- [ ] Manifest V3 (V2 is no longer accepted)
-- [ ] No `<all_urls>` in `permissions`; host access stays optional
-- [ ] Icons at 16/32/48/128 present in `dist/icons`
-- [ ] No source maps needed in the upload (they are harmless but inflate the zip)
-- [ ] Fresh profile smoke test: install → onboarding → analyze a job → prepare an
-      application → export data
+- [ ] `version` в `public/manifest.json` увеличен (и `package.json` совпадает)
+- [ ] Manifest V3 (V2 больше не принимают)
+- [ ] В `permissions` нет `<all_urls>`; доступ к сайтам остаётся необязательным
+- [ ] Не больше 4 команд с `suggested_key` — иначе расширение не загрузится
+- [ ] Имя ≤ 45 символов, короткое имя ≤ 12, описание ≤ 132
+- [ ] Иконки 16/32/48/128 лежат в `dist/icons`
+- [ ] Дымовой прогон на чистом профиле: установка → онбординг → анализ вакансии →
+      подготовка заявки → экспорт данных
 
-## Permission justifications
+## Обоснования разрешений
 
-Copy these into the developer dashboard.
+Их можно скопировать в консоль разработчика.
 
-| Permission                                                | Justification                                                                                                                                       |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`, `unlimitedStorage`                             | Stores the user's profile, saved jobs, analyses and settings locally. Job descriptions and analyses can exceed the default quota.                   |
-| `sidePanel`                                               | The extension's main interface is a side panel shown next to the job posting.                                                                       |
-| `activeTab`                                               | Reads the posting in the tab the user is on, only after they press a JobPilot button.                                                               |
-| `scripting`                                               | Injects the extraction/form script on demand instead of running a content script on every page.                                                     |
-| `tabs`                                                    | Opens each posting from a search results page in a background tab during a scan and closes it afterwards.                                           |
-| `notifications`                                           | Notifies the user when a scan finds a high-scoring match. Can be disabled in settings.                                                              |
-| `optional_host_permissions` (`http://*/*`, `https://*/*`) | Job boards live on arbitrary domains. Access is requested per site, at the moment the user analyzes or scans there, and can be revoked in settings. |
+| Разрешение                                                | Обоснование                                                                                                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`, `unlimitedStorage`                             | Хранит профиль пользователя, сохранённые вакансии, анализы и настройки локально. Описания вакансий и анализы легко превышают базовую квоту. |
+| `sidePanel`                                               | Основной интерфейс расширения — боковая панель рядом с вакансией.                                                                           |
+| `activeTab`                                               | Читает вакансию в текущей вкладке, и только после нажатия кнопки JobPilot.                                                                  |
+| `scripting`                                               | Внедряет скрипт извлечения и работы с формой по требованию, вместо постоянного content-скрипта на всех страницах.                           |
+| `tabs`                                                    | Открывает вакансии из списка в фоновых вкладках во время массового анализа и закрывает их после.                                            |
+| `notifications`                                           | Сообщает пользователю о вакансии с высоким совпадением. Отключается в настройках.                                                           |
+| `optional_host_permissions` (`http://*/*`, `https://*/*`) | Job-сайты живут на произвольных доменах. Доступ запрашивается отдельно для каждого сайта в момент анализа и отзывается в настройках.        |
 
-## Data-usage disclosures
+## Раскрытие использования данных
 
-- **Personally identifiable information** — collected, stored on the user's device,
-  not transmitted to the developer.
-- **Not sold to third parties.**
-- **Not used or transferred for purposes unrelated to the item's core functionality.**
-- **Not used to determine creditworthiness or for lending.**
-- **Transmission to third parties**: only when the user configures an AI provider
-  and enables AI requests; the provider is chosen by the user and receives a
-  contact-free profile projection plus the job text.
+- **Персональные данные** — собираются, хранятся на устройстве пользователя,
+  разработчику не передаются.
+- **Не продаются третьим лицам.**
+- **Не используются и не передаются для целей, не связанных с основной
+  функциональностью.**
+- **Не используются для оценки кредитоспособности и кредитования.**
+- **Передача третьим лицам**: только если пользователь настроил AI-провайдера и
+  включил запросы к AI; провайдера выбирает он сам, и тот получает проекцию
+  профиля без контактных данных плюс текст вакансии.
 
-Link `docs/privacy.md` (or a hosted copy) as the privacy policy.
+В качестве политики конфиденциальности укажите `docs/privacy.md` (или её
+опубликованную копию).
 
-## Store listing
+## Карточка в магазине
 
-**Short description (132 chars max)**
+**Короткое описание (до 132 символов)**
 
-> Score job postings against your developer profile, see exactly why, and prepare
-> applications. You always confirm before submitting.
+> Оценивает вакансии по вашему профилю разработчика и помогает подготовить
+> отклик. Отправка — только по вашему подтверждению.
 
-**Detailed description** — cover: what it does, the deterministic scoring model,
-that AI is optional and off by default, that data stays local, that it never
-submits an application, and how site access works.
+**Подробное описание** — расскажите: что делает расширение, как устроена
+детерминированная модель оценки, что AI необязателен и выключен по умолчанию, что
+данные остаются локально, что заявку оно никогда не отправляет само и как
+выдаётся доступ к сайтам.
 
-**Screenshots (1280×800)** — dashboard with stats, a job card with its score
-breakdown, the bulk scan in progress, the application review screen showing the
-submit gate, and the settings privacy section.
+**Скриншоты (1280×800)** — обзор со статистикой, карточка вакансии с разбором
+балла, массовый анализ в процессе, экран проверки заявки с блокировкой отправки и
+раздел приватности в настройках.
 
-## Review notes for the reviewer
+## Заметка для проверяющего
 
-> JobPilot AI is a local-first job-matching assistant. All user data is stored in
-> IndexedDB on the user's machine; the extension has no backend. AI features are
-> optional, disabled by default, and use an API key that the user supplies for a
-> provider they choose. Host permissions are optional and requested per site at the
-> moment of use. The extension never submits a job application: it can fill fields
-> and draft text, but submission requires the user to act on the site itself.
+> JobPilot AI — локальный помощник по подбору вакансий. Все данные пользователя
+> хранятся в IndexedDB на его машине; бэкенда у расширения нет. AI-функции
+> необязательны, выключены по умолчанию и используют API-ключ, который
+> пользователь сам выдаёт для выбранного им провайдера. Доступ к сайтам
+> необязателен и запрашивается для каждого сайта в момент использования.
+> Расширение никогда не отправляет отклик: оно заполняет поля и готовит тексты,
+> но отправку выполняет сам пользователь на сайте.
 
-## After publishing
+## После публикации
 
-- Watch for adapter breakage (job boards change their DOM); `extractionQuality`
-  dropping is the early signal.
-- Bump `ANALYSIS_VERSION` whenever the scoring engine changes so users get
-  recomputed scores.
-- Keep the provider model lists in `src/providers/*/index.ts` current — they are
-  only suggestions, but stale defaults confuse new users.
+- Следите за поломкой адаптеров (job-сайты меняют вёрстку); первый сигнал —
+  падение `extractionQuality`.
+- Увеличивайте `ANALYSIS_VERSION` при каждом изменении движка скоринга, чтобы у
+  пользователей пересчитались баллы.
+- Держите списки моделей в `src/providers/*/index.ts` актуальными — это лишь
+  подсказки, но устаревшие значения путают новых пользователей.

@@ -71,14 +71,21 @@ export async function updateApplication(
  */
 export async function markSubmitted(id: string, confirmedByUser: boolean): Promise<Application> {
   if (!confirmedByUser) {
-    throw new Error('Заявку можно пометить отправленной только после явного подтверждения пользователя.');
+    throw new Error(
+      'Заявку можно пометить отправленной только после явного подтверждения пользователя.',
+    );
   }
   const application = await updateApplication(id, {
     state: 'submitted',
     submittedAt: Date.now(),
     submittedByUser: true,
   });
-  await logApplicationEvent(id, application.jobId, 'submit_confirmed', 'Пользователь подтвердил отправку');
+  await logApplicationEvent(
+    id,
+    application.jobId,
+    'submit_confirmed',
+    'Пользователь подтвердил отправку',
+  );
   return application;
 }
 

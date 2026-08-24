@@ -16,9 +16,7 @@ export function AnalysisPanel({ job, analysis }: Props) {
       <div className="flex items-center justify-between gap-2">
         <MatchScore score={analysis.score} band={analysis.band} size="lg" />
         <div className="text-right text-[11px] text-muted">
-          <p>
-            {analysis.usedAI ? `AI: ${analysis.model ?? 'модель неизвестна'}` : 'Без AI'}
-          </p>
+          <p>{analysis.usedAI ? `AI: ${analysis.model ?? 'модель неизвестна'}` : 'Без AI'}</p>
           <p>Профиль v{analysis.profileVersion}</p>
         </div>
       </div>

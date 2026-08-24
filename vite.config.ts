@@ -3,9 +3,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /**
- * Main extension build: side panel + popup HTML pages and the MV3 service
- * worker (an ES module). The content script is built separately as a
- * self-contained IIFE — see vite.content.config.ts.
+ * Основная сборка расширения: HTML-страницы боковой панели и попапа плюс service
+ * worker MV3 (ES-модуль). Content-скрипт собирается отдельно самодостаточным
+ * IIFE — см. vite.content.config.ts.
  */
 export default defineConfig({
   plugins: [react()],

@@ -72,7 +72,10 @@ export async function startScan(params: StartScanParams): Promise<ScanProgress> 
   );
   const targets = params.jobs.slice(0, limit);
   if (targets.length === 0) {
-    throw new JobPilotError(ERROR_CODES.NO_JOB_ON_PAGE, 'На этой странице не найдено ссылок на вакансии.');
+    throw new JobPilotError(
+      ERROR_CODES.NO_JOB_ON_PAGE,
+      'На этой странице не найдено ссылок на вакансии.',
+    );
   }
   if (!(await hasHostPermission(params.listingUrl))) {
     throw new JobPilotError(

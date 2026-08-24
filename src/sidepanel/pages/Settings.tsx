@@ -227,7 +227,10 @@ export function SettingsPage() {
             <option value="session">Только на сессию</option>
           </select>
         </Row>
-        <Row label="Модель" hint={provider.suggestedModels.join(', ') || 'Укажите идентификатор модели.'}>
+        <Row
+          label="Модель"
+          hint={provider.suggestedModels.join(', ') || 'Укажите идентификатор модели.'}
+        >
           <input
             className="jp-input w-44 py-1"
             list="jp-models"
@@ -436,7 +439,10 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Передавать опыт работы в AI" hint="Нужно, чтобы письма опирались на реальные факты.">
+        <Row
+          label="Передавать опыт работы в AI"
+          hint="Нужно, чтобы письма опирались на реальные факты."
+        >
           <input
             type="checkbox"
             checked={settings.privacy.shareExperienceWithAI}
@@ -447,7 +453,10 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Передавать контакты в AI" hint="Никогда. Имя, почта и телефон остаются локально.">
+        <Row
+          label="Передавать контакты в AI"
+          hint="Никогда. Имя, почта и телефон остаются локально."
+        >
           <input type="checkbox" checked={false} readOnly disabled />
         </Row>
         <Row label="Хранить обоснования AI" hint="Сохраняет объяснения в локальной базе.">

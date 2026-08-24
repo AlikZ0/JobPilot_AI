@@ -32,7 +32,9 @@ export function JobDetail() {
         <p className="text-[12px] text-muted">
           {job.company}
           {job.location ? ` · ${job.location}` : ''}
-          {job.employmentType !== 'unknown' ? ` · ${EMPLOYMENT_TYPE_LABEL[job.employmentType]}` : ''}
+          {job.employmentType !== 'unknown'
+            ? ` · ${EMPLOYMENT_TYPE_LABEL[job.employmentType]}`
+            : ''}
         </p>
       </header>
 

@@ -74,8 +74,8 @@ export function Profile() {
       <section className="flex flex-col gap-2">
         <h3 className="jp-section-title">Импорт из резюме</h3>
         <p className="text-[11px] text-muted">
-          Вставьте текст резюме. JobPilot предложит навыки, которые смог прочитать в документе, — сам
-          он никогда не добавляет в профиль неподтверждённые факты.
+          Вставьте текст резюме. JobPilot предложит навыки, которые смог прочитать в документе, —
+          сам он никогда не добавляет в профиль неподтверждённые факты.
         </p>
         <textarea
           className="jp-input min-h-[90px]"

@@ -236,7 +236,10 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               />
             </Field>
           </div>
-          <Field label="О себе" hint="На этом AI строит сопроводительные письма, не выдумывая фактов.">
+          <Field
+            label="О себе"
+            hint="На этом AI строит сопроводительные письма, не выдумывая фактов."
+          >
             <textarea
               className="jp-input min-h-[70px]"
               value={profile.professional.summary}

@@ -1,75 +1,76 @@
-# Privacy
+# Приватность
 
-## What is stored, and where
+## Что и где хранится
 
-| Data                                            | Location                            | Leaves the device?                                         |
-| ----------------------------------------------- | ----------------------------------- | ---------------------------------------------------------- |
-| Profile (name, contacts, links, stack, history) | IndexedDB                           | No                                                         |
-| Attachments (CV, documents)                     | IndexedDB, as data URLs             | No                                                         |
-| Jobs, analyses, applications, events            | IndexedDB                           | No                                                         |
-| Settings                                        | IndexedDB                           | No                                                         |
-| API keys                                        | `chrome.storage` (local or session) | Only in the `Authorization` header of your chosen provider |
-| Assistant conversation                          | IndexedDB                           | Only the current question plus the selected context slice  |
+| Данные                                      | Где                                        | Покидают устройство?                                          |
+| ------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------- |
+| Профиль (имя, контакты, ссылки, стек, опыт) | IndexedDB                                  | Нет                                                           |
+| Вложения (резюме, документы)                | IndexedDB, как data URL                    | Нет                                                           |
+| Вакансии, анализы, заявки, события          | IndexedDB                                  | Нет                                                           |
+| Настройки                                   | IndexedDB                                  | Нет                                                           |
+| API-ключи                                   | `chrome.storage` (постоянно или на сессию) | Только в заголовке `Authorization` выбранного вами провайдера |
+| Переписка с ассистентом                     | IndexedDB                                  | Только текущий вопрос и выбранный срез контекста              |
 
-There is no JobPilot server. Nothing is uploaded anywhere unless you enable AI
-requests, and then only to the provider you configured.
+Сервера у JobPilot нет. Никуда ничего не выгружается, пока вы не включите запросы
+к AI, и тогда — только тому провайдеру, которого вы настроили.
 
-## What is sent to an AI provider
+## Что уходит AI-провайдеру
 
-`buildAIProfile()` (`core/ai/profileProjection.ts`) builds the projection. It
-contains role, seniority, years, summary, skills by category, languages, country
-and city, salary expectation, and preferences — plus work history **only** if
-_Share work history with AI_ is on.
+Проекцию строит `buildAIProfile()` (`core/ai/profileProjection.ts`). В неё входят
+должность, уровень, годы опыта, «о себе», навыки по категориям, языки, страна и
+город, зарплатные ожидания и предпочтения — плюс опыт работы, **только если**
+включено «Передавать опыт работы в AI».
 
-It never contains:
+В ней никогда нет:
 
-- first or last name
-- email address
-- phone number
-- LinkedIn / GitHub / portfolio URLs
-- attachments
+- имени и фамилии;
+- адреса электронной почты;
+- телефона;
+- ссылок на LinkedIn, GitHub и портфолио;
+- вложений.
 
-`shareContactDetailsWithAI` is `z.literal(false)` in the settings schema — it cannot
-be turned on, and a test asserts that no fixture contact detail appears in an
-outgoing prompt.
+`shareContactDetailsWithAI` — это `z.literal(false)` в схеме настроек: включить
+его нельзя, и отдельный тест проверяет, что контакты из тестовых данных не
+появляются в исходящем промпте.
 
-Job text is truncated to `maxDescriptionChars` (default 6000) before sending.
+Текст вакансии обрезается до `maxDescriptionChars` (по умолчанию 6000) перед
+отправкой.
 
-## Defaults
+## Значения по умолчанию
 
-- **AI requests: off.** Extraction, matching, scoring, deduplication, autofill of
-  known fields, the dashboard and export/import all work with AI disabled.
-- **Notifications: on**, only for scores at or above your threshold.
-- **Site access: none.** Granted per origin, when you ask for it.
-- **Analytics: local only.** The dashboard is computed from your own database;
-  nothing is reported anywhere.
+- **Запросы к AI: выключены.** Извлечение, сопоставление, подсчёт балла, поиск
+  дублей, автозаполнение известных полей, обзор и экспорт/импорт работают без AI.
+- **Уведомления: включены**, но только для баллов не ниже вашего порога.
+- **Доступ к сайтам: нет.** Выдаётся по одному origin, когда вы об этом просите.
+- **Аналитика: только локальная.** Обзор считается по вашей же базе, никуда
+  ничего не отправляется.
 
-## Logging
+## Логирование
 
-`utils/logger.ts` redacts before anything reaches the console:
+`utils/logger.ts` маскирует данные до того, как что-то попадёт в консоль:
 
-- keys named `key`, `token`, `secret`, `password`, `authorization`, `apikey` →
-  `[redacted]`
-- keys named `email`, `phone`, `firstName`, `lastName`, `dataUrl` → `[pii]`
-- string patterns: email addresses → `[email]`, long digit runs → `[phone]`,
-  `sk-…` / `AIza…` / `Bearer …` → `[secret]`
+- поля с именами `key`, `token`, `secret`, `password`, `authorization`, `apikey` →
+  `[redacted]`;
+- поля `email`, `phone`, `firstName`, `lastName`, `dataUrl` → `[pii]`;
+- в строках: адреса почты → `[email]`, длинные последовательности цифр →
+  `[phone]`, `sk-…` / `AIza…` / `Bearer …` → `[secret]`.
 
-Debug logging is only enabled in development builds.
+Отладочные логи включены только в dev-сборке.
 
-## Your controls
+## Что вы контролируете
 
-| Control                           | Where                                 |
-| --------------------------------- | ------------------------------------- |
-| Turn AI off entirely              | Settings → Privacy                    |
-| Stop sharing work history         | Settings → Privacy                    |
-| Stop storing AI reasoning         | Settings → Privacy                    |
-| Session-only API keys             | Settings → AI provider → Key storage  |
-| Revoke a site's access            | Settings → Permissions                |
-| Export everything as JSON         | Settings → Your data                  |
-| Import a backup                   | Settings → Your data                  |
-| Delete everything, including keys | Settings → Your data → Clear all data |
+| Настройка                        | Где                                          |
+| -------------------------------- | -------------------------------------------- |
+| Полностью выключить AI           | Настройки → Приватность                      |
+| Перестать передавать опыт работы | Настройки → Приватность                      |
+| Не хранить обоснования AI        | Настройки → Приватность                      |
+| Ключи только на сессию           | Настройки → AI-провайдер → Хранение ключа    |
+| Отозвать доступ к сайту          | Настройки → Разрешения                       |
+| Экспорт всего в JSON             | Настройки → Ваши данные                      |
+| Импорт резервной копии           | Настройки → Ваши данные                      |
+| Удалить всё, включая ключи       | Настройки → Ваши данные → Удалить все данные |
 
-## Export format
+## Формат экспорта
 
 ```jsonc
 {
@@ -85,13 +86,15 @@ Debug logging is only enabled in development builds.
 }
 ```
 
-API keys are deliberately absent. Imports are validated with Zod, refuse a newer
-`version`, and skip applications whose job is missing (reporting how many).
+API-ключей здесь намеренно нет. Импорт валидируется Zod, отклоняет файл с более
+новым `version` и пропускает заявки, для которых нет вакансии (сообщая, сколько
+именно пропущено).
 
-## Chrome Web Store data disclosures
+## Раскрытие данных для Chrome Web Store
 
-- Personally identifiable information: **collected** (stored locally only, not
-  transmitted by the developer).
-- Not sold to third parties, not used for advertising, not used for creditworthiness.
-- Transmitted to a third party only when the user configures an AI provider and
-  enables AI requests; the destination is chosen by the user.
+- Персональные данные: **собираются** (хранятся локально, разработчику не
+  передаются).
+- Не продаются третьим лицам, не используются для рекламы и не применяются для
+  оценки кредитоспособности.
+- Передаются третьей стороне только когда пользователь настроил AI-провайдера и
+  включил запросы к AI; получателя выбирает сам пользователь.

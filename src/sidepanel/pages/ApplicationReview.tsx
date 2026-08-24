@@ -50,8 +50,8 @@ export function ApplicationReview() {
     setMappings(application.fieldMappings);
     setCoverLetter(application.coverLetter);
     setConfirmChecked(false);
-    // Re-syncs whenever the stored application changes; `applicationKey`
-    // captures both identity and revision.
+    // Пересинхронизируется при любом изменении сохранённой заявки:
+    // `applicationKey` включает и её id, и время последнего обновления.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationKey]);
 
@@ -137,8 +137,7 @@ export function ApplicationReview() {
       if (result.status === 'needs_user_confirmation') {
         pushToast({
           level: 'warning',
-          message:
-            'Ответ требует подтверждения: в нём есть факты, которых нет в профиле.',
+          message: 'Ответ требует подтверждения: в нём есть факты, которых нет в профиле.',
         });
       }
     });

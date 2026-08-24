@@ -148,12 +148,8 @@ test.describe('боковая панель', () => {
 
   test('сначала просит доступ к сайту, потом предлагает действия', async ({ panel }) => {
     await completeOnboarding(panel);
-    await expect(
-      panel.getByRole('heading', { name: 'Этот сайт ещё не подключён' }),
-    ).toBeVisible();
-    await expect(
-      panel.getByRole('button', { name: 'Выдать доступ к этому сайту' }),
-    ).toBeVisible();
+    await expect(panel.getByRole('heading', { name: 'Этот сайт ещё не подключён' })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Выдать доступ к этому сайту' })).toBeVisible();
   });
 
   test('показывает сохранённую вакансию с баллом и объяснением', async ({ panel }) => {
@@ -196,9 +192,7 @@ test.describe('боковая панель', () => {
     await panel.getByRole('button', { name: /Senior Node\.js Developer/ }).click();
 
     await expect(panel.getByRole('heading', { name: '4 · Проверка и отправка' })).toBeVisible();
-    await expect(
-      panel.getByText('JobPilot никогда не отправляет заявку за вас.'),
-    ).toBeVisible();
+    await expect(panel.getByText('JobPilot никогда не отправляет заявку за вас.')).toBeVisible();
 
     const submit = panel.getByRole('button', { name: 'Зафиксировать отправку' });
     await expect(submit).toBeDisabled();

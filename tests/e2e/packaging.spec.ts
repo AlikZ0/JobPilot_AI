@@ -47,7 +47,7 @@ test.describe('собранное расширение', () => {
   test('собирает content-скрипт как самодостаточный классический скрипт', () => {
     const source = readFileSync(resolve(DIST, 'content/index.js'), 'utf8');
     expect(source.length).toBeGreaterThan(1000);
-    // An injected file cannot use ESM syntax.
+    // Внедряемый файл не может использовать синтаксис ESM.
     expect(source).not.toMatch(/^\s*import\s/m);
     expect(source).not.toMatch(/^\s*export\s/m);
   });

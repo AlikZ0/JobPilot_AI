@@ -1,77 +1,79 @@
-# Security
+# Безопасность
 
-## Threat model
+## Модель угроз
 
-JobPilot runs inside pages it does not control, holds an API key, and stores
-personal data. The three things that must never happen:
+JobPilot работает внутри страниц, которые ему не принадлежат, держит API-ключ и
+хранит персональные данные. Три вещи, которые не должны случиться никогда:
 
-1. A job site reads the API key or the profile.
-2. Text from a page or a model is executed as code.
-3. An application is submitted without an explicit human action.
+1. Сайт вакансий получает API-ключ или профиль.
+2. Текст со страницы или из модели выполняется как код.
+3. Заявка отправляется без явного действия человека.
 
-## No remote code
+## Никакого удалённого кода
 
-- Manifest V3 with `script-src 'self'; object-src 'self'`.
-- No `eval`, no `new Function`, no remote script tags, no `innerHTML`.
-- ESLint enforces `no-eval`, `no-implied-eval`, `no-new-func`; a unit test
-  (`tests/unit/security.test.ts`) greps the whole of `src/` for `eval(`,
-  `new Function(`, `.innerHTML =` and `dangerouslySetInnerHTML` and fails the build
-  if any appears.
-- HTML from JSON-LD is converted to text with a regex/entity decoder
-  (`core/extraction/html.ts`) rather than by assigning it to a DOM node.
+- Manifest V3 с `script-src 'self'; object-src 'self'`.
+- Нет `eval`, `new Function`, внешних `<script>` и `innerHTML`.
+- ESLint включает `no-eval`, `no-implied-eval`, `no-new-func`; юнит-тест
+  (`tests/unit/security.test.ts`) проходит grep-ом по всему `src/` в поисках
+  `eval(`, `new Function(`, `.innerHTML =` и `dangerouslySetInnerHTML` и валит
+  сборку при находке.
+- HTML из JSON-LD превращается в текст собственным декодером
+  (`core/extraction/html.ts`), а не присваиванием в DOM-узел.
 
-## AI output is data
+## Вывод AI — это данные
 
-Every response goes through `parseAIJson()` → Zod. Unvalidated model text never
-reaches the DOM, a selector, a URL, or storage. Enum fields (red-flag codes, field
-types, seniority) reject unknown values instead of coercing them.
+Каждый ответ проходит `parseAIJson()` → Zod. Непроверенный текст модели не
+попадает ни в DOM, ни в селектор, ни в URL, ни в хранилище. Поля-перечисления
+(коды красных флагов, типы полей, уровни) отклоняют неизвестные значения, а не
+приводят их к чему-то.
 
-## API keys
+## API-ключи
 
-| Rule                                                   | Where it is enforced                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Keys live in `chrome.storage`, optionally session-only | `core/ai/keyStore.ts`                                                                |
-| Keys are never written to IndexedDB                    | nothing else writes them                                                             |
-| Keys are never exported                                | `database/transfer.ts` reads only DB stores                                          |
-| Keys are never logged                                  | `utils/logger.ts` redacts `key`/`token`/`secret`/`authorization` and `sk-…` patterns |
-| Keys are never read outside the service worker         | unit test greps `src/content`, `src/sidepanel`, `src/popup` for `getApiKey(`         |
-| Keys never reach a job site                            | providers are only called from the background context                                |
+| Правило                                                      | Где обеспечивается                                                                       |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Ключи лежат в `chrome.storage`, при желании только на сессию | `core/ai/keyStore.ts`                                                                    |
+| В IndexedDB ключи не пишутся                                 | больше их никто не пишет                                                                 |
+| В экспорт ключи не попадают                                  | `database/transfer.ts` читает только таблицы БД                                          |
+| В логи ключи не попадают                                     | `utils/logger.ts` маскирует `key`/`token`/`secret`/`authorization` и шаблоны вида `sk-…` |
+| Вне service worker ключи не читаются                         | юнит-тест грепает `src/content`, `src/sidepanel`, `src/popup` на `getApiKey(`            |
+| На сайт вакансий ключи не уходят                             | провайдеры вызываются только из фонового контекста                                       |
 
-The Settings page can _write_ a key; it can never read one back. It shows a masked
-placeholder instead.
+Страница настроек умеет _записать_ ключ, но не прочитать его обратно: вместо
+значения она показывает подпись о том, что ключ сохранён.
 
-## Permissions
+## Разрешения
 
-Install-time permissions are the minimum needed to function: `storage`,
-`unlimitedStorage`, `sidePanel`, `activeTab`, `scripting`, `tabs`, `notifications`.
+При установке запрашивается минимум: `storage`, `unlimitedStorage`, `sidePanel`,
+`activeTab`, `scripting`, `tabs`, `notifications`.
 
-There are **no install-time host permissions**. Site access is requested per origin
-via `chrome.permissions.request()` from a user gesture in the side panel or popup,
-and can be revoked from Settings. The content script is injected with
-`chrome.scripting.executeScript` only after that grant.
+**Доступ к сайтам при установке не запрашивается вовсе.** Он выдаётся по одному
+origin через `chrome.permissions.request()` из пользовательского жеста в панели
+или попапе и отзывается в настройках. Content-скрипт внедряется через
+`chrome.scripting.executeScript` только после этого.
 
-## The submit rule
+## Правило отправки
 
-Three independent mechanisms:
+Три независимых механизма:
 
-1. `settingsSchema.automation.requireConfirmationBeforeSubmit` is `z.literal(true)`,
-   and `coerceInvariants()` re-forces it on every read and write.
-2. The application state machine only allows `ready → submitted`.
-3. `markSubmitted(id, confirmedByUser)` throws unless `confirmedByUser` is true, and
-   the only caller is the review screen's button, which is disabled until the user
-   ticks the confirmation checkbox.
+1. `settingsSchema.automation.requireConfirmationBeforeSubmit` — это
+   `z.literal(true)`, а `coerceInvariants()` восстанавливает его при каждом чтении
+   и записи.
+2. Машина состояний заявки разрешает только переход `ready → submitted`.
+3. `markSubmitted(id, confirmedByUser)` бросает исключение, если
+   `confirmedByUser` не true, а единственный вызывающий код — кнопка на экране
+   проверки, заблокированная до установки галочки.
 
-The filler never clicks a submit control and never calls `form.submit()` or
-`form.requestSubmit()` — also grepped for in the security test.
+Филлер не нажимает кнопки отправки и не вызывает `form.submit()` или
+`form.requestSubmit()` — это тоже проверяется тестом безопасности.
 
-## Content script boundaries
+## Границы content-скрипта
 
-The content script can: read the DOM, report detected fields, and write values into
-fields the user approved. It cannot: make network requests, read storage, see a
-key, or submit a form. It is injected on demand and guards against double
-registration.
+Content-скрипт может: читать DOM, сообщать о найденных полях и записывать
+значения в поля, которые одобрил пользователь. Он не может: делать сетевые
+запросы, читать хранилище, видеть ключ или отправлять форму. Внедряется он по
+требованию и защищён от повторной регистрации.
 
-## Dependencies
+## Зависимости
 
-Runtime dependencies are limited to React, Zustand, Dexie and Zod. There is no
-analytics SDK, no error-reporting SDK and no CDN asset — everything is bundled.
+В рантайме используются только React, Zustand, Dexie и Zod. Нет ни аналитики, ни
+SDK для отчётов об ошибках, ни ресурсов с CDN — всё собирается в бандл.
