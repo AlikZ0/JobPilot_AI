@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --jp-surface: 255 255 255;
+    --jp-surface-2: 246 247 251;
+    --jp-surface-3: 237 239 246;
+    --jp-border: 214 218 230;
+    --jp-text: 20 23 32;
+    --jp-text-muted: 96 103 122;
+    --jp-brand: 79 70 229;
+    --jp-brand-fg: 255 255 255;
+    --jp-excellent: 21 128 61;
+    --jp-good: 22 101 152;
+    --jp-potential: 161 98 7;
+    --jp-weak: 180 83 9;
+    --jp-poor: 185 28 28;
+    color-scheme: light;
+  }
+
+  [data-theme='dark'] {
+    --jp-surface: 17 19 26;
+    --jp-surface-2: 24 27 36;
+    --jp-surface-3: 33 37 49;
+    --jp-border: 51 57 74;
+    --jp-text: 233 236 243;
+    --jp-text-muted: 152 160 180;
+    --jp-brand: 129 122 255;
+    --jp-brand-fg: 12 13 18;
+    --jp-excellent: 74 222 128;
+    --jp-good: 96 165 250;
+    --jp-potential: 250 204 21;
+    --jp-weak: 251 146 60;
+    --jp-poor: 248 113 113;
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-surface text-content font-sans text-[13px] antialiased;
+    margin: 0;
+  }
+
+  * {
+    scrollbar-width: thin;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+}
+
+@layer components {
+  .jp-card {
+    @apply rounded-lg border border-border bg-surface-2 p-3;
+  }
+
+  .jp-button {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-border
+           bg-surface px-2.5 py-1.5 text-[12px] font-medium text-content transition
+           hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .jp-button-primary {
+    @apply jp-button border-transparent bg-brand text-brand-fg hover:opacity-90;
+  }
+
+  .jp-button-ghost {
+    @apply jp-button border-transparent bg-transparent hover:bg-surface-3;
+  }
+
+  .jp-input {
+    @apply w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px]
+           text-content placeholder:text-muted focus:border-brand focus:outline-none;
+  }
+
+  .jp-label {
+    @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted;
+  }
+
+  .jp-badge {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-3
+           px-2 py-0.5 text-[11px] font-medium;
+  }
+
+  .jp-section-title {
+    @apply text-[11px] font-semibold uppercase tracking-wide text-muted;
+  }
+}

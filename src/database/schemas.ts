@@ -1,0 +1,38 @@
+import { z } from 'zod';
+import { applicationSchema, applicationQuestionSchema } from '@/types/application';
+import { jobAnalysisSchema } from '@/types/ai';
+import { jobSchema } from '@/types/job';
+import { userProfileSchema } from '@/types/profile';
+import { settingsSchema } from '@/types/settings';
+
+export const EXPORT_VERSION = 1;
+
+export const exportBundleSchema = z.object({
+  version: z.number().int().min(1),
+  exportedAt: z.string(),
+  app: z.string().default('jobpilot-ai'),
+  appVersion: z.string().default(''),
+  profile: userProfileSchema.nullable().default(null),
+  settings: settingsSchema.nullable().default(null),
+  jobs: z.array(jobSchema).default([]),
+  analyses: z.array(jobAnalysisSchema).default([]),
+  applications: z.array(applicationSchema).default([]),
+});
+export type ExportBundle = z.infer<typeof exportBundleSchema>;
+
+export const importOptionsSchema = z.object({
+  profile: z.boolean().default(true),
+  settings: z.boolean().default(true),
+  jobs: z.boolean().default(true),
+  applications: z.boolean().default(true),
+  mode: z.enum(['merge', 'replace']).default('merge'),
+});
+export type ImportOptions = z.infer<typeof importOptionsSchema>;
+
+export {
+  applicationQuestionSchema,
+  applicationSchema,
+  jobSchema,
+  userProfileSchema,
+  settingsSchema,
+};
