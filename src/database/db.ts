@@ -5,6 +5,7 @@ import type { AIUsageRecord, JobAnalysis } from '@/types/ai';
 import type { Job } from '@/types/job';
 import type { UserProfile } from '@/types/profile';
 import type { Settings } from '@/types/settings';
+import type { ResumeRecord } from '@/types/resume';
 
 export interface AssistantMessageRecord {
   id: string;
@@ -42,6 +43,7 @@ export class JobPilotDatabase extends Dexie {
   aiUsage!: Table<AIUsageRecord, string>;
   assistantMessages!: Table<AssistantMessageRecord, string>;
   scanSessions!: Table<ScanSessionRecord, string>;
+  resumes!: Table<ResumeRecord, string>;
 
   constructor(name = 'jobpilot') {
     super(name);
@@ -60,6 +62,10 @@ export class JobPilotDatabase extends Dexie {
     // поэтому перечисляем только новое хранилище.
     this.version(2).stores({
       submissions: 'id, jobId, applicationId, at, source, hostname',
+    });
+    // v3 — резюме: исходное и подогнанные под конкретные вакансии.
+    this.version(3).stores({
+      resumes: 'id, jobId, updatedAt',
     });
   }
 }
@@ -91,6 +97,7 @@ export async function clearAllData(): Promise<void> {
       db.aiUsage,
       db.assistantMessages,
       db.scanSessions,
+      db.resumes,
     ],
     async () => {
       await Promise.all([
@@ -104,6 +111,7 @@ export async function clearAllData(): Promise<void> {
         db.aiUsage.clear(),
         db.assistantMessages.clear(),
         db.scanSessions.clear(),
+        db.resumes.clear(),
       ]);
     },
   );

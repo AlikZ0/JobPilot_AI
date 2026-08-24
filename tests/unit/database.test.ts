@@ -173,6 +173,7 @@ describe('кеш анализов', () => {
       matchedSkills: [],
       missingSkills: [],
       bonusSkills: [],
+      versionMismatches: [],
       seniorityMatch: true,
       salaryMatch: true,
       locationMatch: true,

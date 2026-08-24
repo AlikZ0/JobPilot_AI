@@ -26,6 +26,7 @@ export type Route =
   | 'applications'
   | 'application'
   | 'assistant'
+  | 'resume'
   | 'settings'
   | 'onboarding';
 

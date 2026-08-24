@@ -17,6 +17,8 @@ import {
   buildJobAnalysisPrompt,
   buildResumeAnalysisPrompt,
 } from '@/core/ai/prompts';
+import { buildResumeTailoringPrompt } from '@/core/ai/prompts/resumeTailoring';
+import { tailoredResumeSchema } from '@/types/resume';
 import { parseAIJson } from '@/core/ai/jsonParse';
 import type {
   AIProvider,
@@ -30,6 +32,7 @@ import type {
   JobAnalysisInput,
   ProviderCredentials,
   ResumeAnalysisInput,
+  ResumeTailoringInput,
   TaskContext,
   TaskResult,
 } from '@/core/ai/types';
@@ -104,6 +107,19 @@ export abstract class BaseAIProvider implements AIProvider {
 
   askAssistant(input: AssistantInput, ctx: TaskContext) {
     return this.run('assistant', buildAssistantPrompt(input), assistantReplySchema, ctx);
+  }
+
+  tailorResume(input: ResumeTailoringInput, ctx: TaskContext) {
+    return this.run(
+      'resume_tailoring',
+      buildResumeTailoringPrompt(input),
+      tailoredResumeSchema,
+      ctx,
+      {
+        temperature: Math.max(ctx.config.temperature, 0.3),
+        maxTokens: Math.max(ctx.config.maxTokens, 4096),
+      },
+    );
   }
 
   analyzeResume(input: ResumeAnalysisInput, ctx: TaskContext) {
