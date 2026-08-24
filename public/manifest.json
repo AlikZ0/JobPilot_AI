@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "JobPilot AI — Job Match & Application Assistant",
+  "short_name": "JobPilot AI",
+  "version": "0.1.0",
+  "description": "Analyze job postings against your developer profile, score the match, and prepare applications. You always confirm before anything is submitted.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open JobPilot AI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_popup": "src/popup/index.html"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "options_page": "src/sidepanel/index.html",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "tabs",
+    "notifications"
+  ],
+  "optional_permissions": ["downloads"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Alt+Shift+J" },
+      "description": "Open the JobPilot popup"
+    },
+    "open-side-panel": {
+      "suggested_key": { "default": "Alt+Shift+P" },
+      "description": "Open the JobPilot side panel"
+    },
+    "analyze-current-job": {
+      "suggested_key": { "default": "Alt+Shift+A" },
+      "description": "Analyze the job posting in the current tab"
+    },
+    "save-current-job": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Save the job posting in the current tab"
+    },
+    "prepare-application": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Prepare an application for the current job"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-ancestors 'none'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
