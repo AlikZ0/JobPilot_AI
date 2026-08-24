@@ -2,7 +2,7 @@ import { getDb } from '../db';
 import { jobAnalysisSchema, type JobAnalysis } from '@/types/ai';
 
 /** Увеличивайте при изменении движка скоринга, чтобы старые анализы пересчитались. */
-export const ANALYSIS_VERSION = 1;
+export const ANALYSIS_VERSION = 2;
 
 export async function saveAnalysis(analysis: JobAnalysis): Promise<JobAnalysis> {
   const parsed = jobAnalysisSchema.parse(analysis);

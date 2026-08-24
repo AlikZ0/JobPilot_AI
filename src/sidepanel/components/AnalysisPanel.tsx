@@ -63,6 +63,16 @@ export function AnalysisPanel({ job, analysis }: Props) {
             <SkillBadge key={`b-${skill}`} name={skill} kind="bonus" />
           ))}
         </div>
+        {analysis.versionMismatches.length > 0 ? (
+          <ul className="mt-2 flex flex-col gap-0.5 text-[11px] text-potential">
+            {analysis.versionMismatches.map((mismatch) => (
+              <li key={mismatch.skill}>
+                ⚠ {mismatch.skill}: вакансии нужна версия {mismatch.required}, в профиле{' '}
+                {mismatch.have.join(', ') || 'версия не указана'}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted">
           <span className="flex items-center gap-1">
             <Icon name="check" size={10} strokeWidth={2.6} /> есть у вас

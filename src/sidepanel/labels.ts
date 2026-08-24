@@ -5,6 +5,7 @@ import type {
   LanguageLevel,
   Seniority,
   SkillCategory,
+  SkillLevel,
   WorkMode,
 } from '@/types/profile';
 import type { FormFieldType } from '@/types/ai';
@@ -95,6 +96,13 @@ export const EMPLOYMENT_TYPE_LABEL: Record<EmploymentType, string> = {
   freelance: 'фриланс',
   internship: 'стажировка',
   temporary: 'временная работа',
+};
+
+export const SKILL_LEVEL_LABEL: Record<SkillLevel, string> = {
+  basic: 'базовый',
+  intermediate: 'средний',
+  advanced: 'продвинутый',
+  expert: 'эксперт',
 };
 
 export const SKILL_CATEGORY_LABEL: Record<SkillCategory, string> = {

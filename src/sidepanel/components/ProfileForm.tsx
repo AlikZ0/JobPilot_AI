@@ -4,13 +4,20 @@ import {
   LANGUAGE_LEVELS,
   SENIORITY_LEVELS,
   SKILL_CATEGORIES,
+  SKILL_LEVELS,
   WORK_MODES,
+  makeSkill,
   type LanguageLevel,
   type Skill,
   type SkillCategory,
+  type SkillLevel,
   type UserProfile,
 } from '@/types/profile';
-import { canonicalizeTech, categoryOf } from '@/core/extraction/techDictionary';
+import {
+  canonicalizeTech,
+  categoryOf,
+  splitNameAndVersion,
+} from '@/core/extraction/techDictionary';
 import { createId } from '@/utils/id';
 import {
   EMPLOYMENT_TYPE_LABEL,
@@ -18,6 +25,7 @@ import {
   SALARY_PERIOD_LABEL,
   SENIORITY_LABEL,
   SKILL_CATEGORY_LABEL,
+  SKILL_LEVEL_LABEL,
   WORK_MODE_LABEL,
 } from '../labels';
 import { Icon } from './Icon';
@@ -59,21 +67,47 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
     'experience',
   ];
   const [skillDraft, setSkillDraft] = useState('');
+  const [skillVersion, setSkillVersion] = useState('');
+  const [skillLevel, setSkillLevel] = useState<SkillLevel>('intermediate');
   const [skillCategory, setSkillCategory] = useState<SkillCategory>('frontend');
   const [languageDraft, setLanguageDraft] = useState('');
   const [languageLevel, setLanguageLevel] = useState<LanguageLevel>('b2');
 
   const addSkill = () => {
-    const name = canonicalizeTech(skillDraft.trim());
+    // «Vue 3» в поле имени разбирается на название и версию.
+    const parsed = splitNameAndVersion(skillDraft.trim());
+    const name = canonicalizeTech(parsed.name);
     if (!name) return;
-    if (profile.skills.some((skill) => skill.name.toLowerCase() === name.toLowerCase())) {
+    const version = skillVersion.trim() || parsed.version;
+    const duplicate = profile.skills.some(
+      (skill) =>
+        skill.name.toLowerCase() === name.toLowerCase() && (skill.version ?? '') === version,
+    );
+    if (duplicate) {
       setSkillDraft('');
+      setSkillVersion('');
       return;
     }
-    const skill: Skill = { name, category: skillCategory, primary: false };
+    const skill: Skill = makeSkill({
+      name,
+      category: skillCategory,
+      version,
+      level: skillLevel,
+    });
     onChange({ skills: [...profile.skills, skill] });
     setSkillDraft('');
+    setSkillVersion('');
   };
+
+  /** Ключ навыка: название плюс версия, чтобы Vue 2 и Vue 3 были разными. */
+  const skillKey = (skill: Skill) => `${skill.name}@${skill.version || '*'}`;
+
+  const patchSkill = (target: Skill, patch: Partial<Skill>) =>
+    onChange({
+      skills: profile.skills.map((entry) =>
+        skillKey(entry) === skillKey(target) ? { ...entry, ...patch } : entry,
+      ),
+    });
 
   const toggleArray = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter((entry) => entry !== value) : [...list, value];
@@ -318,39 +352,67 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
       {visible.includes('skills') ? (
         <section className="flex flex-col gap-2">
           <h3 className="jp-section-title">Технический стек</h3>
-          <div className="flex gap-1.5">
-            <input
-              className="jp-input"
-              placeholder="Добавьте любую технологию…"
-              value={skillDraft}
-              onChange={(event) => {
-                setSkillDraft(event.target.value);
-                const guessed = categoryOf(event.target.value);
-                if (guessed !== 'other') setSkillCategory(guessed);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  addSkill();
-                }
-              }}
-              aria-label="Название технологии"
-            />
-            <select
-              className="jp-input w-28"
-              value={skillCategory}
-              onChange={(event) => setSkillCategory(event.target.value as SkillCategory)}
-              aria-label="Категория навыка"
-            >
-              {SKILL_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {SKILL_CATEGORY_LABEL[category]}
-                </option>
-              ))}
-            </select>
-            <button type="button" className="jp-button-primary" onClick={addSkill}>
-              Добавить
-            </button>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex gap-1.5">
+              <input
+                className="jp-input"
+                placeholder="Например: Vue 3, React, Node.js"
+                value={skillDraft}
+                onChange={(event) => {
+                  setSkillDraft(event.target.value);
+                  const guessed = categoryOf(splitNameAndVersion(event.target.value).name);
+                  if (guessed !== 'other') setSkillCategory(guessed);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addSkill();
+                  }
+                }}
+                aria-label="Название технологии"
+              />
+              <input
+                className="jp-input w-16"
+                placeholder="верс."
+                value={skillVersion}
+                onChange={(event) => setSkillVersion(event.target.value)}
+                aria-label="Версия"
+                title="Мажорная версия, например 3 для Vue 3. Пусто — версия не важна."
+              />
+              <button type="button" className="jp-button-primary" onClick={addSkill}>
+                Добавить
+              </button>
+            </div>
+            <div className="flex gap-1.5">
+              <select
+                className="jp-input"
+                value={skillCategory}
+                onChange={(event) => setSkillCategory(event.target.value as SkillCategory)}
+                aria-label="Категория навыка"
+              >
+                {SKILL_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {SKILL_CATEGORY_LABEL[category]}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="jp-input"
+                value={skillLevel}
+                onChange={(event) => setSkillLevel(event.target.value as SkillLevel)}
+                aria-label="Уровень владения"
+              >
+                {SKILL_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {SKILL_LEVEL_LABEL[level]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[10px] text-muted">
+              Версия важна там, где отличается сама работа: Vue 2 и Vue 3, React 16 и 18. Если
+              версия не указана, навык подойдёт под любое требование вакансии.
+            </p>
           </div>
           {SKILL_CATEGORIES.map((category) => {
             const items = profile.skills.filter((skill) => skill.category === category);
@@ -362,31 +424,49 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 </p>
                 <ul className="mt-1 flex flex-wrap gap-1">
                   {items.map((skill) => (
-                    <li key={skill.name} className="jp-badge gap-1.5">
+                    <li key={skillKey(skill)} className="jp-badge gap-1.5">
                       <button
                         type="button"
                         title={skill.primary ? 'Ключевой навык' : 'Отметить как ключевой'}
                         aria-pressed={skill.primary}
-                        onClick={() =>
-                          onChange({
-                            skills: profile.skills.map((entry) =>
-                              entry.name === skill.name
-                                ? { ...entry, primary: !entry.primary }
-                                : entry,
-                            ),
-                          })
-                        }
+                        onClick={() => patchSkill(skill, { primary: !skill.primary })}
                         className={skill.primary ? 'text-brand' : 'text-muted'}
                       >
                         ★
                       </button>
-                      {skill.name}
+                      <span>
+                        {skill.name}
+                        {skill.version ? ` ${skill.version}` : ''}
+                      </span>
+                      <input
+                        className="w-8 rounded border border-border bg-transparent px-1 text-[10px]"
+                        value={skill.version}
+                        placeholder="в."
+                        onChange={(event) => patchSkill(skill, { version: event.target.value })}
+                        aria-label={`Версия ${skill.name}`}
+                      />
+                      <select
+                        className="rounded border border-border bg-transparent text-[10px]"
+                        value={skill.level}
+                        onChange={(event) =>
+                          patchSkill(skill, { level: event.target.value as SkillLevel })
+                        }
+                        aria-label={`Уровень владения ${skill.name}`}
+                      >
+                        {SKILL_LEVELS.map((level) => (
+                          <option key={level} value={level}>
+                            {SKILL_LEVEL_LABEL[level]}
+                          </option>
+                        ))}
+                      </select>
                       <button
                         type="button"
                         aria-label={`Убрать ${skill.name}`}
                         onClick={() =>
                           onChange({
-                            skills: profile.skills.filter((entry) => entry.name !== skill.name),
+                            skills: profile.skills.filter(
+                              (entry) => skillKey(entry) !== skillKey(skill),
+                            ),
                           })
                         }
                         className="rounded-full text-muted transition hover:text-poor"
