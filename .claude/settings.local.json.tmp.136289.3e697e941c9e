@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx playwright *)",
+      "Bash(PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/google-chrome npx playwright test)",
+      "Bash(PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/google-chrome npx playwright test tests/e2e/__screens.spec.ts)",
+      "Bash(grep -rn \"✓\\\\|✕\\\\|⚠\\\\|←\\\\|→\\\\|·\\\\s*$\\\\|▲\\\\|◈\\\\|☰\\\\|✎\\\\|✦\\\\|☺\\\\|⚙\" src/sidepanel/pages/ApplicationReview.tsx src/sidepanel/components/ProfileForm.tsx src/sidepanel/components/AttachmentManager.tsx)",
+      "Bash(npx vitest *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
