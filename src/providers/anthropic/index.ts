@@ -11,7 +11,7 @@ interface AnthropicResponse {
 
 /**
  * Anthropic Messages API. Системный промпт здесь — отдельное поле, а не
- * сообщение, и браузеру нужен特 заголовок, разрешающий прямой доступ.
+ * сообщение, и браузеру нужен особый заголовок, разрешающий прямой доступ.
  */
 export class AnthropicProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'anthropic';
