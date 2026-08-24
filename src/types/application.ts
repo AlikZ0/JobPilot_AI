@@ -115,8 +115,14 @@ export const applicationSchema = z.object({
   /** Заметки, которые пользователь написал на экране проверки. */
   notes: z.string().default(''),
   error: z.string().default(''),
-  /** Всегда true: JobPilot не отправляет заявку без явного клика пользователя. */
+  /**
+   * Всегда true у отправленной заявки: кнопку «Отправить» в любом случае нажал
+   * человек. JobPilot либо принял его подтверждение на экране проверки, либо
+   * заметил отправку формы на сайте — сам он не отправляет ничего.
+   */
   submittedByUser: z.boolean().default(false),
+  /** Как заявка оказалась отправленной: подтвердил человек или заметила автоматика. */
+  submissionSource: z.enum(['manual', 'auto']).default('manual'),
 });
 export type Application = z.infer<typeof applicationSchema>;
 

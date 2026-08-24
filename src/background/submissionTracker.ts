@@ -10,7 +10,11 @@ import {
   setJobState,
   upsertExtractedJob,
 } from '@/database/repositories/jobRepository';
-import { getApplicationByJob } from '@/database/repositories/applicationRepository';
+import {
+  createApplication,
+  getApplicationByJob,
+  markSubmittedAutomatically,
+} from '@/database/repositories/applicationRepository';
 import { listSubmissions, recordSubmission } from '@/database/repositories/submissionRepository';
 import { ensureContentScript } from './tabManager';
 
@@ -27,10 +31,11 @@ export async function getTrackerConfig(): Promise<TrackerConfig> {
 /**
  * Автоматика заметила отправку отклика на сайте.
  *
- * Важно: JobPilot ничего не отправляет — он только фиксирует то, что сделал сам
- * пользователь. Состояние заявки (`Application`) при этом не переводится в
- * `submitted`: туда по-прежнему можно попасть лишь через явное подтверждение на
- * экране проверки. Автоматика пишет в журнал откликов и предлагает подтвердить.
+ * Важно: JobPilot ничего не отправляет — он фиксирует то, что уже сделал сам
+ * пользователь. По этому наблюдению отклик попадает в журнал, а заявка
+ * переводится в «Отправлена» (`automation.autoMarkSubmitted`, включено по
+ * умолчанию). Отметка помечается как автоматическая, и её можно откатить на
+ * экране проверки, если сработало ложно.
  */
 export async function handleSubmissionDetected(
   payload: { url: string; signal: SubmissionSignal; title?: string },
@@ -61,7 +66,13 @@ export async function handleSubmissionDetected(
   }
   if (!job) return { recorded: false, reason: 'no_job' };
 
-  const application = await getApplicationByJob(job.id);
+  // Заявки может не быть вовсе: на сайте откликаются и без черновика в
+  // JobPilot. Тогда заводим её, чтобы отклик был виден и в списке заявок.
+  let application = await getApplicationByJob(job.id);
+  if (!application && settings.automation.autoMarkSubmitted) {
+    application = await createApplication(job.id);
+  }
+
   const record = await recordSubmission({
     jobId: job.id,
     applicationId: application?.id ?? null,
@@ -73,11 +84,16 @@ export async function handleSubmissionDetected(
     score: job.score,
   });
 
-  // Единственный законный автоматический переход: заявка была готова к отправке.
-  if (job.state === 'application_ready') {
+  if (application && settings.automation.autoMarkSubmitted) {
+    try {
+      await markSubmittedAutomatically(application.id, { signal: payload.signal, url });
+    } catch (error) {
+      log.warn('заявку не удалось отметить отправленной', error);
+    }
     try {
       await setJobState(job.id, 'submitted');
     } catch (error) {
+      // Вакансия могла быть только найдена (`discovered`) — это не ошибка.
       log.debug('состояние вакансии не изменилось', error);
     }
   }
@@ -85,7 +101,9 @@ export async function handleSubmissionDetected(
   broadcast(MESSAGE_TYPES.EVENT_DATA_CHANGED, { entity: 'applications' });
   broadcast(MESSAGE_TYPES.EVENT_TOAST, {
     level: 'success',
-    message: `Отклик записан: «${record.title || job.title || 'вакансия'}».`,
+    message: settings.automation.autoMarkSubmitted
+      ? `Отклик отмечен отправленным: «${record.title || job.title || 'вакансия'}».`
+      : `Отклик записан: «${record.title || job.title || 'вакансия'}».`,
   });
   log.info('отклик записан автоматически', { jobId: job.id, signal: payload.signal });
   return { recorded: true, reason: payload.signal };

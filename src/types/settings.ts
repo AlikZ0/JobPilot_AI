@@ -29,6 +29,11 @@ export const automationSettingsSchema = z.object({
   skipAlreadyAnalyzed: z.boolean().default(true),
   /** Вести журнал откликов автоматически: замечать отправку формы на сайте. */
   trackSubmissions: z.boolean().default(true),
+  /**
+   * Переводить заявку в «Отправлена», когда замечена отправка на сайте.
+   * Отправляет по-прежнему человек — JobPilot только фиксирует факт.
+   */
+  autoMarkSubmitted: z.boolean().default(true),
   /** Показывать метки JobPilot прямо на страницах сайтов с вакансиями. */
   showPageBadges: z.boolean().default(true),
 });

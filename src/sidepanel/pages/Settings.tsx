@@ -366,6 +366,21 @@ export function SettingsPage() {
           />
         </Row>
         <Row
+          label="Сам отмечать заявку отправленной"
+          hint="Заметив отправку на сайте, переводить заявку в «Отправлена». Отметку видно как автоматическую, её можно откатить."
+        >
+          <input
+            type="checkbox"
+            checked={settings.automation.autoMarkSubmitted}
+            disabled={!settings.automation.trackSubmissions}
+            onChange={(event) =>
+              void updateSettings({
+                automation: { ...settings.automation, autoMarkSubmitted: event.target.checked },
+              })
+            }
+          />
+        </Row>
+        <Row
           label="Метки прямо на сайте"
           hint="Показывать на страницах вакансий, куда вы уже откликались и какой у вакансии балл."
         >

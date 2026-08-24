@@ -5,6 +5,7 @@ import { sendToBackground } from '@/utils/messaging';
 import {
   getApplication,
   markSubmitted,
+  revertAutoSubmission,
   updateApplication,
 } from '@/database/repositories/applicationRepository';
 import { markApplicationReady } from '@/core/application/applicationService';
@@ -45,6 +46,7 @@ export function ApplicationReview() {
     (row) => row.jobId === application?.jobId && row.source === 'auto',
   );
   const analysis = job ? analyses[job.id] : undefined;
+  const autoMarked = application?.state === 'submitted' && application.submissionSource === 'auto';
 
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
   const [coverLetter, setCoverLetter] = useState('');
@@ -179,6 +181,16 @@ export function ApplicationReview() {
       await markApplicationReady(application.id);
       await refreshData();
       pushToast({ level: 'success', message: 'Заявка отмечена как готовая к проверке.' });
+    });
+
+  const undoAutoMark = () =>
+    void withBusy('Откатываем отметку', async () => {
+      await revertAutoSubmission(application.id);
+      await refreshData();
+      pushToast({
+        level: 'info',
+        message: 'Отметка снята. Запись в истории откликов осталась — удалите её там, если нужно.',
+      });
     });
 
   const confirmSubmitted = () =>
@@ -367,6 +379,24 @@ export function ApplicationReview() {
           <dd>{profile.attachments.find((a) => a.isDefault)?.name ?? 'не выбрано'}</dd>
         </dl>
 
+        {autoMarked ? (
+          <div className="rounded-lg border border-excellent/40 bg-excellent/10 p-2 text-[11px]">
+            <p className="flex items-center gap-1.5 font-semibold text-excellent">
+              <Icon name="bolt" size={12} />
+              Отмечено автоматически
+              {application.submittedAt ? ` · ${formatDateTime(application.submittedAt)}` : ''}
+            </p>
+            <p className="mt-0.5 text-muted">
+              JobPilot заметил отправку формы на сайте и отметил заявку отправленной. Если это была
+              не она — откатите отметку.
+            </p>
+            <button type="button" className="jp-button jp-button-sm mt-1.5" onClick={undoAutoMark}>
+              <Icon name="refresh" size={12} />
+              Это была не эта заявка
+            </button>
+          </div>
+        ) : null}
+
         {detected && application.state !== 'submitted' ? (
           <div className="rounded-lg border border-potential/40 bg-potential/10 p-2 text-[11px]">
             <p className="flex items-center gap-1.5 font-semibold text-potential">
@@ -374,8 +404,8 @@ export function ApplicationReview() {
               JobPilot заметил отправку {formatDateTime(detected.at)}
             </p>
             <p className="mt-0.5 text-muted">
-              Отклик уже записан в историю. Отметьте галочку ниже, если это действительно была эта
-              заявка, — заявка перейдёт в состояние «Отправлена».
+              Отклик записан в историю, но заявку он не отметил — автоматическая отметка выключена в
+              настройках. Подтвердите отправку галочкой ниже.
             </p>
           </div>
         ) : null}
@@ -383,8 +413,8 @@ export function ApplicationReview() {
         <div className="rounded-md border border-border bg-surface-3 p-2 text-[11px]">
           <p className="font-semibold">JobPilot никогда не отправляет заявку за вас.</p>
           <p className="text-muted">
-            Кнопку отправки на сайте вакансии нажимаете вы сами. Галочка ниже нужна только для того,
-            чтобы зафиксировать это в истории.
+            Кнопку отправки на сайте вакансии нажимаете вы сами. JobPilot только фиксирует это — по
+            вашей галочке или заметив отправку формы на странице.
           </p>
         </div>
 
