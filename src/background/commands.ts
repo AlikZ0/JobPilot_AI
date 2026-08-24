@@ -4,7 +4,11 @@ import { createLogger } from '@/utils/logger';
 import { describeError, toSerializedError } from '@/utils/errors';
 import { getProfile } from '@/database/repositories/profileRepository';
 import { getSettings } from '@/database/repositories/settingsRepository';
-import { getJobByUrl, updateJob, upsertExtractedJob } from '@/database/repositories/jobRepository';
+import {
+  getJobByUrl,
+  markJobSaved,
+  upsertExtractedJob,
+} from '@/database/repositories/jobRepository';
 import { analyzeJob } from '@/core/analysis/analyzeJob';
 import { prepareApplication } from '@/core/application/applicationService';
 import { ensureContentScript, getActiveTab } from './tabManager';
@@ -61,7 +65,7 @@ async function handleCommand(command: string): Promise<void> {
     case 'save-current-job': {
       const { extracted } = await extractActive();
       const { job } = await upsertExtractedJob(extracted);
-      const saved = await updateJob(job.id, { state: 'saved', savedAt: Date.now() });
+      const saved = await markJobSaved(job.id);
       broadcast(MESSAGE_TYPES.EVENT_JOB_UPDATED, { job: saved });
       broadcast(MESSAGE_TYPES.EVENT_TOAST, {
         level: 'success',

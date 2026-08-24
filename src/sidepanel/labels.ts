@@ -16,6 +16,31 @@ import type { Attachment } from '@/types/profile';
  * поэтому переводится только то, что видит пользователь.
  */
 
+/**
+ * Языки, на которых AI пишет тексты. Значение уходит в промпт как есть, поэтому
+ * оно английское — модели надёжнее понимают «German», чем «Deutsch».
+ */
+export const GENERATION_LANGUAGES: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'Same as the job posting', label: 'Как в вакансии' },
+  { value: 'English', label: 'Английский — English' },
+  { value: 'Russian', label: 'Русский' },
+  { value: 'Ukrainian', label: 'Украинский — Українська' },
+  { value: 'German', label: 'Немецкий — Deutsch' },
+  { value: 'French', label: 'Французский — Français' },
+  { value: 'Spanish', label: 'Испанский — Español' },
+  { value: 'Italian', label: 'Итальянский — Italiano' },
+  { value: 'Portuguese', label: 'Португальский — Português' },
+  { value: 'Polish', label: 'Польский — Polski' },
+  { value: 'Dutch', label: 'Нидерландский — Nederlands' },
+  { value: 'Czech', label: 'Чешский — Čeština' },
+  { value: 'Turkish', label: 'Турецкий — Türkçe' },
+  { value: 'Armenian', label: 'Армянский — Հայերեն' },
+  { value: 'Hebrew', label: 'Иврит — עברית' },
+  { value: 'Arabic', label: 'Арабский — العربية' },
+  { value: 'Chinese', label: 'Китайский — 中文' },
+  { value: 'Japanese', label: 'Японский — 日本語' },
+];
+
 export const JOB_STATE_LABEL: Record<JobState, string> = {
   discovered: 'найдена',
   queued: 'в очереди',

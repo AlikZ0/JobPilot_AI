@@ -4,11 +4,14 @@ import { MESSAGE_TYPES } from '@/types/messages';
 import { sendToBackground } from '@/utils/messaging';
 import { listProviders, getProvider } from '@/providers/registry';
 import {
+  addApiKey,
   clearApiKeys,
+  deleteApiKey,
   getKeyStorageMode,
-  setApiKey,
-  listConfiguredProviders,
+  listApiKeys,
   setKeyStorageMode,
+  selectApiKey,
+  type ApiKeyInfo,
   type KeyStorageMode,
 } from '@/core/ai/keyStore';
 import { PERMISSION_EXPLANATIONS } from '@/utils/permissions';
@@ -24,6 +27,7 @@ import { DAY_MS } from '@/utils/time';
 import { useStore, withBusy } from '../state/store';
 import { Icon } from '../components/Icon';
 import { SiteAccess } from '../components/SiteAccess';
+import { GENERATION_LANGUAGES } from '../labels';
 
 function Row({
   label,
@@ -52,12 +56,15 @@ export function SettingsPage() {
   const refreshData = useStore((state) => state.refreshData);
 
   const [keyDraft, setKeyDraft] = useState('');
-  const [configured, setConfigured] = useState<AIProviderId[]>([]);
+  const [keyLabelDraft, setKeyLabelDraft] = useState('');
+  const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
   const [keyMode, setKeyMode] = useState<KeyStorageMode>('local');
   const [usage, setUsage] = useState<{ requests: number; cost: number } | null>(null);
 
+  const reloadKeys = async () => setKeys(await listApiKeys());
+
   useEffect(() => {
-    void listConfiguredProviders().then(setConfigured);
+    void reloadKeys();
     void getKeyStorageMode().then(setKeyMode);
     void summarizeUsage(Date.now() - 30 * DAY_MS).then((summary) =>
       setUsage({ requests: summary.requests, cost: summary.estimatedCostUsd }),
@@ -75,6 +82,12 @@ export function SettingsPage() {
     timeoutMs: 60_000,
   };
 
+  const providerKeys = keys.filter((key) => key.providerId === activeProvider);
+  // Язык мог быть задан вручную в старой версии — не теряем его из списка.
+  const knownLanguage = GENERATION_LANGUAGES.some(
+    (language) => language.value === settings.generationLanguage,
+  );
+
   const patchProvider = (patch: Partial<typeof providerConfig>) =>
     void updateSettings({
       providers: { ...settings.providers, [activeProvider]: { ...providerConfig, ...patch } },
@@ -82,10 +95,27 @@ export function SettingsPage() {
 
   const saveKey = () =>
     void withBusy('Сохраняем ключ', async () => {
-      await setApiKey(activeProvider, keyDraft.trim());
+      const added = await addApiKey(activeProvider, keyLabelDraft, keyDraft.trim());
       setKeyDraft('');
-      setConfigured(await listConfiguredProviders());
-      pushToast({ level: 'success', message: `Ключ сохранён для «${provider.label}».` });
+      setKeyLabelDraft('');
+      await reloadKeys();
+      pushToast({
+        level: 'success',
+        message: `«${added.label}» сохранён для «${provider.label}».`,
+      });
+    });
+
+  const switchKey = (id: string) =>
+    void withBusy('Переключаем ключ', async () => {
+      await selectApiKey(id);
+      await reloadKeys();
+    });
+
+  const removeKey = (key: ApiKeyInfo) =>
+    void withBusy('Удаляем ключ', async () => {
+      await deleteApiKey(key.id);
+      await reloadKeys();
+      pushToast({ level: 'success', message: `Ключ «${key.label}» удалён.` });
     });
 
   /**
@@ -148,11 +178,20 @@ export function SettingsPage() {
           </select>
         </Row>
         <Row label="Язык ответов AI" hint="На нём пишутся письма и ответы на вопросы.">
-          <input
-            className="jp-input w-32 py-1"
+          <select
+            className="jp-input w-auto py-1"
             value={settings.generationLanguage}
             onChange={(event) => void updateSettings({ generationLanguage: event.target.value })}
-          />
+          >
+            {knownLanguage ? null : (
+              <option value={settings.generationLanguage}>{settings.generationLanguage}</option>
+            )}
+            {GENERATION_LANGUAGES.map((language) => (
+              <option key={language.value} value={language.value}>
+                {language.label}
+              </option>
+            ))}
+          </select>
         </Row>
       </section>
 
@@ -180,12 +219,15 @@ export function SettingsPage() {
                 void updateSettings({ activeProvider: event.target.value as AIProviderId })
               }
             >
-              {AI_PROVIDER_IDS.filter((id) => id !== 'cloud').map((id) => (
-                <option key={id} value={id}>
-                  {getProvider(id).label}
-                  {configured.includes(id) ? ' ✓' : ''}
-                </option>
-              ))}
+              {AI_PROVIDER_IDS.filter((id) => id !== 'cloud').map((id) => {
+                const count = keys.filter((key) => key.providerId === id).length;
+                return (
+                  <option key={id} value={id}>
+                    {getProvider(id).label}
+                    {count > 1 ? ` ✓ ${count}` : count === 1 ? ' ✓' : ''}
+                  </option>
+                );
+              })}
             </select>
           </Row>
         ) : (
@@ -198,17 +240,51 @@ export function SettingsPage() {
             />
           </Row>
         )}
-        <Row
-          label="API-ключ"
-          hint={
-            configured.includes(activeProvider)
-              ? 'Ключ для этого провайдера сохранён. Новый заменит старый; прочитать его обратно нельзя.'
-              : 'Хранится только в памяти расширения. Не отправляется на сайты вакансий и не попадает в экспорт.'
-          }
-        >
-          <div className="flex gap-1">
+        <div className="border-b border-border py-2">
+          <p className="text-[12px] font-medium">Ключи «{provider.label}»</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted">
+            Ключей может быть несколько — запросы идут через выбранный. Хранятся только в памяти
+            расширения: не уходят на сайты вакансий и не попадают в экспорт.
+          </p>
+          {providerKeys.length > 0 ? (
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {providerKeys.map((key) => (
+                <li key={key.id} className="flex items-center gap-2">
+                  <label className="flex min-w-0 flex-1 items-center gap-2">
+                    <input
+                      type="radio"
+                      name="jp-active-key"
+                      checked={key.active}
+                      onChange={() => switchKey(key.id)}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-[12px]">{key.label}</span>
+                    <span className="flex-shrink-0 font-mono text-[11px] text-muted">
+                      {key.masked}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="jp-button-ghost jp-button-sm"
+                    onClick={() => removeKey(key)}
+                    title="Удалить ключ"
+                  >
+                    <Icon name="trash" size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-muted">Ключей пока нет.</p>
+          )}
+          <div className="mt-1.5 flex flex-wrap gap-1">
             <input
-              className="jp-input w-40 py-1"
+              className="jp-input w-28 py-1"
+              placeholder="Название"
+              value={keyLabelDraft}
+              onChange={(event) => setKeyLabelDraft(event.target.value)}
+            />
+            <input
+              className="jp-input w-40 flex-1 py-1"
               type="password"
               autoComplete="off"
               placeholder="Вставьте ключ"
@@ -221,10 +297,10 @@ export function SettingsPage() {
               onClick={saveKey}
               disabled={!keyDraft.trim()}
             >
-              Сохранить
+              Добавить
             </button>
           </div>
-        </Row>
+        </div>
         <Row label="Хранение ключа" hint="В режиме сессии ключ стирается при закрытии Chrome.">
           <select
             className="jp-input w-auto py-1"

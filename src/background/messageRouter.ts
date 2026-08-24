@@ -8,8 +8,8 @@ import { getProfile } from '@/database/repositories/profileRepository';
 import { getSettings } from '@/database/repositories/settingsRepository';
 import {
   getJob,
+  markJobSaved,
   setJobState,
-  updateJob,
   upsertExtractedJob,
 } from '@/database/repositories/jobRepository';
 import { getApplication, updateApplication } from '@/database/repositories/applicationRepository';
@@ -137,7 +137,7 @@ export function registerBackgroundHandlers(): void {
       const target = await resolveTabId(tabId);
       const extracted = await extractFromTab(target.tabId, target.url);
       const { job } = await upsertExtractedJob(extracted);
-      const saved = await updateJob(job.id, { state: 'saved', savedAt: Date.now() });
+      const saved = await markJobSaved(job.id);
       broadcast(MESSAGE_TYPES.EVENT_JOB_UPDATED, { job: saved });
       return { job: saved };
     },

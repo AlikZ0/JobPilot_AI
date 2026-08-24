@@ -1,7 +1,7 @@
 import { MESSAGE_TYPES } from '@/types/messages';
 import type { Job } from '@/types/job';
 import { sendToBackground } from '@/utils/messaging';
-import { updateJob } from '@/database/repositories/jobRepository';
+import { markJobSaved } from '@/database/repositories/jobRepository';
 import { useStore, withBusy } from '../state/store';
 
 /** Общие действия над вакансией — для карточек, списка и страницы вакансии. */
@@ -26,7 +26,7 @@ export function useJobActions() {
 
     save: (job: Job) =>
       void withBusy('Сохраняем', async () => {
-        await updateJob(job.id, { state: 'saved', savedAt: Date.now() });
+        await markJobSaved(job.id);
         await store.refreshData();
       }),
 

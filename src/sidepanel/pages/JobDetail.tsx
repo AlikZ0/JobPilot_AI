@@ -11,6 +11,7 @@ export function JobDetail() {
   const analysis = useStore((state) => (jobId ? state.analyses[jobId] : undefined));
   const navigate = useStore((state) => state.navigate);
   const actions = useJobActions();
+  const saved = job ? job.savedAt !== null || job.state === 'saved' : false;
 
   if (!job) {
     return (
@@ -72,9 +73,15 @@ export function JobDetail() {
           <Icon name="refresh" size={13} />
           Проанализировать заново
         </button>
-        <button type="button" className="jp-button jp-button-sm" onClick={() => actions.save(job)}>
+        <button
+          type="button"
+          className={`jp-button jp-button-sm ${saved ? 'text-brand' : ''}`}
+          onClick={() => actions.save(job)}
+          disabled={saved}
+          title={saved ? 'Вакансия уже сохранена' : 'Сохранить вакансию'}
+        >
           <Icon name="bookmark" size={13} />
-          Сохранить
+          {saved ? 'Сохранена' : 'Сохранить'}
         </button>
         <button
           type="button"

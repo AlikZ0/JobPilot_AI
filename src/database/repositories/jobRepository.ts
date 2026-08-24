@@ -163,6 +163,26 @@ export async function updateJob(id: string, patch: Partial<Job>): Promise<Job> {
   return next;
 }
 
+/** Состояния, из которых сохранение уже не откатывает вакансию назад. */
+const PAST_SAVED_STATES: readonly JobState[] = [
+  'application_preparing',
+  'application_ready',
+  'submitted',
+];
+
+/**
+ * Отмечает вакансию сохранённой. Если по ней уже готовится или отправлена
+ * заявка, состояние не трогаем: сохранение — это только пометка, а не шаг назад
+ * по жизненному циклу.
+ */
+export async function markJobSaved(id: string): Promise<Job> {
+  const current = await getJob(id);
+  if (!current) throw new Error(`Вакансия не найдена: ${id}`);
+  const patch: Partial<Job> = { savedAt: current.savedAt ?? Date.now() };
+  if (!PAST_SAVED_STATES.includes(current.state)) patch.state = 'saved';
+  return updateJob(id, patch);
+}
+
 export async function setJobState(id: string, state: JobState): Promise<Job> {
   return updateJob(id, { state });
 }
