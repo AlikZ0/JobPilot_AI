@@ -8,7 +8,7 @@ export function err<E>(error: E): Result<never, E> {
   return { ok: false, error };
 }
 
-/** Runs a fallible operation, converting a throw into a Result. */
+/** Выполняет операцию, которая может упасть, превращая исключение в Result. */
 export async function attempt<T>(fn: () => Promise<T> | T): Promise<Result<T>> {
   try {
     return ok(await fn());

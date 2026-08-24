@@ -39,7 +39,7 @@ const INSIGHT_SELECTORS = [
   '.description__job-criteria-item',
 ];
 
-/** LinkedIn: /jobs/view/<id> for postings, /jobs/search or /jobs/collections for lists. */
+/** LinkedIn: /jobs/view/<id> — вакансия, /jobs/search и /jobs/collections — списки. */
 export class LinkedInAdapter implements JobSiteAdapter {
   readonly id = 'linkedin';
   readonly label = 'LinkedIn';

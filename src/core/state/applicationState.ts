@@ -1,8 +1,8 @@
 import type { ApplicationState } from '@/types/application';
 
 /**
- * Application lifecycle. Note that `submitted` is only reachable from `ready`
- * and only through an explicit user confirmation (see docs/security.md).
+ * Жизненный цикл заявки. Важно: в `submitted` можно попасть только из `ready` и
+ * только через явное подтверждение пользователя (см. docs/security.md).
  */
 export const APPLICATION_TRANSITIONS: Record<ApplicationState, readonly ApplicationState[]> = {
   draft: ['analyzing', 'filling', 'review', 'cancelled', 'failed'],
@@ -22,7 +22,7 @@ export function canTransitionApplication(from: ApplicationState, to: Application
 
 export class ApplicationStateError extends Error {
   constructor(from: ApplicationState, to: ApplicationState) {
-    super(`Invalid application transition: ${from} -> ${to}`);
+    super(`Недопустимый переход заявки: ${from} -> ${to}`);
     this.name = 'ApplicationStateError';
   }
 }

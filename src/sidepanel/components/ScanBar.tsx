@@ -2,7 +2,7 @@ import { MESSAGE_TYPES } from '@/types/messages';
 import { sendToBackground } from '@/utils/messaging';
 import { useStore, withBusy } from '../state/store';
 
-/** Live progress for the bulk "Analyze Jobs" run. */
+/** Живой прогресс массового анализа вакансий. */
 export function ScanBar() {
   const scan = useStore((state) => state.scan);
   const refreshData = useStore((state) => state.refreshData);
@@ -15,15 +15,16 @@ export function ScanBar() {
   return (
     <section
       className="border-b border-border bg-surface-2 px-3 py-2"
-      aria-label="Scan progress"
+      aria-label="Прогресс анализа"
       aria-live="polite"
     >
       <div className="flex items-center justify-between text-[12px]">
         <span className="font-semibold">
-          {scan.state === 'done' ? 'Scan finished' : 'Analyzing'}: {scan.processed} / {scan.total}
+          {scan.state === 'done' ? 'Анализ завершён' : 'Анализируем'}: {scan.processed} /{' '}
+          {scan.total}
         </span>
         <span className="text-muted">
-          {scan.succeeded} ok · {scan.skipped} skipped · {scan.failed} failed
+          готово: {scan.succeeded} · пропущено: {scan.skipped} · ошибок: {scan.failed}
         </span>
       </div>
       <div
@@ -37,7 +38,7 @@ export function ScanBar() {
       </div>
       {scan.currentTitle ? (
         <p className="mt-1 truncate text-[11px] text-muted">
-          Current: {scan.currentTitle}
+          Сейчас: {scan.currentTitle}
           {scan.currentScore !== null ? ` — ${scan.currentScore}%` : ''}
         </p>
       ) : null}
@@ -48,37 +49,37 @@ export function ScanBar() {
               type="button"
               className="jp-button"
               onClick={() =>
-                void withBusy('Resuming', async () => {
+                void withBusy('Продолжаем', async () => {
                   await sendToBackground(MESSAGE_TYPES.RESUME_JOB_SCAN, undefined);
                 })
               }
             >
-              Resume
+              Продолжить
             </button>
           ) : (
             <button
               type="button"
               className="jp-button"
               onClick={() =>
-                void withBusy('Pausing', async () => {
+                void withBusy('Ставим на паузу', async () => {
                   await sendToBackground(MESSAGE_TYPES.PAUSE_JOB_SCAN, undefined);
                 })
               }
             >
-              Pause
+              Пауза
             </button>
           )}
           <button
             type="button"
             className="jp-button"
             onClick={() =>
-              void withBusy('Stopping', async () => {
+              void withBusy('Останавливаем', async () => {
                 await sendToBackground(MESSAGE_TYPES.STOP_JOB_SCAN, undefined);
                 await refreshData();
               })
             }
           >
-            Stop
+            Остановить
           </button>
         </div>
       ) : null}

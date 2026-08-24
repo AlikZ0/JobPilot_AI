@@ -1,7 +1,7 @@
 import type { UserProfile } from '@/types/profile';
 import { canonicalizeTech } from '@/core/extraction/techDictionary';
 
-/** Profile paths the field mapper is allowed to read. */
+/** Пути в профиле, которые разрешено читать маппингу полей. */
 export const PROFILE_PATHS = [
   'personal.firstName',
   'personal.lastName',
@@ -35,9 +35,9 @@ export function isProfilePath(value: string): value is ProfilePath {
 }
 
 /**
- * Reads a profile value as the string that should be typed into a form field.
- * Unknown paths return an empty string rather than throwing, so a bad AI
- * suggestion can never break autofill.
+ * Возвращает значение профиля как строку, которую нужно вписать в поле формы.
+ * Неизвестный путь даёт пустую строку, а не исключение, поэтому неудачная
+ * подсказка AI не может сломать автозаполнение.
  */
 export function readProfilePath(profile: UserProfile, path: string): string {
   switch (path) {
@@ -56,7 +56,7 @@ export function readProfilePath(profile: UserProfile, path: string): string {
     case 'location.city':
       return profile.location.city;
     case 'location.willingToRelocate':
-      return profile.location.willingToRelocate ? 'Yes' : 'No';
+      return profile.location.willingToRelocate ? 'Да' : 'Нет';
     case 'links.linkedin':
       return profile.links.linkedin;
     case 'links.github':
@@ -84,7 +84,7 @@ export function readProfilePath(profile: UserProfile, path: string): string {
     case 'preferences.workAuthorization':
       return profile.preferences.workAuthorization.join(', ');
     case 'preferences.requiresVisaSponsorship':
-      return profile.preferences.requiresVisaSponsorship ? 'Yes' : 'No';
+      return profile.preferences.requiresVisaSponsorship ? 'Да' : 'Нет';
     case 'skills.list':
       return profile.skills.map((skill) => canonicalizeTech(skill.name)).join(', ');
     case 'languages.list':

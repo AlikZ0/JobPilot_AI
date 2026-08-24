@@ -10,8 +10,8 @@ interface AnthropicResponse {
 }
 
 /**
- * Anthropic Messages API. The system prompt is a top-level field rather than a
- * message, and the browser needs the CORS opt-in header.
+ * Anthropic Messages API. Системный промпт здесь — отдельное поле, а не
+ * сообщение, и браузеру нужен特 заголовок, разрешающий прямой доступ.
  */
 export class AnthropicProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'anthropic';
@@ -29,7 +29,7 @@ export class AnthropicProvider extends BaseAIProvider {
       .filter((message) => message.role !== 'system')
       .map((message) => ({ role: message.role, content: message.content }));
 
-    // Nudge JSON-only output: Anthropic has no response_format flag.
+    // Подталкиваем к чистому JSON: у Anthropic нет флага response_format.
     if (request.json) {
       messages.push({ role: 'assistant', content: '{' });
     }
@@ -57,7 +57,7 @@ export class AnthropicProvider extends BaseAIProvider {
       .filter((part) => part.type === 'text')
       .map((part) => part.text ?? '')
       .join('');
-    // The prefilled "{" is not echoed back, so restore it.
+    // Подставленную «{» модель обратно не возвращает — восстанавливаем её.
     const text = request.json && !raw.trimStart().startsWith('{') ? `{${raw}` : raw;
 
     return {

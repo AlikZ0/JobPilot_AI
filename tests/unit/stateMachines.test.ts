@@ -8,14 +8,14 @@ import {
 import { JOB_STATES } from '@/types/job';
 import { APPLICATION_STATES } from '@/types/application';
 
-describe('job state machine', () => {
-  it('covers every declared state', () => {
+describe('машина состояний вакансии', () => {
+  it('покрывает все объявленные состояния', () => {
     for (const state of JOB_STATES) {
       expect(JOB_TRANSITIONS[state]).toBeDefined();
     }
   });
 
-  it('allows the happy path', () => {
+  it('разрешает основной сценарий', () => {
     expect(canTransitionJob('discovered', 'queued')).toBe(true);
     expect(canTransitionJob('queued', 'analyzing')).toBe(true);
     expect(canTransitionJob('analyzing', 'analyzed')).toBe(true);
@@ -25,25 +25,27 @@ describe('job state machine', () => {
     expect(canTransitionJob('application_ready', 'submitted')).toBe(true);
   });
 
-  it('rejects skipping straight to submitted', () => {
+  it('не даёт прыгнуть сразу в «отправлено»', () => {
     expect(canTransitionJob('discovered', 'submitted')).toBe(false);
     expect(canTransitionJob('analyzed', 'submitted')).toBe(false);
-    expect(() => assertJobTransition('analyzed', 'submitted')).toThrow(/Invalid job transition/);
+    expect(() => assertJobTransition('analyzed', 'submitted')).toThrow(
+      /Недопустимый переход вакансии/,
+    );
   });
 
-  it('treats a no-op transition as valid', () => {
+  it('считает переход в то же состояние допустимым', () => {
     expect(canTransitionJob('saved', 'saved')).toBe(true);
   });
 });
 
-describe('application state machine', () => {
-  it('covers every declared state', () => {
+describe('машина состояний заявки', () => {
+  it('покрывает все объявленные состояния', () => {
     for (const state of APPLICATION_STATES) {
       expect(APPLICATION_TRANSITIONS[state]).toBeDefined();
     }
   });
 
-  it('only reaches submitted from ready', () => {
+  it('в «отправлено» попадает только из «готово»', () => {
     for (const state of APPLICATION_STATES) {
       const allowed = canTransitionApplication(state, 'submitted');
       expect(allowed).toBe(state === 'ready' || state === 'submitted');
@@ -51,7 +53,7 @@ describe('application state machine', () => {
     expect(() => assertApplicationTransition('draft', 'submitted')).toThrow();
   });
 
-  it('is terminal once submitted', () => {
+  it('после отправки состояние конечное', () => {
     expect(APPLICATION_TRANSITIONS.submitted).toHaveLength(0);
     expect(canTransitionApplication('submitted', 'draft')).toBe(false);
   });

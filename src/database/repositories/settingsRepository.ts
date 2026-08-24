@@ -4,9 +4,9 @@ import { DEFAULT_SETTINGS, settingsSchema, type Settings } from '@/types/setting
 export const SETTINGS_ID = 'primary';
 
 /**
- * Confirmation before submit can never be disabled, and contact details are
- * never shared with an AI provider. Both are re-applied before validation so a
- * corrupted or hand-edited record is corrected rather than rejected.
+ * Подтверждение перед отправкой нельзя отключить, а контактные данные никогда не
+ * уходят AI-провайдеру. Оба инварианта восстанавливаются до валидации, поэтому
+ * повреждённая или отредактированная вручную запись исправляется, а не падает.
  */
 function coerceInvariants(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object') return raw;
@@ -35,7 +35,7 @@ export async function getSettings(): Promise<Settings> {
     await getDb().settings.put(fresh);
     return fresh;
   }
-  // Older records are re-parsed so newly added fields get their defaults.
+  // Старые записи перечитываются схемой, чтобы новые поля получили значения по умолчанию.
   return enforceInvariants(settingsSchema.parse(coerceInvariants(stored)));
 }
 

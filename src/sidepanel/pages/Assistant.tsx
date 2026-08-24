@@ -13,10 +13,10 @@ interface Turn {
 }
 
 const SUGGESTIONS = [
-  'Which saved jobs need Node.js and Docker?',
-  'Why did this job score what it did?',
-  'What am I missing for senior backend roles?',
-  'Which technologies show up most in my analyzed jobs?',
+  'В каких сохранённых вакансиях нужны Node.js и Docker?',
+  'Почему эта вакансия получила такой балл?',
+  'Чего мне не хватает для senior backend?',
+  'Какие технологии чаще всего встречаются в найденных вакансиях?',
 ];
 
 export function Assistant() {
@@ -39,7 +39,7 @@ export function Assistant() {
   }, [turns.length]);
 
   const ask = (question: string) =>
-    void withBusy('Thinking', async () => {
+    void withBusy('Думаем', async () => {
       const prompt = question.trim();
       if (!prompt) return;
       setInput('');
@@ -56,13 +56,13 @@ export function Assistant() {
   return (
     <div className="flex h-full flex-col gap-2">
       <div className="flex items-center gap-1.5">
-        <label className="jp-label mb-0 flex-shrink-0">Job context</label>
+        <label className="jp-label mb-0 flex-shrink-0">Контекст</label>
         <select
           className="jp-input py-1"
           value={jobContext}
           onChange={(event) => setJobContext(event.target.value)}
         >
-          <option value="">All stored jobs</option>
+          <option value="">Все сохранённые вакансии</option>
           {jobs.slice(0, 60).map((job) => (
             <option key={job.id} value={job.id}>
               {job.title} — {job.company}
@@ -75,7 +75,7 @@ export function Assistant() {
         {turns.length === 0 ? (
           <div className="flex flex-col gap-1.5">
             <p className="text-[12px] text-muted">
-              The assistant only sees the slice of your local data a question needs.
+              Ассистент видит только тот срез ваших локальных данных, который нужен для вопроса.
             </p>
             {SUGGESTIONS.map((suggestion) => (
               <button
@@ -100,7 +100,7 @@ export function Assistant() {
                 }`}
               >
                 <p className="mb-0.5 text-[10px] font-semibold uppercase text-muted">
-                  {turn.role === 'user' ? 'You' : 'JobPilot'}
+                  {turn.role === 'user' ? 'Вы' : 'JobPilot'}
                 </p>
                 <p className="whitespace-pre-wrap leading-relaxed">{turn.content}</p>
               </li>
@@ -123,7 +123,7 @@ export function Assistant() {
       <div className="flex gap-1.5">
         <input
           className="jp-input"
-          placeholder="Ask about your jobs, gaps or a specific posting…"
+          placeholder="Спросите про вакансии, пробелы в навыках или конкретную позицию…"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => {
@@ -134,7 +134,7 @@ export function Assistant() {
           }}
         />
         <button type="button" className="jp-button-primary" onClick={() => ask(input)}>
-          Ask
+          Спросить
         </button>
         <button
           type="button"
@@ -145,9 +145,9 @@ export function Assistant() {
               setFollowUps([]);
             })
           }
-          title="Clear conversation"
+          title="Очистить переписку"
         >
-          Clear
+          Очистить
         </button>
       </div>
     </div>

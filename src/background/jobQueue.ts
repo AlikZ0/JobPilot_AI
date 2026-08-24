@@ -23,8 +23,9 @@ export interface QueueEvents<T> {
 }
 
 /**
- * Rate-limited work queue. Concurrency is capped at 3 and a delay is applied
- * between task starts so a scan never floods a job board with requests.
+ * Очередь задач с ограничением скорости. Параллельность жёстко ограничена тремя,
+ * между стартами задач выдерживается пауза — чтобы анализ не забрасывал job-сайт
+ * запросами.
  */
 export class JobQueue<T> {
   private readonly tasks: QueueTask<T>[] = [];
@@ -99,7 +100,7 @@ export class JobQueue<T> {
     }
   }
 
-  /** Runs until the queue drains, is stopped, or every worker fails. */
+  /** Работает, пока очередь не опустеет или её не остановят. */
   async run(): Promise<void> {
     if (this.state === 'running') return;
     this.setState('running');
@@ -121,7 +122,7 @@ export class JobQueue<T> {
         try {
           await sleep(this.options.delayMs - since, this.controller.signal);
         } catch {
-          return; // aborted while waiting
+          return; // отменили во время ожидания
         }
       }
       this.lastStart = Date.now();
@@ -135,7 +136,7 @@ export class JobQueue<T> {
           this.active -= 1;
           return;
         }
-        log.debug('queue task failed', { id: task.id });
+        log.debug('задача очереди упала', { id: task.id });
         this.events.onTaskError?.(task, error);
       } finally {
         this.active = Math.max(0, this.active - 1);

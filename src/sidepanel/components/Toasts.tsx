@@ -29,7 +29,7 @@ export function Toasts() {
             type="button"
             className="text-muted hover:text-content"
             onClick={() => dismiss(toast.id)}
-            aria-label="Dismiss notification"
+            aria-label="Закрыть уведомление"
           >
             ✕
           </button>

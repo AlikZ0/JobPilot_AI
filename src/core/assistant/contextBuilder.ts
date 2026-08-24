@@ -6,7 +6,7 @@ import { truncate } from '@/utils/text';
 
 export type ContextKind = 'specific_job' | 'job_list' | 'skill_gaps' | 'applications' | 'stats';
 
-/** Chooses the smallest slice of local data that can answer the question. */
+/** Выбирает минимальный срез локальных данных, которого хватит для ответа. */
 export function classifyQuestion(question: string, hasJobId: boolean): ContextKind {
   const q = question.toLowerCase();
   if (hasJobId && /(this|эт[аойу])\s|why|почему|score|балл/.test(q)) return 'specific_job';

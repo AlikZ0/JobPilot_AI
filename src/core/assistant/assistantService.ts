@@ -19,8 +19,8 @@ export interface AssistantResponse {
 }
 
 /**
- * Answers a question using only the local data the question actually needs —
- * the assistant never receives the whole database.
+ * Отвечает на вопрос, используя только те локальные данные, которые ему реально
+ * нужны, — ассистент никогда не получает всю базу целиком.
  */
 export async function answerAssistantQuestion(
   request: AssistantRequest,

@@ -1,14 +1,13 @@
 import type { Job } from '@/types/job';
 import type { ScanProgress } from '@/types/scan';
 import { createLogger } from '@/utils/logger';
-import { pluralize } from '@/utils/text';
 
 const log = createLogger('notify');
 
 const ICON = 'icons/icon128.png';
 const MATCH_PREFIX = 'jobpilot:match:';
 
-/** Maps a notification id back to the job it was created for. */
+/** Восстанавливает по id уведомления вакансию, для которой оно создано. */
 export function jobIdFromNotification(notificationId: string): string | null {
   return notificationId.startsWith(MATCH_PREFIX) ? notificationId.slice(MATCH_PREFIX.length) : null;
 }
@@ -20,8 +19,8 @@ async function create(
   try {
     await chrome.notifications.create(id, options);
   } catch (error) {
-    // Notifications can be disabled at the OS level — never break a scan.
-    log.debug('notification failed', error);
+    // Уведомления могут быть выключены на уровне ОС — это не должно ломать анализ.
+    log.debug('не удалось показать уведомление', error);
   }
 }
 
@@ -36,7 +35,7 @@ export async function notifyMatch(job: Job, score: number): Promise<void> {
   await create(`${MATCH_PREFIX}${job.id}`, {
     type: 'basic',
     iconUrl: ICON,
-    title: `🔥 ${score}% match`,
+    title: `🔥 совпадение ${score}%`,
     message: `${job.title}\n${lines}`,
     priority: 1,
   });
@@ -46,9 +45,9 @@ export async function notifyScanComplete(progress: ScanProgress): Promise<void> 
   await create(`jobpilot:scan:${progress.sessionId}`, {
     type: 'basic',
     iconUrl: ICON,
-    title: 'Scan finished',
-    message: `${pluralize(progress.succeeded, 'job')} analyzed, ${progress.skipped} skipped, ${progress.failed} failed.${
-      progress.bestScore !== null ? ` Best match: ${progress.bestScore}%.` : ''
+    title: 'Анализ завершён',
+    message: `Проанализировано вакансий: ${progress.succeeded}, пропущено: ${progress.skipped}, с ошибкой: ${progress.failed}.${
+      progress.bestScore !== null ? ` Лучшее совпадение: ${progress.bestScore}%.` : ''
     }`,
     priority: 0,
   });

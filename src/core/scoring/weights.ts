@@ -1,6 +1,6 @@
 import type { RecommendationBand } from '@/types/ai';
 
-/** The published weighting from the README. Must sum to 100. */
+/** Опубликованные в README веса. В сумме обязаны давать 100. */
 export const SCORE_WEIGHTS = {
   technicalSkills: 40,
   experience: 15,
@@ -17,11 +17,11 @@ export type ScoreComponent = keyof typeof SCORE_WEIGHTS;
 export const TOTAL_WEIGHT = Object.values(SCORE_WEIGHTS).reduce((sum, w) => sum + w, 0);
 
 export const BAND_THRESHOLDS: { min: number; band: RecommendationBand; label: string }[] = [
-  { min: 90, band: 'strong_match', label: 'Excellent match' },
-  { min: 75, band: 'good_match', label: 'Good match' },
-  { min: 60, band: 'potential_match', label: 'Potential match' },
-  { min: 40, band: 'weak_match', label: 'Weak match' },
-  { min: 0, band: 'not_suitable', label: 'Not suitable' },
+  { min: 90, band: 'strong_match', label: 'Отличное совпадение' },
+  { min: 75, band: 'good_match', label: 'Хорошее совпадение' },
+  { min: 60, band: 'potential_match', label: 'Возможный вариант' },
+  { min: 40, band: 'weak_match', label: 'Слабое совпадение' },
+  { min: 0, band: 'not_suitable', label: 'Не подходит' },
 ];
 
 export function bandForScore(score: number): RecommendationBand {
@@ -29,10 +29,10 @@ export function bandForScore(score: number): RecommendationBand {
 }
 
 export function labelForBand(band: RecommendationBand): string {
-  return BAND_THRESHOLDS.find((entry) => entry.band === band)?.label ?? 'Unknown';
+  return BAND_THRESHOLDS.find((entry) => entry.band === band)?.label ?? 'Неизвестно';
 }
 
-/** Accessible non-colour indicator paired with the colour coding. */
+/** Доступный индикатор без опоры на цвет — идёт в паре с цветовой кодировкой. */
 export const BAND_GLYPH: Record<RecommendationBand, string> = {
   strong_match: '★★★',
   good_match: '★★',

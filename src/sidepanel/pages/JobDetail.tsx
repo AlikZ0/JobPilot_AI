@@ -2,6 +2,7 @@ import { useStore } from '../state/store';
 import { AnalysisPanel } from '../components/AnalysisPanel';
 import { Empty } from '../components/Empty';
 import { useJobActions } from '../hooks/useJobActions';
+import { EMPLOYMENT_TYPE_LABEL } from '../labels';
 
 export function JobDetail() {
   const jobId = useStore((state) => state.selectedJobId);
@@ -13,9 +14,9 @@ export function JobDetail() {
   if (!job) {
     return (
       <Empty
-        title="Job not found"
-        hint="It may have been deleted."
-        action={{ label: 'Back to jobs', onClick: () => navigate('jobs') }}
+        title="Вакансия не найдена"
+        hint="Возможно, она была удалена."
+        action={{ label: 'К списку вакансий', onClick: () => navigate('jobs') }}
       />
     );
   }
@@ -23,7 +24,7 @@ export function JobDetail() {
   return (
     <div className="flex flex-col gap-3">
       <button type="button" className="jp-button-ghost self-start" onClick={() => navigate('jobs')}>
-        ← All jobs
+        ← Все вакансии
       </button>
 
       <header>
@@ -31,22 +32,22 @@ export function JobDetail() {
         <p className="text-[12px] text-muted">
           {job.company}
           {job.location ? ` · ${job.location}` : ''}
-          {job.employmentType !== 'unknown' ? ` · ${job.employmentType.replace('_', ' ')}` : ''}
+          {job.employmentType !== 'unknown' ? ` · ${EMPLOYMENT_TYPE_LABEL[job.employmentType]}` : ''}
         </p>
       </header>
 
       <div className="flex flex-wrap gap-1.5">
         <button type="button" className="jp-button" onClick={() => actions.analyze(job)}>
-          Re-analyze
+          Проанализировать заново
         </button>
         <button type="button" className="jp-button" onClick={() => actions.open(job)}>
-          Open job
+          Открыть вакансию
         </button>
         <button type="button" className="jp-button" onClick={() => actions.save(job)}>
-          Save
+          Сохранить
         </button>
         <button type="button" className="jp-button-primary" onClick={() => actions.prepare(job)}>
-          Prepare application
+          Подготовить заявку
         </button>
       </div>
 
@@ -54,9 +55,9 @@ export function JobDetail() {
         <AnalysisPanel job={job} analysis={analysis} />
       ) : (
         <Empty
-          title="Not analyzed yet"
-          hint="Run an analysis to see the score breakdown."
-          action={{ label: 'Analyze now', onClick: () => actions.analyze(job) }}
+          title="Ещё не проанализирована"
+          hint="Запустите анализ, чтобы увидеть разбор балла."
+          action={{ label: 'Анализировать', onClick: () => actions.analyze(job) }}
         />
       )}
     </div>

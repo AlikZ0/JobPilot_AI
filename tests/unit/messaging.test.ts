@@ -13,22 +13,22 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('message envelopes', () => {
-  it('carries a type, payload and request id', () => {
+describe('конверты сообщений', () => {
+  it('несут тип, полезную нагрузку и id запроса', () => {
     const envelope = msg(MESSAGE_TYPES.CONTENT_EXTRACT_JOB, { maxDescriptionChars: 100 });
     expect(envelope.type).toBe('content_extract_job');
     expect(envelope.payload).toEqual({ maxDescriptionChars: 100 });
     expect(envelope.requestId).toMatch(/^r/);
   });
 
-  it('every declared type is unique', () => {
+  it('все объявленные типы уникальны', () => {
     const values = Object.values(MESSAGE_TYPES);
     expect(new Set(values).size).toBe(values.length);
   });
 });
 
 describe('sendToBackground', () => {
-  it('unwraps a successful response', async () => {
+  it('разворачивает успешный ответ', async () => {
     vi.spyOn(chrome.runtime, 'sendMessage').mockResolvedValue({
       ok: true,
       data: { ok: true, version: '0.1.0' },
@@ -37,7 +37,7 @@ describe('sendToBackground', () => {
     expect(result.version).toBe('0.1.0');
   });
 
-  it('rethrows a serialized error with its code', async () => {
+  it('пробрасывает сериализованную ошибку с её кодом', async () => {
     vi.spyOn(chrome.runtime, 'sendMessage').mockResolvedValue({
       ok: false,
       error: { code: ERROR_CODES.AI_NOT_CONFIGURED, message: 'no key', recoverable: true },
@@ -47,14 +47,14 @@ describe('sendToBackground', () => {
     });
   });
 
-  it('explains a missing background worker', async () => {
+  it('понятно сообщает, что фоновый воркер не ответил', async () => {
     vi.spyOn(chrome.runtime, 'sendMessage').mockResolvedValue(undefined as never);
-    await expect(sendToBackground(MESSAGE_TYPES.PING, undefined)).rejects.toThrow(/No response/);
+    await expect(sendToBackground(MESSAGE_TYPES.PING, undefined)).rejects.toThrow(/не ответил/);
   });
 });
 
 describe('sendToTab', () => {
-  it('maps a missing content script to a typed error', async () => {
+  it('превращает отсутствие content-скрипта в типизированную ошибку', async () => {
     vi.spyOn(chrome.tabs, 'sendMessage').mockRejectedValue(
       new Error('Could not establish connection. Receiving end does not exist.'),
     );
@@ -64,8 +64,8 @@ describe('sendToTab', () => {
   });
 });
 
-describe('handler registration', () => {
-  it('answers a registered type and ignores others', async () => {
+describe('регистрация обработчиков', () => {
+  it('отвечает на зарегистрированный тип и игнорирует прочие', async () => {
     const listeners: ((...args: unknown[]) => unknown)[] = [];
     vi.spyOn(chrome.runtime.onMessage, 'addListener').mockImplementation((listener) => {
       listeners.push(listener as never);
@@ -85,7 +85,7 @@ describe('handler registration', () => {
     expect(ignored).toBe(false);
   });
 
-  it('serialises a thrown error into the response', async () => {
+  it('сериализует выброшенную ошибку в ответ', async () => {
     const listeners: ((...args: unknown[]) => unknown)[] = [];
     vi.spyOn(chrome.runtime.onMessage, 'addListener').mockImplementation((listener) => {
       listeners.push(listener as never);
@@ -105,8 +105,8 @@ describe('handler registration', () => {
   });
 });
 
-describe('broadcast', () => {
-  it('never rejects when no receiver is listening', () => {
+describe('широковещательная рассылка', () => {
+  it('не падает, когда получателя нет', () => {
     vi.spyOn(chrome.runtime, 'sendMessage').mockRejectedValue(new Error('no receiver'));
     expect(() =>
       broadcast(MESSAGE_TYPES.EVENT_TOAST, { level: 'info', message: 'x' }),

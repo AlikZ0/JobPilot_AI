@@ -2,8 +2,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DIST, expect, readManifest, test } from './fixtures';
 
-test.describe('packaged extension', () => {
-  test('is a Manifest V3 bundle with the expected entry points', () => {
+test.describe('собранное расширение', () => {
+  test('это сборка Manifest V3 с ожидаемыми точками входа', () => {
     const manifest = readManifest();
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.background.service_worker).toBe('background/index.js');
@@ -12,7 +12,7 @@ test.describe('packaged extension', () => {
     expect(manifest.action.default_popup).toBe('src/popup/index.html');
   });
 
-  test('ships every file the manifest references', () => {
+  test('содержит все файлы, на которые ссылается манифест', () => {
     const manifest = readManifest();
     const paths = [
       manifest.background.service_worker,
@@ -26,7 +26,7 @@ test.describe('packaged extension', () => {
     }
   });
 
-  test('asks for no install-time host access', () => {
+  test('не просит доступ к сайтам при установке', () => {
     const manifest = readManifest();
     const permissions = manifest.permissions;
     expect(permissions).not.toContain('<all_urls>');
@@ -36,7 +36,7 @@ test.describe('packaged extension', () => {
     expect(manifest.content_scripts).toBeUndefined();
   });
 
-  test('keeps a restrictive content security policy', () => {
+  test('сохраняет строгую политику безопасности контента', () => {
     const manifest = readManifest();
     const csp = manifest.content_security_policy.extension_pages;
     expect(csp).toContain("script-src 'self'");
@@ -44,7 +44,7 @@ test.describe('packaged extension', () => {
     expect(csp).not.toContain('unsafe-inline');
   });
 
-  test('builds the content script as a self-contained classic script', () => {
+  test('собирает content-скрипт как самодостаточный классический скрипт', () => {
     const source = readFileSync(resolve(DIST, 'content/index.js'), 'utf8');
     expect(source.length).toBeGreaterThan(1000);
     // An injected file cannot use ESM syntax.
@@ -52,7 +52,7 @@ test.describe('packaged extension', () => {
     expect(source).not.toMatch(/^\s*export\s/m);
   });
 
-  test('contains no eval or remote script loading in any bundle', () => {
+  test('ни в одном бандле нет eval и загрузки удалённых скриптов', () => {
     const files: string[] = [];
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -70,7 +70,7 @@ test.describe('packaged extension', () => {
     }
   });
 
-  test('never bundles a hardcoded API key', () => {
+  test('в сборке нет захардкоженного API-ключа', () => {
     const files = readdirSync(resolve(DIST, 'assets')).filter((name) => name.endsWith('.js'));
     for (const name of files) {
       const source = readFileSync(resolve(DIST, 'assets', name), 'utf8');

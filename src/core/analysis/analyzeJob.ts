@@ -21,7 +21,7 @@ const log = createLogger('analysis');
 
 export interface AnalyzeOptions {
   force?: boolean;
-  /** Skip the AI call even when it is configured (used by bulk scans). */
+  /** Пропустить вызов AI, даже если он настроен (используется при массовом анализе). */
   deterministicOnly?: boolean;
   signal?: AbortSignal;
 }
@@ -33,9 +33,9 @@ export interface AnalyzeOutcome {
 }
 
 /**
- * The analysis pipeline: cache → optional AI findings → deterministic scoring →
- * persistence. The AI never returns the score; if it fails, the deterministic
- * result still stands, so analysis degrades instead of breaking.
+ * Конвейер анализа: кеш → необязательные выводы AI → детерминированный скоринг →
+ * сохранение. AI никогда не возвращает балл; если он недоступен, остаётся
+ * детерминированный результат — анализ деградирует, а не ломается.
  */
 export async function analyzeJob(
   job: Job,
@@ -51,8 +51,8 @@ export async function analyzeJob(
     }
   }
 
-  // Reflect the work in the job's state so the UI (and the state machine) sees
-  // the analyzing step rather than a jump straight to `analyzed`.
+  // Отражаем работу в состоянии вакансии, чтобы UI (и машина состояний) видели
+  // шаг `analyzing`, а не прыжок сразу в `analyzed`.
   let current = job;
   if (canTransitionJob(current.state, 'analyzing') && current.state !== 'saved') {
     current = await updateJob(current.id, { state: 'analyzing' });
@@ -87,7 +87,7 @@ export async function analyzeJob(
       model = result.model;
       providerId = settings.aiMode === 'cloud' ? 'cloud' : settings.activeProvider;
     } catch (error) {
-      // Deterministic scoring still produces a usable result.
+      // Детерминированный скоринг всё равно даст пригодный результат.
       log.warn('AI analysis failed, falling back to deterministic scoring', error);
     }
   }
@@ -135,9 +135,9 @@ async function syncJobWithAnalysis(
   const priority = computePriority({ ...job, score: analysis.score }, profile);
   let current = job;
 
-  // A job that is already saved, submitted or mid-application keeps its state;
-  // everything else lands on `analyzed`, stepping through `analyzing` when the
-  // state machine requires it (for example straight after discovery).
+  // Вакансия, которая уже сохранена, отправлена или в процессе подготовки заявки,
+  // сохраняет своё состояние; остальные приходят в `analyzed`, при необходимости
+  // проходя через `analyzing` (например, сразу после обнаружения).
   const keepState =
     current.state === 'saved' ||
     current.state === 'submitted' ||

@@ -36,7 +36,7 @@ export function isScanRunning(): boolean {
   );
 }
 
-/** Reads the listing in the given tab without navigating anywhere. */
+/** Читает список вакансий в указанной вкладке, никуда не переходя. */
 export async function discoverJobs(tabId: number): Promise<JobSummary[]> {
   const { jobs } = await sendToTab(tabId, MESSAGE_TYPES.CONTENT_EXTRACT_LISTING, undefined);
   return jobs;
@@ -49,20 +49,20 @@ export interface StartScanParams {
 }
 
 /**
- * The Job Browser Agent: opens each discovered posting in a background tab,
- * extracts it, analyzes it and closes the tab again — one at a time by default.
+ * Агент обхода вакансий: открывает каждую найденную вакансию в фоновой вкладке,
+ * извлекает её, анализирует и закрывает вкладку — по умолчанию по одной за раз.
  */
 export async function startScan(params: StartScanParams): Promise<ScanProgress> {
   if (isScanRunning()) {
-    throw new JobPilotError(ERROR_CODES.SCAN_ALREADY_RUNNING, 'A scan is already running.');
+    throw new JobPilotError(ERROR_CODES.SCAN_ALREADY_RUNNING, 'Анализ уже выполняется.');
   }
   const settings = await getSettings();
   const profile = await getProfile();
   if (!isProfileUsable(profile)) {
     throw new JobPilotError(
       ERROR_CODES.PROFILE_INCOMPLETE,
-      'Complete your profile before scanning jobs.',
-      { hint: 'Open the Profile tab and add your position and skills.' },
+      'Заполните профиль, прежде чем запускать массовый анализ.',
+      { hint: 'Откройте вкладку «Профиль» и добавьте должность и навыки.' },
     );
   }
 
@@ -72,13 +72,13 @@ export async function startScan(params: StartScanParams): Promise<ScanProgress> 
   );
   const targets = params.jobs.slice(0, limit);
   if (targets.length === 0) {
-    throw new JobPilotError(ERROR_CODES.NO_JOB_ON_PAGE, 'No job links were found on this page.');
+    throw new JobPilotError(ERROR_CODES.NO_JOB_ON_PAGE, 'На этой странице не найдено ссылок на вакансии.');
   }
   if (!(await hasHostPermission(params.listingUrl))) {
     throw new JobPilotError(
       ERROR_CODES.PERMISSION_DENIED,
-      'JobPilot needs access to this site to open postings in background tabs.',
-      { hint: 'Use "Grant access to this site" in the side panel first.' },
+      'Чтобы открывать вакансии в фоновых вкладках, JobPilot нужен доступ к этому сайту.',
+      { hint: 'Сначала нажмите «Выдать доступ к этому сайту» в боковой панели.' },
     );
   }
 
@@ -111,7 +111,7 @@ export async function startScan(params: StartScanParams): Promise<ScanProgress> 
     },
     {
       onTaskError: (task, error) => {
-        log.warn('scan task failed', { id: task.id, error });
+        log.warn('задача анализа упала', { id: task.id, error });
         publish({
           processed: progress.processed + 1,
           failed: progress.failed + 1,
@@ -129,11 +129,11 @@ export async function startScan(params: StartScanParams): Promise<ScanProgress> 
     });
   }
 
-  // Run in the background: the caller gets the initial progress immediately.
+  // Запускаем в фоне: вызывающий код сразу получает начальный прогресс.
   void queue
     .run()
     .catch((error) => {
-      log.error('scan failed', error);
+      log.error('массовый анализ упал', error);
       publish({ state: 'error', error: error instanceof Error ? error.message : String(error) });
     })
     .finally(() => {

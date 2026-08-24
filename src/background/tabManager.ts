@@ -10,12 +10,12 @@ const log = createLogger('tabs');
 
 const CONTENT_SCRIPT = 'content/index.js';
 
-/** Injects the content script unless it is already answering pings. */
+/** Внедряет content-скрипт, если он ещё не отвечает на ping. */
 export async function ensureContentScript(tabId: number, url: string): Promise<void> {
   if (isRestrictedUrl(url)) {
     throw new JobPilotError(
       ERROR_CODES.RESTRICTED_PAGE,
-      'Chrome does not allow extensions to run on this page.',
+      'Chrome не разрешает расширениям работать на этой странице.',
       { recoverable: false },
     );
   }
@@ -23,7 +23,7 @@ export async function ensureContentScript(tabId: number, url: string): Promise<v
     await sendToTab(tabId, MESSAGE_TYPES.CONTENT_PING, undefined);
     return;
   } catch {
-    // Not injected yet — fall through.
+    // Ещё не внедрён — идём дальше.
   }
   try {
     await chrome.scripting.executeScript({
@@ -35,13 +35,13 @@ export async function ensureContentScript(tabId: number, url: string): Promise<v
     if (/Cannot access contents|permission|host permissions/i.test(message)) {
       throw new JobPilotError(
         ERROR_CODES.PERMISSION_DENIED,
-        'JobPilot does not have access to this site yet.',
-        { hint: 'Click "Grant access to this site" in the side panel and try again.' },
+        'У JobPilot пока нет доступа к этому сайту.',
+        { hint: 'Нажмите «Выдать доступ к этому сайту» в боковой панели и повторите.' },
       );
     }
     throw new JobPilotError(ERROR_CODES.CONTENT_SCRIPT_UNAVAILABLE, message);
   }
-  // Give the script a moment to register its message listener.
+  // Даём скрипту мгновение, чтобы зарегистрировать слушателя сообщений.
   for (let attempt = 0; attempt < 10; attempt++) {
     try {
       await sendToTab(tabId, MESSAGE_TYPES.CONTENT_PING, undefined);
@@ -52,14 +52,14 @@ export async function ensureContentScript(tabId: number, url: string): Promise<v
   }
   throw new JobPilotError(
     ERROR_CODES.CONTENT_SCRIPT_UNAVAILABLE,
-    'The content script did not start on this page.',
+    'Content-скрипт не запустился на этой странице.',
   );
 }
 
 export async function getActiveTab(): Promise<chrome.tabs.Tab> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (!tab?.id || !tab.url) {
-    throw new JobPilotError(ERROR_CODES.NO_ACTIVE_TAB, 'No active tab was found.');
+    throw new JobPilotError(ERROR_CODES.NO_ACTIVE_TAB, 'Активная вкладка не найдена.');
   }
   return tab;
 }
@@ -70,33 +70,33 @@ export interface ManagedTab {
 }
 
 /**
- * Opens a URL in a background tab, waits for it to finish loading and injects
- * the content script. Used by the bulk scanner, which must never steal focus.
+ * Открывает URL в фоновой вкладке, дожидается загрузки и внедряет content-скрипт.
+ * Используется массовым анализом, который не должен перехватывать фокус.
  */
 export async function openManagedTab(url: string, timeoutMs = 30_000): Promise<ManagedTab> {
   if (!(await hasHostPermission(url))) {
     throw new JobPilotError(
       ERROR_CODES.PERMISSION_DENIED,
-      `JobPilot has no access to ${new URL(url).hostname}.`,
-      { hint: 'Grant site access from the side panel before scanning.' },
+      `У JobPilot нет доступа к ${new URL(url).hostname}.`,
+      { hint: 'Выдайте доступ к сайту в боковой панели перед запуском анализа.' },
     );
   }
   const tab = await chrome.tabs.create({ url, active: false });
   const tabId = tab.id;
   if (typeof tabId !== 'number') {
-    throw new JobPilotError(ERROR_CODES.UNKNOWN, 'Chrome did not return a tab id.');
+    throw new JobPilotError(ERROR_CODES.UNKNOWN, 'Chrome не вернул идентификатор вкладки.');
   }
   const close = async () => {
     try {
       await chrome.tabs.remove(tabId);
     } catch (error) {
-      log.debug('tab already closed', error);
+      log.debug('вкладка уже закрыта', error);
     }
   };
 
   try {
     await waitForTabLoad(tabId, timeoutMs);
-    // Client-rendered boards need a beat after "complete" before the DOM settles.
+    // Сайтам на клиентском рендеринге нужна пауза после «complete», чтобы DOM устоялся.
     await sleep(600);
     await ensureContentScript(tabId, url);
     return { tabId, close };
@@ -123,17 +123,17 @@ export function waitForTabLoad(tabId: number, timeoutMs: number): Promise<void> 
     };
     const removedListener = (removedId: number) => {
       if (removedId === tabId) {
-        finish(new JobPilotError(ERROR_CODES.UNKNOWN, 'The tab was closed while loading.'));
+        finish(new JobPilotError(ERROR_CODES.UNKNOWN, 'Вкладку закрыли во время загрузки.'));
       }
     };
     const timer = setTimeout(
       () =>
-        finish(new JobPilotError(ERROR_CODES.UNKNOWN, 'Timed out waiting for the page to load.')),
+        finish(new JobPilotError(ERROR_CODES.UNKNOWN, 'Истекло время ожидания загрузки страницы.')),
       timeoutMs,
     );
     chrome.tabs.onUpdated.addListener(listener);
     chrome.tabs.onRemoved.addListener(removedListener);
-    // The tab may already be complete before the listener attached.
+    // Вкладка могла загрузиться ещё до того, как мы подписались на событие.
     void chrome.tabs.get(tabId).then((current) => {
       if (current.status === 'complete') finish();
     });

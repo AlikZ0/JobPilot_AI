@@ -27,8 +27,8 @@ export interface ScanSessionRecord {
 }
 
 /**
- * Offline-first store. Everything JobPilot knows lives here; no server is
- * required for any feature except calling an AI provider.
+ * Хранилище, работающее без сети. Здесь лежит всё, что знает JobPilot; сервер не
+ * нужен ни для одной функции, кроме обращения к AI-провайдеру.
  */
 export class JobPilotDatabase extends Dexie {
   profiles!: Table<UserProfile, string>;
@@ -64,7 +64,7 @@ export function getDb(): JobPilotDatabase {
   return instance;
 }
 
-/** Test hook — lets suites swap in an isolated database. */
+/** Хук для тестов — позволяет подменить базу на изолированную. */
 export function setDb(db: JobPilotDatabase | null): void {
   instance = db;
 }

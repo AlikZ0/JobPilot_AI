@@ -4,9 +4,9 @@ import { canonicalizeTech } from '@/core/extraction/techDictionary';
 import { truncate } from '@/utils/text';
 
 /**
- * Builds the PII-free profile projection sent to AI providers. Name, email,
- * phone, links and attachments are deliberately excluded — a job analysis never
- * needs them (docs/privacy.md).
+ * Строит проекцию профиля без персональных данных — именно она уходит
+ * AI-провайдеру. Имя, почта, телефон, ссылки и вложения намеренно исключены:
+ * анализу вакансии они не нужны (docs/privacy.md).
  */
 export function buildAIProfile(
   profile: UserProfile,

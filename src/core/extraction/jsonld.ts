@@ -16,7 +16,7 @@ interface JsonLdNode {
   [key: string]: unknown;
 }
 
-/** Depth-first walk over @graph / arrays looking for JobPosting nodes. */
+/** Обход @graph и массивов в глубину в поисках узлов JobPosting. */
 export function collectJobPostings(payload: unknown, depth = 0): JsonLdNode[] {
   if (depth > 6 || !payload) return [];
   if (Array.isArray(payload)) return payload.flatMap((item) => collectJobPostings(item, depth + 1));
@@ -86,8 +86,8 @@ function readWorkMode(node: JsonLdNode, description: string): MaybeWorkMode {
 }
 
 /**
- * Layer 1 of extraction: schema.org JobPosting embedded as JSON-LD. This is by
- * far the most reliable source, so its fields win over DOM heuristics.
+ * Слой 1 извлечения: schema.org JobPosting, встроенный как JSON-LD. Это самый
+ * надёжный источник, поэтому его поля выигрывают у DOM-эвристик.
  */
 export function extractFromJsonLd(scripts: string[], pageUrl: string): ExtractedJob | null {
   for (const script of scripts) {

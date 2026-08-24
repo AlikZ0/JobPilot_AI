@@ -26,7 +26,7 @@ export class OpenRouterProvider extends BaseAIProvider {
       url: `${baseUrl}/chat/completions`,
       headers: {
         authorization: `Bearer ${credentials.apiKey}`,
-        // OpenRouter uses these for attribution; no user data is included.
+        // OpenRouter использует это для атрибуции; данных пользователя здесь нет.
         'x-title': 'JobPilot AI',
       },
       body: {

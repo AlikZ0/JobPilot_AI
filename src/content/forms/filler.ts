@@ -3,8 +3,9 @@ import { findFieldElement } from './analyzer';
 import { normalizeToken } from '@/utils/text';
 
 /**
- * Sets a value the way a real user would, so frameworks (React, Vue, Angular)
- * notice the change. Never clicks a submit control and never calls form.submit().
+ * Ставит значение так же, как это сделал бы живой пользователь, чтобы фреймворки
+ * (React, Vue, Angular) заметили изменение. Никогда не нажимает кнопку отправки
+ * и никогда не вызывает отправку формы программно.
  */
 function setNativeValue(element: HTMLElement, value: string): void {
   const prototype =
@@ -43,7 +44,7 @@ function fillContentEditable(element: HTMLElement, value: string): boolean {
   return true;
 }
 
-/** Chooses the option whose label best matches the value. */
+/** Выбирает вариант, подпись которого лучше всего совпадает со значением. */
 function fillSelect(element: HTMLSelectElement, value: string): boolean {
   const target = normalizeToken(value);
   if (!target) return false;
@@ -99,9 +100,9 @@ function fillRadioGroup(element: HTMLInputElement, value: string): boolean {
 }
 
 /**
- * Applies a fill plan. Only mappings the caller already approved
- * (`decision === 'auto'`) are written; anything else is reported as skipped so
- * the side panel can ask the user.
+ * Применяет план заполнения. Записываются только поля, которые вызывающий код уже
+ * одобрил (`decision === 'auto'`); остальные помечаются пропущенными, чтобы
+ * боковая панель спросила пользователя.
  */
 export function fillFields(doc: Document, mappings: FieldMapping[]): FillResult {
   const items: FillResultItem[] = [];
@@ -114,7 +115,7 @@ export function fillFields(doc: Document, mappings: FieldMapping[]): FillResult 
       items.push({
         fieldId: mapping.fieldId,
         filled: false,
-        reason: `not approved (${mapping.decision})`,
+        reason: `не одобрено (${mapping.decision})`,
       });
       continue;
     }
@@ -124,13 +125,13 @@ export function fillFields(doc: Document, mappings: FieldMapping[]): FillResult 
       items.push({
         fieldId: mapping.fieldId,
         filled: false,
-        reason: 'field no longer on the page',
+        reason: 'поля больше нет на странице',
       });
       continue;
     }
     if (!mapping.value) {
       skipped += 1;
-      items.push({ fieldId: mapping.fieldId, filled: false, reason: 'no value in profile' });
+      items.push({ fieldId: mapping.fieldId, filled: false, reason: 'в профиле нет значения' });
       continue;
     }
 
@@ -152,7 +153,7 @@ export function fillFields(doc: Document, mappings: FieldMapping[]): FillResult 
       items.push({
         fieldId: mapping.fieldId,
         filled: false,
-        reason: error instanceof Error ? error.message : 'fill failed',
+        reason: error instanceof Error ? error.message : 'не удалось заполнить',
       });
       skipped += 1;
       continue;
@@ -160,7 +161,7 @@ export function fillFields(doc: Document, mappings: FieldMapping[]): FillResult 
 
     if (success) {
       filled += 1;
-      items.push({ fieldId: mapping.fieldId, filled: true, reason: 'filled' });
+      items.push({ fieldId: mapping.fieldId, filled: true, reason: 'заполнено' });
       highlight(element, 'filled');
     } else {
       skipped += 1;
@@ -169,8 +170,8 @@ export function fillFields(doc: Document, mappings: FieldMapping[]): FillResult 
         filled: false,
         reason:
           element.getAttribute('type') === 'file'
-            ? 'file inputs must be attached manually'
-            : 'no matching option',
+            ? 'файлы нужно прикреплять вручную'
+            : 'подходящего варианта нет',
       });
     }
   }

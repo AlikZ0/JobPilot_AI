@@ -15,7 +15,7 @@ import { JobPilotError, ERROR_CODES } from '@/utils/errors';
 import { createId } from '@/utils/id';
 import { truncate } from '@/utils/text';
 
-/** Starts (or resumes) the application draft for a job. */
+/** Создаёт (или возобновляет) черновик заявки по вакансии. */
 export async function prepareApplication(job: Job): Promise<Application> {
   const application = await createApplication(job.id);
   if (job.state !== 'submitted' && job.state !== 'application_ready') {
@@ -97,7 +97,7 @@ export async function generateApplicationAnswer(
 ): Promise<AnswerOutcome> {
   const application = await getApplication(params.applicationId);
   if (!application) {
-    throw new JobPilotError(ERROR_CODES.NOT_FOUND, 'Application not found.');
+    throw new JobPilotError(ERROR_CODES.NOT_FOUND, 'Заявка не найдена.');
   }
   const aiProfile = buildAIProfile(profile, {
     includeExperience: settings.privacy.shareExperienceWithAI,
@@ -159,12 +159,12 @@ export async function generateApplicationAnswer(
 }
 
 /**
- * Moves an application to `ready`. This does not submit anything — submission
- * is always a separate, explicit user action on the review screen.
+ * Переводит заявку в `ready`. Ничего не отправляет: отправка — всегда отдельное
+ * явное действие пользователя на экране проверки.
  */
 export async function markApplicationReady(applicationId: string): Promise<Application> {
   const application = await getApplication(applicationId);
-  if (!application) throw new JobPilotError(ERROR_CODES.NOT_FOUND, 'Application not found.');
+  if (!application) throw new JobPilotError(ERROR_CODES.NOT_FOUND, 'Заявка не найдена.');
   const next =
     application.state === 'ready'
       ? application

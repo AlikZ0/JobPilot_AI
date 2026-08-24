@@ -13,14 +13,14 @@ const log = createLogger('background');
 registerBackgroundHandlers();
 registerCommands();
 
-// Clicking the toolbar icon opens the side panel next to the current tab.
+// Клик по иконке на панели инструментов открывает боковую панель рядом со вкладкой.
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
     await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
   } catch (error) {
-    log.debug('side panel behaviour not available', error);
+    log.debug('поведение боковой панели недоступно', error);
   }
-  // Materialise defaults so the UI never starts against an empty database.
+  // Создаём значения по умолчанию, чтобы интерфейс не стартовал на пустой базе.
   await getSettings();
   const profile = await getProfile();
   if (details.reason === 'install' && !profile.onboardingCompleted) {
@@ -47,4 +47,4 @@ chrome.permissions.onRemoved.addListener(() => {
   broadcast(MESSAGE_TYPES.EVENT_DATA_CHANGED, { entity: 'settings' });
 });
 
-log.info('service worker started');
+log.info('service worker запущен');

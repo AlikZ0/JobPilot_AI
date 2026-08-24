@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 /**
- * The user profile is the single source of truth for every AI feature.
- * It is deliberately structured (never free text) so the scoring engine can
- * work deterministically and the AI can be constrained to real facts.
+ * Профиль пользователя — единственный источник правды для всех AI-функций.
+ * Он намеренно структурирован (а не свободный текст), чтобы движок скоринга
+ * работал детерминированно, а AI был ограничен реальными фактами.
  */
 
 export const SKILL_CATEGORIES = ['frontend', 'backend', 'devops', 'database', 'other'] as const;
@@ -39,9 +39,9 @@ export type LanguageLevel = (typeof LANGUAGE_LEVELS)[number];
 export const skillSchema = z.object({
   name: z.string().min(1).max(60),
   category: z.enum(SKILL_CATEGORIES),
-  /** Self-reported years of hands-on use. Optional — never invented by AI. */
+  /** Годы практики со слов пользователя. Необязательно — AI это никогда не придумывает. */
   years: z.number().min(0).max(50).optional(),
-  /** Marks a skill the user considers core to their offer. */
+  /** Отмечает навык, который пользователь считает ключевым. */
   primary: z.boolean().default(false),
 });
 export type Skill = z.infer<typeof skillSchema>;
@@ -82,7 +82,7 @@ export type ProfileLinks = z.infer<typeof linksSchema>;
 export const preferencesSchema = z.object({
   employmentTypes: z.array(z.enum(EMPLOYMENT_TYPES)).default(['full_time']),
   workModes: z.array(z.enum(WORK_MODES)).default(['remote']),
-  /** Free-form dealbreakers shown to the AI as constraints, e.g. "no on-call". */
+  /** Стоп-факторы в свободной форме, передаются AI как ограничения, например «без дежурств». */
   dealbreakers: z.array(z.string().max(160)).default([]),
   industries: z.array(z.string().max(60)).default([]),
   companySizes: z.array(z.string().max(40)).default([]),
@@ -121,7 +121,7 @@ export const attachmentSchema = z.object({
   name: z.string().max(200),
   mimeType: z.string().max(120),
   size: z.number().min(0),
-  /** Stored locally as a data URL — never uploaded anywhere by the extension. */
+  /** Хранится локально как data URL — расширение никуда его не выгружает. */
   dataUrl: z.string(),
   isDefault: z.boolean().default(false),
   createdAt: z.number(),
@@ -147,7 +147,7 @@ export type ProfessionalInfo = z.infer<typeof professionalSchema>;
 
 export const userProfileSchema = z.object({
   id: z.literal('primary').default('primary'),
-  /** Bumped on every meaningful edit; cached analyses are keyed on it. */
+  /** Увеличивается при каждом значимом изменении; кеш анализов привязан к этой версии. */
   version: z.number().int().min(1).default(1),
   createdAt: z.number(),
   updatedAt: z.number(),
@@ -167,8 +167,8 @@ export const userProfileSchema = z.object({
 export type UserProfile = z.infer<typeof userProfileSchema>;
 
 /**
- * Compact, PII-free projection of the profile that is sent to AI providers.
- * Personal contact details are never part of an analysis request.
+ * Компактная проекция профиля без персональных данных — именно она уходит
+ * AI-провайдеру. Контактные данные никогда не попадают в запрос на анализ.
  */
 export const aiProfileSchema = z.object({
   role: z.string(),

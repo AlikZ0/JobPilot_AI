@@ -9,7 +9,7 @@ interface OpenAIResponse {
   model?: string;
 }
 
-/** OpenAI Chat Completions, also used for any OpenAI-compatible endpoint. */
+/** OpenAI Chat Completions; та же реализация подходит любому OpenAI-совместимому API. */
 export class OpenAIProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'openai';
   readonly label: string = 'OpenAI';
@@ -50,7 +50,7 @@ export class OpenAIProvider extends BaseAIProvider {
   }
 }
 
-/** Same wire format, user-provided base URL (LM Studio, Ollama, vLLM, …). */
+/** Тот же формат обмена, но базовый URL задаёт пользователь (LM Studio, Ollama, vLLM, …). */
 export class CustomOpenAICompatibleProvider extends OpenAIProvider {
   override readonly id: AIProviderId = 'custom';
   override readonly label = 'Custom (OpenAI-compatible)';

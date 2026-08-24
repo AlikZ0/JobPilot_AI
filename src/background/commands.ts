@@ -23,12 +23,12 @@ async function extractActive() {
   return { tabId, url, extracted, settings };
 }
 
-/** Keyboard shortcuts declared in the manifest. */
+/** Сочетания клавиш, объявленные в манифесте. */
 export function registerCommands(): void {
   chrome.commands.onCommand.addListener((command) => {
     void handleCommand(command).catch((error) => {
       const serialized = toSerializedError(error);
-      log.warn(`command ${command} failed`, serialized);
+      log.warn(`команда ${command} завершилась ошибкой`, serialized);
       broadcast(MESSAGE_TYPES.EVENT_TOAST, {
         level: 'error',
         message: describeError(serialized),
@@ -54,7 +54,7 @@ async function handleCommand(command: string): Promise<void> {
       broadcast(MESSAGE_TYPES.EVENT_ANALYSIS_READY, outcome);
       broadcast(MESSAGE_TYPES.EVENT_TOAST, {
         level: 'success',
-        message: `${outcome.job.title || 'Job'} scored ${outcome.analysis.score}%.`,
+        message: `«${outcome.job.title || 'Вакансия'}» — совпадение ${outcome.analysis.score}%.`,
       });
       return;
     }
@@ -65,7 +65,7 @@ async function handleCommand(command: string): Promise<void> {
       broadcast(MESSAGE_TYPES.EVENT_JOB_UPDATED, { job: saved });
       broadcast(MESSAGE_TYPES.EVENT_TOAST, {
         level: 'success',
-        message: `Saved "${saved.title}".`,
+        message: `Сохранено: «${saved.title}».`,
       });
       return;
     }
@@ -78,11 +78,11 @@ async function handleCommand(command: string): Promise<void> {
       broadcast(MESSAGE_TYPES.EVENT_DATA_CHANGED, { entity: 'applications' });
       broadcast(MESSAGE_TYPES.EVENT_TOAST, {
         level: 'info',
-        message: `Application draft ready for "${job.title}" (${application.state}).`,
+        message: `Черновик заявки готов: «${job.title}» (${application.state}).`,
       });
       return;
     }
     default:
-      log.debug('unhandled command', { command });
+      log.debug('необработанная команда', { command });
   }
 }

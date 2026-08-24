@@ -20,7 +20,7 @@ export interface ChatMessage {
 
 export interface ChatRequest {
   messages: ChatMessage[];
-  /** Providers that support it are asked for strict JSON output. */
+  /** У провайдеров, которые это умеют, запрашивается строгий JSON. */
   json: boolean;
   temperature: number;
   maxTokens: number;
@@ -71,7 +71,7 @@ export interface ApplicationQuestionInput {
 
 export interface AssistantInput {
   profile: AIProfile;
-  /** Only the slice of data the question actually needs. */
+  /** Только тот срез данных, который реально нужен для вопроса. */
   context: string;
   history: ChatMessage[];
   question: string;
@@ -84,15 +84,15 @@ export interface ResumeAnalysisInput {
 }
 
 /**
- * Every provider implements the same task surface. Task methods are shared in
- * BaseAIProvider; concrete providers only implement `chat` and `describe`.
+ * Каждый провайдер реализует один и тот же набор задач. Сами задачи описаны в
+ * BaseAIProvider; конкретному провайдеру достаточно реализовать `chat`.
  */
 export interface AIProvider {
   readonly id: AIProviderId;
   readonly label: string;
   readonly defaultBaseUrl: string;
   readonly suggestedModels: string[];
-  /** Raw completion call — used by tasks and by the "Test connection" button. */
+  /** Прямой вызов модели — используется задачами и кнопкой «Проверить подключение». */
   chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse>;
 
   analyzeJob(input: JobAnalysisInput, ctx: TaskContext): Promise<TaskResult<AIJobFindings>>;

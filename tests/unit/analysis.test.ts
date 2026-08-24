@@ -53,8 +53,8 @@ async function enableAI() {
   });
 }
 
-describe('analysis pipeline', () => {
-  it('scores deterministically when AI is disabled', async () => {
+describe('конвейер анализа', () => {
+  it('считает балл детерминированно, когда AI выключен', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     const profile = makeProfile();
     const settings = await getSettings();
@@ -68,7 +68,7 @@ describe('analysis pipeline', () => {
     expect(await countRequestsToday()).toBe(0);
   });
 
-  it('reuses a cached analysis for the same profile version', async () => {
+  it('переиспользует кеш для той же версии профиля', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     const profile = makeProfile();
     const settings = await getSettings();
@@ -80,7 +80,7 @@ describe('analysis pipeline', () => {
     expect(await getDb().analyses.count()).toBe(1);
   });
 
-  it('recomputes when the profile version changes', async () => {
+  it('пересчитывает при смене версии профиля', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     const settings = await getSettings();
     const first = await analyzeJob(job, makeProfile({ version: 3 }), settings);
@@ -90,7 +90,7 @@ describe('analysis pipeline', () => {
     expect(await getDb().analyses.count()).toBe(2);
   });
 
-  it('uses AI findings when a provider is configured', async () => {
+  it('использует выводы AI, если провайдер настроен', async () => {
     await enableAI();
     const chat = vi.spyOn(PROVIDERS.openai, 'chat').mockResolvedValue({
       text: JSON.stringify(AI_FINDINGS),
@@ -109,7 +109,7 @@ describe('analysis pipeline', () => {
     expect(await countRequestsToday()).toBe(1);
   });
 
-  it('falls back to deterministic scoring when the provider fails', async () => {
+  it('откатывается к детерминированному скорингу при сбое провайдера', async () => {
     await enableAI();
     vi.spyOn(PROVIDERS.openai, 'chat').mockRejectedValue(new Error('network down'));
 
@@ -120,7 +120,7 @@ describe('analysis pipeline', () => {
     expect(outcome.analysis.score).toBeGreaterThan(0);
   });
 
-  it('falls back when the model returns malformed JSON', async () => {
+  it('откатывается, если модель вернула битый JSON', async () => {
     await enableAI();
     vi.spyOn(PROVIDERS.openai, 'chat').mockResolvedValue({
       text: 'Sorry, I cannot do that.',
@@ -134,7 +134,7 @@ describe('analysis pipeline', () => {
     expect(outcome.analysis.usedAI).toBe(false);
   });
 
-  it('respects the daily request limit', async () => {
+  it('соблюдает дневной лимит запросов', async () => {
     await enableAI();
     await saveSettings({
       costControl: { ...(await getSettings()).costControl, dailyRequestLimit: 1 },
@@ -159,7 +159,7 @@ describe('analysis pipeline', () => {
     expect(outcome.analysis.usedAI).toBe(false);
   });
 
-  it('sends no personal data to the provider', async () => {
+  it('не отправляет провайдеру персональные данные', async () => {
     await enableAI();
     const chat = vi.spyOn(PROVIDERS.openai, 'chat').mockResolvedValue({
       text: JSON.stringify(AI_FINDINGS),

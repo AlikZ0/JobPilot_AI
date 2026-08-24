@@ -21,18 +21,18 @@ export function Profile() {
   const patch = (change: Partial<UserProfile>) => setDraft({ ...current, ...change });
 
   const save = () =>
-    void withBusy('Saving profile', async () => {
+    void withBusy('Сохраняем профиль', async () => {
       if (!draft) return;
       await updateProfile(draft);
       setDraft(null);
       pushToast({
         level: 'success',
-        message: 'Profile saved. Cached analyses will be recalculated on next run.',
+        message: 'Профиль сохранён. Кешированные анализы будут пересчитаны при следующем запуске.',
       });
     });
 
   const importResume = () =>
-    void withBusy('Analyzing CV', async () => {
+    void withBusy('Разбираем резюме', async () => {
       const analysis = await sendToBackground(MESSAGE_TYPES.ANALYZE_RESUME, { text: resumeText });
       const existing = new Set(current.skills.map((skill) => skill.name.toLowerCase()));
       const suggested = analysis.skills
@@ -40,7 +40,7 @@ export function Profile() {
         .filter((name) => name && !existing.has(name.toLowerCase()))
         .slice(0, 40);
       if (suggested.length === 0) {
-        pushToast({ level: 'info', message: 'No new skills found in the CV.' });
+        pushToast({ level: 'info', message: 'Новых навыков в резюме не нашлось.' });
         return;
       }
       patch({
@@ -51,7 +51,7 @@ export function Profile() {
       });
       pushToast({
         level: 'warning',
-        message: `${suggested.length} skills proposed from your CV. Review them, then press Save — nothing was added to your profile automatically.`,
+        message: `Из резюме предложено навыков: ${suggested.length}. Проверьте их и нажмите «Сохранить» — автоматически в профиль ничего не добавлено.`,
       });
     });
 
@@ -59,27 +59,27 @@ export function Profile() {
     <div className="flex flex-col gap-4">
       <header className="flex items-start justify-between gap-2">
         <div>
-          <h2 className="text-[14px] font-semibold">Your profile</h2>
+          <h2 className="text-[14px] font-semibold">Ваш профиль</h2>
           <p className="text-[11px] text-muted">
-            Version {profile.version} · every save invalidates cached analyses.
+            Версия {profile.version} · каждое сохранение сбрасывает кеш анализов.
           </p>
         </div>
         <button type="button" className="jp-button-primary" onClick={save} disabled={!dirty}>
-          {dirty ? 'Save changes' : 'Saved'}
+          {dirty ? 'Сохранить изменения' : 'Сохранено'}
         </button>
       </header>
 
       <ProfileForm profile={current} onChange={patch} />
 
       <section className="flex flex-col gap-2">
-        <h3 className="jp-section-title">Import from CV</h3>
+        <h3 className="jp-section-title">Импорт из резюме</h3>
         <p className="text-[11px] text-muted">
-          Paste your CV text. JobPilot proposes skills it can read from the document — it never adds
-          unverified facts to your profile by itself.
+          Вставьте текст резюме. JobPilot предложит навыки, которые смог прочитать в документе, — сам
+          он никогда не добавляет в профиль неподтверждённые факты.
         </p>
         <textarea
           className="jp-input min-h-[90px]"
-          placeholder="Paste CV text here…"
+          placeholder="Вставьте сюда текст резюме…"
           value={resumeText}
           onChange={(event) => setResumeText(event.target.value)}
         />
@@ -89,7 +89,7 @@ export function Profile() {
           onClick={importResume}
           disabled={resumeText.trim().length < 80}
         >
-          Analyze CV
+          Разобрать резюме
         </button>
       </section>
 

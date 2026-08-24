@@ -3,8 +3,8 @@ import { JobQueue } from '@/background/jobQueue';
 
 const tick = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe('JobQueue', () => {
-  it('runs every task and drains', async () => {
+describe('очередь задач', () => {
+  it('выполняет все задачи и опустошается', async () => {
     const done: string[] = [];
     const queue = new JobQueue<string>({ concurrency: 1, delayMs: 0 });
     for (const id of ['a', 'b', 'c']) {
@@ -21,7 +21,7 @@ describe('JobQueue', () => {
     expect(queue.pending).toBe(0);
   });
 
-  it('caps concurrency at three even when asked for more', async () => {
+  it('ограничивает параллельность тремя, даже если попросили больше', async () => {
     let active = 0;
     let peak = 0;
     const queue = new JobQueue<void>({ concurrency: 10, delayMs: 0 });
@@ -40,7 +40,7 @@ describe('JobQueue', () => {
     expect(peak).toBeLessThanOrEqual(3);
   });
 
-  it('applies the delay between task starts', async () => {
+  it('выдерживает паузу между стартами задач', async () => {
     const starts: number[] = [];
     const queue = new JobQueue<void>({ concurrency: 1, delayMs: 40 });
     for (let i = 0; i < 3; i++) {
@@ -56,7 +56,7 @@ describe('JobQueue', () => {
     expect(starts[2]! - starts[1]!).toBeGreaterThanOrEqual(30);
   });
 
-  it('keeps going after a task throws and reports the error', async () => {
+  it('продолжает работу после сбоя задачи и сообщает об ошибке', async () => {
     const errors: string[] = [];
     const completed: string[] = [];
     const queue = new JobQueue<void>(
@@ -78,7 +78,7 @@ describe('JobQueue', () => {
     expect(completed).toEqual(['fine']);
   });
 
-  it('stops immediately and abandons pending tasks', async () => {
+  it('останавливается сразу и бросает оставшиеся задачи', async () => {
     const done: string[] = [];
     const queue = new JobQueue<void>({ concurrency: 1, delayMs: 0 });
     for (let i = 0; i < 6; i++) {
@@ -96,7 +96,7 @@ describe('JobQueue', () => {
     expect(queue.signal.aborted).toBe(true);
   });
 
-  it('pauses and resumes', async () => {
+  it('ставится на паузу и продолжается', async () => {
     const done: string[] = [];
     const queue = new JobQueue<void>({ concurrency: 1, delayMs: 0 });
     for (const id of ['a', 'b', 'c']) {
@@ -116,7 +116,7 @@ describe('JobQueue', () => {
     expect(done).toEqual(['a', 'b', 'c']);
   });
 
-  it('reports the drained event once', async () => {
+  it('сообщает о завершении ровно один раз', async () => {
     let drained = 0;
     const queue = new JobQueue<void>(
       { concurrency: 2, delayMs: 0 },

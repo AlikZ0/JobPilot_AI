@@ -4,8 +4,8 @@ import { requestHostPermission } from '@/utils/permissions';
 import { useStore, withBusy } from '../state/store';
 
 /**
- * Contextual actions for the tab the user is looking at. Site access is
- * requested here because chrome.permissions.request needs a user gesture.
+ * Действия для вкладки, которую сейчас смотрит пользователь. Доступ к сайту
+ * запрашивается именно здесь: chrome.permissions.request требует жеста.
  */
 export function PageActions() {
   const pageInfo = useStore((state) => state.pageInfo);
@@ -22,10 +22,10 @@ export function PageActions() {
     try {
       const granted = await requestHostPermission(url);
       if (granted) {
-        store.pushToast({ level: 'success', message: 'Site access granted.' });
+        store.pushToast({ level: 'success', message: 'Доступ к сайту выдан.' });
         await store.refreshTabContext();
       } else {
-        store.pushToast({ level: 'warning', message: 'Site access was declined.' });
+        store.pushToast({ level: 'warning', message: 'В доступе к сайту отказано.' });
       }
     } catch (error) {
       store.reportError(error);
@@ -35,12 +35,13 @@ export function PageActions() {
   if (!hasPermission) {
     return (
       <section className="jp-card flex flex-col gap-2">
-        <h2 className="text-[13px] font-semibold">This site is not connected</h2>
+        <h2 className="text-[13px] font-semibold">Этот сайт ещё не подключён</h2>
         <p className="text-[12px] text-muted">
-          JobPilot asks for access one site at a time. Nothing is read until you allow it.
+          JobPilot запрашивает доступ отдельно к каждому сайту. Пока вы не разрешите, страница не
+          читается.
         </p>
         <button type="button" className="jp-button-primary" onClick={() => void grantAccess()}>
-          Grant access to this site
+          Выдать доступ к этому сайту
         </button>
       </section>
     );
@@ -50,21 +51,21 @@ export function PageActions() {
     return (
       <section className="jp-card">
         <p className="text-[12px] text-muted">
-          Open a job posting or a search results page to use the actions here.
+          Откройте вакансию или страницу с результатами поиска, чтобы здесь появились действия.
         </p>
         <button
           type="button"
           className="jp-button mt-2"
           onClick={() => void store.refreshTabContext()}
         >
-          Re-check this page
+          Проверить страницу заново
         </button>
       </section>
     );
   }
 
   const analyzeCurrent = () =>
-    void withBusy('Analyzing job', async () => {
+    void withBusy('Анализируем вакансию', async () => {
       const result = await sendToBackground(MESSAGE_TYPES.ANALYZE_CURRENT_JOB, {
         ...(activeTabId ? { tabId: activeTabId } : {}),
       });
@@ -73,40 +74,40 @@ export function PageActions() {
       store.navigate('job', result.job.id);
       store.pushToast({
         level: 'success',
-        message: `${result.job.title || 'Job'} scored ${result.analysis.score}%.`,
+        message: `«${result.job.title || 'Вакансия'}» — совпадение ${result.analysis.score}%.`,
       });
     });
 
   const saveCurrent = () =>
-    void withBusy('Saving job', async () => {
+    void withBusy('Сохраняем вакансию', async () => {
       const result = await sendToBackground(MESSAGE_TYPES.SAVE_CURRENT_JOB, {
         ...(activeTabId ? { tabId: activeTabId } : {}),
       });
       if (result) {
         await store.refreshData();
-        store.pushToast({ level: 'success', message: `Saved "${result.job.title}".` });
+        store.pushToast({ level: 'success', message: `Сохранено: «${result.job.title}».` });
       }
     });
 
   const scanListing = () =>
-    void withBusy('Starting scan', async () => {
+    void withBusy('Запускаем анализ', async () => {
       const progress = await sendToBackground(MESSAGE_TYPES.START_JOB_SCAN, {
         ...(activeTabId ? { tabId: activeTabId } : {}),
       });
       if (progress) {
         store.setScan(progress);
-        store.pushToast({ level: 'info', message: `Scanning ${progress.total} postings.` });
+        store.pushToast({ level: 'info', message: `В работе вакансий: ${progress.total}.` });
       }
     });
 
   return (
     <section className="jp-card flex flex-col gap-2">
       <div>
-        <h2 className="text-[13px] font-semibold">Current page</h2>
+        <h2 className="text-[13px] font-semibold">Текущая страница</h2>
         <p className="truncate text-[11px] text-muted">
           {pageInfo.adapterId} · {pageInfo.hostname}
-          {pageInfo.looksLikeJobPage ? ' · job posting' : ''}
-          {pageInfo.looksLikeListingPage ? ` · listing (${pageInfo.listingCount})` : ''}
+          {pageInfo.looksLikeJobPage ? ' · вакансия' : ''}
+          {pageInfo.looksLikeListingPage ? ` · список (${pageInfo.listingCount})` : ''}
         </p>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -116,10 +117,10 @@ export function PageActions() {
           onClick={analyzeCurrent}
           disabled={Boolean(busy)}
         >
-          Analyze this job
+          Анализировать эту вакансию
         </button>
         <button type="button" className="jp-button" onClick={saveCurrent} disabled={Boolean(busy)}>
-          Save job
+          Сохранить вакансию
         </button>
         <button
           type="button"
@@ -128,11 +129,11 @@ export function PageActions() {
           disabled={Boolean(busy) || scanState === 'running' || !pageInfo.looksLikeListingPage}
           title={
             pageInfo.looksLikeListingPage
-              ? 'Open each posting in a background tab and analyze it'
-              : 'No job list detected on this page'
+              ? 'Открыть каждую вакансию в фоновой вкладке и проанализировать'
+              : 'Список вакансий на этой странице не найден'
           }
         >
-          Analyze jobs on this page
+          Анализировать вакансии на странице
         </button>
       </div>
     </section>

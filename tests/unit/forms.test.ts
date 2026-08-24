@@ -42,8 +42,8 @@ function documentFrom(html: string): Document {
   return window.document as unknown as Document;
 }
 
-describe('form analyzer', () => {
-  it('detects every fillable control and skips submit buttons', () => {
+describe('анализатор форм', () => {
+  it('находит все заполняемые поля и пропускает кнопки отправки', () => {
     const fields = analyzeForms(documentFrom(FORM_HTML));
     const names = fields.map((field) => field.idAttr);
     expect(names).toEqual(
@@ -65,7 +65,7 @@ describe('form analyzer', () => {
     expect(fields.some((field) => field.inputType === 'submit')).toBe(false);
   });
 
-  it('reads labels, options and required flags', () => {
+  it('читает подписи, варианты и признак обязательности', () => {
     const fields = analyzeForms(documentFrom(FORM_HTML));
     const country = fields.find((field) => field.idAttr === 'cn');
     expect(country?.label).toBe('Country');
@@ -73,7 +73,7 @@ describe('form analyzer', () => {
     expect(country?.options.map((option) => option.label)).toContain('Poland');
   });
 
-  it('recognises application forms', () => {
+  it('распознаёт форму отклика', () => {
     expect(hasApplicationForm(documentFrom(FORM_HTML))).toBe(true);
     expect(hasApplicationForm(documentFrom('<html><body><input name="q" /></body></html>'))).toBe(
       false,
@@ -81,12 +81,12 @@ describe('form analyzer', () => {
   });
 });
 
-describe('field mapper', () => {
+describe('маппинг полей', () => {
   const doc = documentFrom(FORM_HTML);
   const fields = analyzeForms(doc);
   const profile = makeProfile();
 
-  it('maps standard fields to profile paths with high confidence', () => {
+  it('сопоставляет стандартные поля с профилем с высокой уверенностью', () => {
     const plan = buildDeterministicPlan(fields, profile, { requireConfirmation: false });
     const byId = new Map(plan.mappings.map((mapping) => [mapping.fieldId, mapping]));
     const find = (idAttr: string) =>
@@ -104,7 +104,7 @@ describe('field mapper', () => {
     expect(find('fn').confidence).toBeGreaterThanOrEqual(AUTOFILL_CONFIDENCE_THRESHOLD);
   });
 
-  it('never auto-fills demographic or consent fields', () => {
+  it('никогда не заполняет демографические поля и согласия', () => {
     const plan = buildDeterministicPlan(fields, profile, { requireConfirmation: false });
     const gender = plan.mappings.find((mapping) => mapping.fieldType === 'gender');
     const consent = plan.mappings.find((mapping) => mapping.fieldType === 'consent');
@@ -116,23 +116,23 @@ describe('field mapper', () => {
     }
   });
 
-  it('routes unrecognised free-text fields to the AI queue', () => {
+  it('отправляет нераспознанные текстовые поля на разбор AI', () => {
     const plan = buildDeterministicPlan(fields, profile, { requireConfirmation: false });
     expect(plan.unknownFields.some((field) => field.idAttr === 'mystery')).toBe(true);
   });
 
-  it('requires confirmation when the setting is on', () => {
+  it('требует подтверждения, когда включена настройка', () => {
     const plan = buildDeterministicPlan(fields, profile, { requireConfirmation: true });
     expect(plan.mappings.filter((mapping) => mapping.decision === 'auto')).toHaveLength(0);
   });
 
-  it('classifies an unlabelled textarea as an open question', () => {
+  it('считает textarea без подписи открытым вопросом', () => {
     const doc2 = documentFrom('<html><body><textarea id="x"></textarea></body></html>');
     const [field] = analyzeForms(doc2);
     expect(classifyField(field!).fieldType).toBe('open_question');
   });
 
-  it('does not let a low-confidence AI suggestion auto-fill', () => {
+  it('не даёт заполнить поле по неуверенной подсказке AI', () => {
     const plan = buildDeterministicPlan(fields, profile, { requireConfirmation: false });
     const mystery = fields.find((field) => field.idAttr === 'mystery')!;
     const merged = mergeAIMappings(
@@ -154,7 +154,7 @@ describe('field mapper', () => {
     expect(mapping?.decision).toBe('needs_confirmation');
   });
 
-  it('lets a confident AI suggestion fill an unknown field', () => {
+  it('позволяет уверенной подсказке AI заполнить неизвестное поле', () => {
     const plan = buildDeterministicPlan(fields, profile, { requireConfirmation: false });
     const mystery = fields.find((field) => field.idAttr === 'mystery')!;
     const merged = mergeAIMappings(
@@ -177,15 +177,15 @@ describe('field mapper', () => {
     expect(mapping?.value).toBe('Fullstack Developer');
   });
 
-  it('resolves every documented profile path without throwing', () => {
+  it('читает любой документированный путь профиля без исключений', () => {
     expect(readProfilePath(profile, 'personal.fullName')).toBe('Alex Doe');
     expect(readProfilePath(profile, 'languages.list')).toContain('English');
     expect(readProfilePath(profile, 'nonsense.path')).toBe('');
   });
 });
 
-describe('form filler', () => {
-  it('fills approved fields and dispatches input events', () => {
+describe('заполнение формы', () => {
+  it('заполняет одобренные поля и шлёт события input', () => {
     const doc = documentFrom(FORM_HTML);
     const fields = analyzeForms(doc);
     const plan = buildDeterministicPlan(fields, makeProfile(), { requireConfirmation: false });
@@ -200,7 +200,7 @@ describe('form filler', () => {
     expect(doc.querySelector<HTMLSelectElement>('#cn')!.value).toBe('pl');
   });
 
-  it('refuses to fill anything that was not approved', () => {
+  it('отказывается заполнять неодобренные поля', () => {
     const doc = documentFrom(FORM_HTML);
     const fields = analyzeForms(doc);
     const plan = buildDeterministicPlan(fields, makeProfile(), { requireConfirmation: true });
@@ -209,7 +209,7 @@ describe('form filler', () => {
     expect(doc.querySelector<HTMLInputElement>('#fn')!.value).toBe('');
   });
 
-  it('leaves demographic selects untouched', () => {
+  it('не трогает демографические списки', () => {
     const doc = documentFrom(FORM_HTML);
     const fields = analyzeForms(doc);
     const plan = buildDeterministicPlan(fields, makeProfile(), { requireConfirmation: false });
@@ -217,7 +217,7 @@ describe('form filler', () => {
     expect(doc.querySelector<HTMLSelectElement>('#gender')!.selectedIndex).toBe(0);
   });
 
-  it('never submits the form', () => {
+  it('никогда не отправляет форму', () => {
     const doc = documentFrom(FORM_HTML);
     let submitted = false;
     doc.addEventListener('submit', () => {

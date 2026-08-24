@@ -3,8 +3,8 @@ import { normalizeWhitespace } from '@/utils/text';
 const BLOCK_TAGS = /<\/?(p|div|section|article|br|li|ul|ol|h[1-6]|tr|table|blockquote)[^>]*>/gi;
 
 /**
- * Converts an HTML fragment (as found in JSON-LD descriptions) to plain text
- * without using innerHTML, so no markup from the page can ever be executed.
+ * Превращает фрагмент HTML (например, из описания в JSON-LD) в простой текст
+ * без innerHTML, чтобы разметка со страницы никогда не могла выполниться.
  */
 export function htmlToText(html: string): string {
   if (!html) return '';
@@ -56,7 +56,7 @@ export function decodeEntities(value: string): string {
   });
 }
 
-/** Visible text of an element, with block-level line breaks preserved. */
+/** Видимый текст элемента с сохранением переносов по блокам. */
 export function elementText(element: Element | null): string {
   if (!element) return '';
   const clone = element.cloneNode(true) as Element;

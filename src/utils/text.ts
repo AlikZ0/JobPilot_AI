@@ -1,4 +1,4 @@
-/** Text helpers shared by extraction, scoring and form mapping. */
+/** Текстовые помощники, общие для извлечения, скоринга и маппинга полей. */
 
 export function normalizeWhitespace(value: string): string {
   return value
@@ -15,7 +15,7 @@ export function normalizeToken(value: string): string {
     .trim();
 }
 
-/** Truncates on a word boundary and appends an ellipsis marker. */
+/** Обрезает по границе слова и добавляет многоточие. */
 export function truncate(value: string, maxChars: number): string {
   if (value.length <= maxChars) return value;
   const cut = value.slice(0, maxChars);
@@ -51,9 +51,9 @@ export function uniqueBy<T>(values: T[], key: (value: T) => string): T[] {
 }
 
 /**
- * Parses a human-written number: "3", "3.5", "3,5", "$3 000", "4,500".
- * A separator followed by exactly three digits is treated as a thousands
- * separator, which is what salary strings almost always mean.
+ * Разбирает число, написанное человеком: "3", "3.5", "3,5", "$3 000", "4,500".
+ * Разделитель, за которым идут ровно три цифры, считается разделителем тысяч —
+ * именно это почти всегда имеется в виду в строках с зарплатой.
  */
 export function parseNumber(value: string): number | null {
   const cleaned = value.replace(/[^\d.,]/g, '');
@@ -64,7 +64,7 @@ export function parseNumber(value: string): number | null {
   let normalized: string;
 
   if (lastComma !== -1 && lastDot !== -1) {
-    // The right-most separator is the decimal one; the other groups thousands.
+    // Самый правый разделитель — десятичный, остальные группируют тысячи.
     const decimalAt = Math.max(lastComma, lastDot);
     const decimalChar = cleaned[decimalAt];
     const groupChar = decimalChar === ',' ? '.' : ',';
@@ -88,7 +88,7 @@ export function pluralize(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-/** Jaccard similarity over word sets — used for duplicate detection. */
+/** Мера Жаккара по множествам слов — используется для поиска дублей. */
 export function similarity(a: string, b: string): number {
   const wa = new Set(normalizeToken(a).split(' ').filter(Boolean));
   const wb = new Set(normalizeToken(b).split(' ').filter(Boolean));

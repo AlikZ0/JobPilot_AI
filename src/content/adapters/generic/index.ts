@@ -6,7 +6,7 @@ import { normalizeWhitespace, uniqueBy } from '@/utils/text';
 import { absoluteUrl, hostnameOf, normalizeUrl } from '@/utils/url';
 import type { AdapterContext, JobSiteAdapter } from '../types';
 
-/** Links that look like a job posting on an unknown site. */
+/** Ссылки, похожие на вакансию, на незнакомом сайте. */
 const JOB_LINK_RE =
   /\/(jobs?|vacancy|vacancies|position|career[s]?|opening[s]?|viewjob|job-detail)[/\-?=]/i;
 

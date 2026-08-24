@@ -21,7 +21,7 @@ export async function createApplication(jobId: string): Promise<Application> {
     updatedAt: now,
   });
   await getDb().applications.put(application);
-  await logApplicationEvent(application.id, jobId, 'created', 'Application draft created');
+  await logApplicationEvent(application.id, jobId, 'created', 'Создан черновик заявки');
   return application;
 }
 
@@ -48,7 +48,7 @@ export async function updateApplication(
   patch: Partial<Application>,
 ): Promise<Application> {
   const current = await getApplication(id);
-  if (!current) throw new Error(`Application not found: ${id}`);
+  if (!current) throw new Error(`Заявка не найдена: ${id}`);
   if (patch.state && patch.state !== current.state) {
     assertApplicationTransition(current.state, patch.state);
   }
@@ -66,19 +66,19 @@ export async function updateApplication(
 }
 
 /**
- * The only path to `submitted`. `confirmedByUser` must be an actual click in
- * the review screen — no caller may set it programmatically.
+ * Единственный путь в `submitted`. `confirmedByUser` должен приходить от
+ * реального клика на экране проверки — программно его выставлять нельзя.
  */
 export async function markSubmitted(id: string, confirmedByUser: boolean): Promise<Application> {
   if (!confirmedByUser) {
-    throw new Error('Applications can only be marked submitted after explicit user confirmation.');
+    throw new Error('Заявку можно пометить отправленной только после явного подтверждения пользователя.');
   }
   const application = await updateApplication(id, {
     state: 'submitted',
     submittedAt: Date.now(),
     submittedByUser: true,
   });
-  await logApplicationEvent(id, application.jobId, 'submit_confirmed', 'User confirmed submission');
+  await logApplicationEvent(id, application.jobId, 'submit_confirmed', 'Пользователь подтвердил отправку');
   return application;
 }
 

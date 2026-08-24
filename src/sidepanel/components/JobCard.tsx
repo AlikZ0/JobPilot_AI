@@ -3,6 +3,7 @@ import type { JobAnalysis } from '@/types/ai';
 import { MatchScore } from './MatchScore';
 import { SkillBadge } from './SkillBadge';
 import { formatRelative } from '@/utils/time';
+import { JOB_PRIORITY_LABEL, JOB_STATE_LABEL, WORK_MODE_LABEL } from '../labels';
 
 interface Props {
   job: Job;
@@ -16,7 +17,7 @@ interface Props {
 }
 
 function salaryLabel(job: Job): string {
-  if (job.salary.min === null && job.salary.max === null) return 'Not disclosed';
+  if (job.salary.min === null && job.salary.max === null) return 'Не указана';
   const currency = job.salary.currency ? `${job.salary.currency} ` : '';
   const range =
     job.salary.max !== null && job.salary.max !== job.salary.min
@@ -48,18 +49,18 @@ export function JobCard({
             onClick={onSelect}
             className="text-left text-[14px] font-semibold leading-tight hover:underline"
           >
-            {job.title || 'Untitled posting'}
+            {job.title || 'Вакансия без названия'}
           </button>
           <p className="truncate text-[12px] text-muted">
-            {job.company || 'Unknown company'}
+            {job.company || 'Компания не указана'}
             {job.location ? ` · ${job.location}` : ''}
-            {job.workMode !== 'unknown' ? ` · ${job.workMode}` : ''}
+            {job.workMode !== 'unknown' ? ` · ${WORK_MODE_LABEL[job.workMode]}` : ''}
           </p>
         </div>
         {analysis ? (
           <MatchScore score={analysis.score} band={analysis.band} />
         ) : (
-          <span className="jp-badge">Not analyzed</span>
+          <span className="jp-badge">Не проанализирована</span>
         )}
       </div>
 
@@ -76,26 +77,26 @@ export function JobCard({
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted">
         <div className="flex gap-1">
-          <dt className="font-medium">Salary:</dt>
+          <dt className="font-medium">Зарплата:</dt>
           <dd>{salaryLabel(job)}</dd>
         </div>
         <div className="flex gap-1">
-          <dt className="font-medium">Found:</dt>
+          <dt className="font-medium">Найдена:</dt>
           <dd>{formatRelative(job.discoveredAt)}</dd>
         </div>
         <div className="flex gap-1">
-          <dt className="font-medium">State:</dt>
-          <dd>{job.state.replace(/_/g, ' ')}</dd>
+          <dt className="font-medium">Статус:</dt>
+          <dd>{JOB_STATE_LABEL[job.state]}</dd>
         </div>
         <div className="flex gap-1">
-          <dt className="font-medium">Priority:</dt>
-          <dd>{job.priority}</dd>
+          <dt className="font-medium">Приоритет:</dt>
+          <dd>{JOB_PRIORITY_LABEL[job.priority]}</dd>
         </div>
       </dl>
 
       <div className="flex flex-wrap gap-1.5">
         <button type="button" className="jp-button" onClick={onAnalyze} disabled={busy}>
-          {analysis ? 'Re-analyze' : 'Analyze'}
+          {analysis ? 'Проанализировать заново' : 'Анализировать'}
         </button>
         <button
           type="button"
@@ -103,13 +104,13 @@ export function JobCard({
           onClick={onSave}
           disabled={busy || job.state === 'saved'}
         >
-          {job.state === 'saved' ? 'Saved' : 'Save'}
+          {job.state === 'saved' ? 'Сохранена' : 'Сохранить'}
         </button>
         <button type="button" className="jp-button" onClick={onOpen}>
-          Open job
+          Открыть вакансию
         </button>
         <button type="button" className="jp-button-primary" onClick={onPrepare} disabled={busy}>
-          Prepare application
+          Подготовить заявку
         </button>
       </div>
     </article>

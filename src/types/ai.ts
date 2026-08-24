@@ -54,9 +54,9 @@ export const redFlagSchema = z.object({
 export type RedFlag = z.infer<typeof redFlagSchema>;
 
 /**
- * What the AI is allowed to return for a job analysis: qualitative findings
- * only. The numeric score is computed by the deterministic scoring engine so
- * that the model can never simply invent a percentage.
+ * Что модели разрешено возвращать при анализе вакансии: только качественные
+ * выводы. Числовой балл считает детерминированный движок скоринга, чтобы модель
+ * не могла просто выдумать процент.
  */
 export const aiJobFindingsSchema = z.object({
   matchedSkills: z.array(z.string().max(60)).max(80).default([]),
@@ -111,7 +111,7 @@ export const jobAnalysisSchema = z.object({
   redFlags: z.array(redFlagSchema),
   reasoning: z.string(),
   summary: z.string(),
-  /** false when the analysis ran purely on deterministic matching (no AI). */
+  /** false, если анализ выполнен только детерминированным сопоставлением (без AI). */
   usedAI: z.boolean(),
   providerId: z.string().nullable().default(null),
   model: z.string().nullable().default(null),
@@ -122,7 +122,7 @@ export const coverLetterSchema = z.object({
   subject: z.string().max(200).default(''),
   body: z.string().max(6000),
   tone: z.string().max(40).default('professional'),
-  /** Claims the model could not ground in the profile — surfaced to the user. */
+  /** Утверждения, которые модель не смогла подтвердить профилем — показываются пользователю. */
   unverifiedClaims: z.array(z.string().max(300)).default([]),
   status: z.enum(['ok', 'needs_user_confirmation']).default('ok'),
 });
@@ -187,7 +187,7 @@ export type AIFormAnalysis = z.infer<typeof aiFormAnalysisSchema>;
 export const applicationAnswerSchema = z.object({
   answer: z.string().max(4000),
   status: z.enum(['ok', 'needs_user_confirmation']),
-  /** Populated when status is needs_user_confirmation. */
+  /** Заполняется, когда статус — needs_user_confirmation. */
   missingInformation: z.array(z.string().max(300)).default([]),
   usedProfileFacts: z.array(z.string().max(200)).default([]),
 });
@@ -219,7 +219,7 @@ export type ResumeAnalysis = z.infer<typeof resumeAnalysisSchema>;
 
 export const assistantReplySchema = z.object({
   answer: z.string().max(6000),
-  /** Ids of jobs the assistant referred to, so the UI can link them. */
+  /** Идентификаторы вакансий, на которые сослался ассистент, чтобы UI дал на них ссылки. */
   referencedJobIds: z.array(z.string()).max(50).default([]),
   followUps: z.array(z.string().max(200)).max(5).default([]),
 });

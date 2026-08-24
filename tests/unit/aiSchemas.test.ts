@@ -15,26 +15,26 @@ import { estimateTokens } from '@/core/ai/aiService';
 import { makeProfile } from '../fixtures/profile';
 import { makeJob } from '../fixtures/jobs';
 
-describe('JSON extraction', () => {
-  it('pulls the object out of a fenced response', () => {
+describe('извлечение JSON', () => {
+  it('достаёт объект из ответа в блоке кода', () => {
     expect(extractJsonObject('```json\n{"a":1}\n```')).toBe('{"a":1}');
   });
 
-  it('ignores prose around the object', () => {
+  it('игнорирует текст вокруг объекта', () => {
     expect(extractJsonObject('Sure! {"a":{"b":2}} Hope that helps.')).toBe('{"a":{"b":2}}');
   });
 
-  it('handles braces inside strings', () => {
+  it('корректно обрабатывает скобки внутри строк', () => {
     expect(extractJsonObject('{"a":"} not the end {"}')).toBe('{"a":"} not the end {"}');
   });
 
-  it('returns null when there is no object', () => {
+  it('возвращает null, если объекта нет', () => {
     expect(extractJsonObject('no json here')).toBeNull();
   });
 });
 
-describe('schema validation', () => {
-  it('accepts a complete job findings payload', () => {
+describe('валидация схемой', () => {
+  it('принимает полный набор выводов по вакансии', () => {
     const parsed = parseAIJson(
       JSON.stringify({
         matchedSkills: ['Node.js'],
@@ -57,38 +57,38 @@ describe('schema validation', () => {
     expect(parsed.detectedSeniority).toBe('senior');
   });
 
-  it('fills defaults for a partial payload', () => {
+  it('подставляет значения по умолчанию для неполного ответа', () => {
     const parsed = parseAIJson('{"matchedSkills":["Vue"]}', aiJobFindingsSchema);
     expect(parsed.missingSkills).toEqual([]);
     expect(parsed.responsibilitiesAlignment).toBe(0.5);
   });
 
-  it('rejects a payload with the wrong types', () => {
+  it('отклоняет ответ с неверными типами', () => {
     expect(() => parseAIJson('{"responsibilitiesAlignment":"high"}', aiJobFindingsSchema)).toThrow(
-      /did not match the expected schema/,
+      /не соответствует ожидаемой схеме/,
     );
   });
 
-  it('rejects an unknown red flag code', () => {
+  it('отклоняет неизвестный код красного флага', () => {
     expect(() =>
       parseAIJson(
         '{"redFlags":[{"code":"aliens","severity":"low","detail":"x"}]}',
         aiJobFindingsSchema,
       ),
-    ).toThrow(/schema/);
+    ).toThrow(/схеме/);
   });
 
-  it('rejects invalid JSON', () => {
-    expect(() => parseAIJson('{oops}', aiJobFindingsSchema)).toThrow(/not valid JSON/);
+  it('отклоняет некорректный JSON', () => {
+    expect(() => parseAIJson('{oops}', aiJobFindingsSchema)).toThrow(/не является корректным JSON/);
   });
 
-  it('rejects a response with no JSON at all', () => {
-    expect(() => parseAIJson('I cannot help with that.', aiJobFindingsSchema)).toThrow(
-      /did not contain a JSON object/,
+  it('отклоняет ответ, в котором JSON нет вовсе', () => {
+    expect(() => parseAIJson('Я не могу с этим помочь.', aiJobFindingsSchema)).toThrow(
+      /не оказалось JSON-объекта/,
     );
   });
 
-  it('validates the other task schemas', () => {
+  it('проверяет схемы остальных задач', () => {
     expect(parseAIJson('{"body":"Hello"}', coverLetterSchema).status).toBe('ok');
     expect(
       parseAIJson('{"answer":"yes","status":"needs_user_confirmation"}', applicationAnswerSchema)
@@ -98,14 +98,14 @@ describe('schema validation', () => {
     expect(parseAIJson('{"answer":"hi"}', assistantReplySchema).followUps).toEqual([]);
   });
 
-  it('caps oversized arrays instead of accepting them', () => {
+  it('не принимает слишком длинные массивы', () => {
     const huge = JSON.stringify({ matchedSkills: Array.from({ length: 200 }, () => 'X') });
-    expect(() => parseAIJson(huge, aiJobFindingsSchema)).toThrow(/schema/);
+    expect(() => parseAIJson(huge, aiJobFindingsSchema)).toThrow(/схеме/);
   });
 });
 
-describe('profile projection', () => {
-  it('never includes contact details', () => {
+describe('проекция профиля', () => {
+  it('никогда не содержит контактных данных', () => {
     const projection = buildAIProfile(makeProfile());
     const serialized = JSON.stringify(projection);
     expect(serialized).not.toContain('alex@example.com');
@@ -114,26 +114,26 @@ describe('profile projection', () => {
     expect(projection.skills.frontend).toContain('Vue');
   });
 
-  it('can omit work history when the user opts out', () => {
+  it('может опустить опыт работы, если пользователь запретил', () => {
     const projection = buildAIProfile(makeProfile(), { includeExperience: false });
     expect(projection.experience).toEqual([]);
     expect(projection.education).toEqual([]);
   });
 });
 
-describe('prompts', () => {
-  it('forbid score invention and demand JSON only', () => {
+describe('промпты', () => {
+  it('запрещают выдумывать балл и требуют только JSON', () => {
     const [system] = buildJobAnalysisPrompt({
       profile: buildAIProfile(makeProfile()),
       job: makeJob(),
       language: 'English',
     });
-    expect(system!.content).toMatch(/do NOT produce a match percentage/i);
-    expect(system!.content).toMatch(/single JSON object/i);
-    expect(system!.content).toMatch(/Never invent/i);
+    expect(system!.content).toMatch(/НЕ выставляешь процент совпадения/);
+    expect(system!.content).toMatch(/одним JSON-объектом/);
+    expect(system!.content).toMatch(/Ничего не выдумывай/);
   });
 
-  it('carry the truthfulness rules into every writing task', () => {
+  it('несут правила достоверности в каждую задачу с текстом', () => {
     const letter = buildCoverLetterPrompt({
       profile: buildAIProfile(makeProfile()),
       job: makeJob(),
@@ -148,11 +148,11 @@ describe('prompts', () => {
       maxLength: 500,
       language: 'English',
     });
-    expect(letter[0]!.content).toMatch(/TRUTHFULNESS RULES/);
+    expect(letter[0]!.content).toMatch(/ПРАВИЛА ДОСТОВЕРНОСТИ/);
     expect(answer[0]!.content).toMatch(/needs_user_confirmation/);
   });
 
-  it('keeps the job description within the prompt budget', () => {
+  it('удерживает описание вакансии в бюджете промпта', () => {
     const job = makeJob({ description: 'x'.repeat(50_000) });
     const [, user] = buildJobAnalysisPrompt({
       profile: buildAIProfile(makeProfile()),
@@ -163,8 +163,8 @@ describe('prompts', () => {
   });
 });
 
-describe('token estimate', () => {
-  it('approximates four characters per token', () => {
+describe('оценка токенов', () => {
+  it('считает примерно четыре символа на токен', () => {
     expect(estimateTokens(400)).toBe(100);
   });
 });

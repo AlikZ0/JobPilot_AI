@@ -29,8 +29,8 @@ function documentFrom(html: string): Document {
   return window.document as unknown as Document;
 }
 
-describe('JSON-LD extraction', () => {
-  it('reads a schema.org JobPosting', () => {
+describe('извлечение из JSON-LD', () => {
+  it('читает JobPosting из schema.org', () => {
     const doc = documentFrom(JSON_LD_PAGE);
     const job = extractJobFromDocument({
       doc,
@@ -57,22 +57,22 @@ describe('JSON-LD extraction', () => {
     expect(job.extractionQuality).toBeGreaterThan(0.6);
   });
 
-  it('walks @graph containers', () => {
+  it('обходит контейнеры @graph', () => {
     const payload = { '@graph': [{ '@type': 'WebPage' }, { '@type': 'JobPosting', title: 'X' }] };
     expect(collectJobPostings(payload)).toHaveLength(1);
   });
 
-  it('returns null when no JobPosting is present', () => {
+  it('возвращает null, если JobPosting нет', () => {
     expect(extractFromJsonLd(['{"@type":"Article"}'], 'https://x.test')).toBeNull();
   });
 
-  it('ignores malformed JSON without throwing', () => {
+  it('молча игнорирует битый JSON', () => {
     expect(extractFromJsonLd(['{"@type":"JobPosting"'], 'https://x.test')).toBeNull();
   });
 });
 
-describe('DOM heuristics', () => {
-  it('extracts a posting that has no structured data', () => {
+describe('DOM-эвристики', () => {
+  it('извлекает вакансию без структурированных данных', () => {
     const doc = documentFrom(DOM_ONLY_PAGE);
     const job = extractJobFromDocument({
       doc,
@@ -93,7 +93,7 @@ describe('DOM heuristics', () => {
     expect(isUsableExtraction(job)).toBe(true);
   });
 
-  it('truncates long descriptions to the configured budget', () => {
+  it('обрезает длинные описания до заданного лимита', () => {
     const long = `<div class="job-description"><p>${'word '.repeat(4000)}</p></div>`;
     const doc = documentFrom(`<html><body><h1>Role</h1>${long}</body></html>`);
     const job = extractJobFromDocument({
@@ -105,7 +105,7 @@ describe('DOM heuristics', () => {
     expect(job.description.length).toBeLessThanOrEqual(1001);
   });
 
-  it('reports low quality when almost nothing is found', () => {
+  it('сообщает о низком качестве, когда почти ничего не найдено', () => {
     const doc = documentFrom('<html><body><p>Nothing here</p></body></html>');
     const job = extractJobFromDocument({
       doc,
@@ -118,8 +118,8 @@ describe('DOM heuristics', () => {
   });
 });
 
-describe('section splitting', () => {
-  it('routes bullets under the right heading', () => {
+describe('разбиение на разделы', () => {
+  it('раскладывает пункты по нужным заголовкам', () => {
     const sections = splitSections(
       'Intro text\nRequirements:\n• Node.js\n• Docker\nResponsibilities\n• Build APIs\nWhat we offer\n• Remote work',
     );
@@ -128,93 +128,93 @@ describe('section splitting', () => {
     expect(sections.benefits).toEqual(['Remote work']);
   });
 
-  it('falls back to bullets when there are no headings', () => {
+  it('использует пункты списка, когда заголовков нет', () => {
     const sections = splitSections('We need:\n- Vue\n- REST');
     expect(sections.requirements).toEqual(['Vue', 'REST']);
   });
 });
 
-describe('html to text', () => {
-  it('keeps list structure and drops tags', () => {
+describe('html в текст', () => {
+  it('сохраняет структуру списка и убирает теги', () => {
     const text = htmlToText('<p>Intro</p><ul><li>One</li><li>Two</li></ul>');
     expect(text).toContain('Intro');
     expect(text).toContain('• One');
     expect(text).not.toContain('<');
   });
 
-  it('decodes entities', () => {
+  it('декодирует html-сущности', () => {
     expect(decodeEntities('R&amp;D &mdash; 100&nbsp;%')).toBe('R&D — 100 %');
     expect(decodeEntities('&#65;&#x42;')).toBe('AB');
   });
 
-  it('strips script content', () => {
+  it('вырезает содержимое script', () => {
     expect(htmlToText('<div>Safe<script>alert(1)</script></div>')).not.toContain('alert');
   });
 });
 
-describe('salary parsing', () => {
+describe('разбор зарплаты', () => {
   it.each([
     ['$3,000 - $4,000 per month', { min: 3000, max: 4000, currency: 'USD', period: 'month' }],
     ['80k–100k USD per year', { min: 80000, max: 100000, currency: 'USD', period: 'year' }],
     ['€ 4,500 - € 5,500 / month', { min: 4500, max: 5500, currency: 'EUR', period: 'month' }],
     ['£45 per hour', { min: 45, max: null, currency: 'GBP', period: 'hour' }],
-  ])('parses %s', (input, expected) => {
+  ])('разбирает %s', (input, expected) => {
     expect(parseSalary(input)).toMatchObject(expected);
   });
 
-  it('returns nulls when no numbers are present', () => {
+  it('возвращает null, когда чисел нет', () => {
     expect(parseSalary('Competitive salary')).toMatchObject({ min: null, max: null });
   });
 
-  it('converts periods to a monthly figure', () => {
+  it('приводит периоды к месячной сумме', () => {
     expect(toMonthly(60_000, 'year')).toBe(5000);
     expect(toMonthly(1, 'month')).toBe(1);
     expect(toMonthly(10, 'unknown')).toBeNull();
   });
 });
 
-describe('normalisers', () => {
-  it('detects seniority', () => {
+describe('нормализаторы', () => {
+  it('определяет уровень', () => {
     expect(detectSeniority('Senior Backend Engineer')).toBe('senior');
     expect(detectSeniority('Junior QA')).toBe('junior');
     expect(detectSeniority('Backend Engineer')).toBe('unknown');
   });
 
-  it('detects work mode', () => {
+  it('определяет формат работы', () => {
     expect(detectWorkMode('Fully remote position')).toBe('remote');
     expect(detectWorkMode('Hybrid, 2 days in office')).toBe('hybrid');
     expect(detectWorkMode('On-site in Berlin')).toBe('office');
   });
 
-  it('detects language requirements with levels', () => {
+  it('находит требования к языкам с уровнем', () => {
     expect(detectLanguageRequirements('English B2 required, German is a plus')).toEqual(
       expect.arrayContaining(['English B2']),
     );
   });
 
-  it('orders language levels', () => {
+  it('упорядочивает уровни владения языком', () => {
     expect(languageLevelIndex('c1')).toBeGreaterThan(languageLevelIndex('b2'));
     expect(languageLevelIndex('native')).toBeGreaterThan(languageLevelIndex('c2'));
   });
 });
 
-describe('technology dictionary', () => {
-  it('canonicalises aliases', () => {
+describe('словарь технологий', () => {
+  it('приводит синонимы к канону', () => {
     expect(canonicalizeTech('nodejs')).toBe('Node.js');
     expect(canonicalizeTech('ts')).toBe('TypeScript');
     expect(canonicalizeTech('SomethingCustom')).toBe('SomethingCustom');
   });
 
-  it('expands implied skills', () => {
+  it('раскрывает подразумеваемые навыки', () => {
     expect(expandImplied('Nuxt')).toEqual(expect.arrayContaining(['Nuxt', 'Vue', 'JavaScript']));
   });
 
-  it('does not match technology names inside other words', () => {
+  it('не срабатывает на технологиях внутри других слов', () => {
     const found = detectTechnologies('We use Google Workspace and goal setting');
     expect(found).not.toContain('Go');
   });
 
-  it('finds technologies in prose', () => {
+  it('находит технологии в тексте', () => {
     const found = detectTechnologies('Experience with Node.js, Postgres and k8s required');
     expect(found).toEqual(expect.arrayContaining(['Node.js', 'PostgreSQL', 'Kubernetes']));
   });

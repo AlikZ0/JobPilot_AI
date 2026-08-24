@@ -5,7 +5,7 @@ export const AI_MODE = ['local', 'cloud'] as const;
 export type AIMode = (typeof AI_MODE)[number];
 
 export const providerConfigSchema = z.object({
-  /** Model id is never hardcoded — the user picks it per provider. */
+  /** Модель нигде не захардкожена — пользователь выбирает её для каждого провайдера. */
   model: z.string().max(120).default(''),
   baseUrl: z.string().max(300).default(''),
   temperature: z.number().min(0).max(2).default(0.2),
@@ -20,7 +20,7 @@ export const automationSettingsSchema = z.object({
   autoFillForms: z.boolean().default(false),
   autoGenerateCoverLetter: z.boolean().default(false),
   requireConfirmationBeforeFill: z.boolean().default(true),
-  /** Hard-locked to true. The UI renders it disabled; validation re-forces it. */
+  /** Жёстко зафиксировано в true. В UI выключено, при валидации принудительно восстанавливается. */
   requireConfirmationBeforeSubmit: z.literal(true).default(true),
   maxJobsPerSession: z.number().int().min(1).max(500).default(50),
   maxConcurrentTabs: z.number().int().min(1).max(3).default(1),
@@ -38,11 +38,11 @@ export const notificationSettingsSchema = z.object({
 export type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
 
 export const privacySettingsSchema = z.object({
-  /** Send job text to the configured AI provider at all. */
+  /** Разрешено ли вообще отправлять текст вакансии настроенному AI-провайдеру. */
   allowAIRequests: z.boolean().default(false),
-  /** Include work history in AI prompts (needed for good cover letters). */
+  /** Включать ли опыт работы в промпты (нужно для хороших сопроводительных писем). */
   shareExperienceWithAI: z.boolean().default(true),
-  /** Contact details are never shared regardless; kept for explicitness. */
+  /** Контакты не передаются в любом случае; поле оставлено ради явности. */
   shareContactDetailsWithAI: z.literal(false).default(false),
   storeAIResponses: z.boolean().default(true),
   analyticsEnabled: z.boolean().default(true),
@@ -53,7 +53,7 @@ export const costControlSchema = z.object({
   maxDescriptionChars: z.number().int().min(500).max(20_000).default(6000),
   cacheAnalyses: z.boolean().default(true),
   dailyRequestLimit: z.number().int().min(0).max(10_000).default(200),
-  /** Rough per-1K-token price used only for the local usage estimate. */
+  /** Примерная цена за 1К токенов — только для локальной оценки расходов. */
   estimatedInputCostPer1k: z.number().min(0).default(0),
   estimatedOutputCostPer1k: z.number().min(0).default(0),
 });
@@ -69,7 +69,7 @@ export const settingsSchema = z.object({
   activeProvider: z.enum(AI_PROVIDER_IDS).default('openai'),
   providers: z.record(z.enum(AI_PROVIDER_IDS), providerConfigSchema).default({}),
   cloudEndpoint: z.string().max(300).default(''),
-  /** Preferred output language for AI-generated text. */
+  /** Язык, на котором AI должен писать тексты. */
   generationLanguage: z.string().max(40).default('English'),
   automation: automationSettingsSchema.default({}),
   notifications: notificationSettingsSchema.default({}),

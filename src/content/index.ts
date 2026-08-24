@@ -15,9 +15,9 @@ declare global {
   }
 }
 
-/** The script is injected on demand, so guard against double registration. */
+/** Скрипт внедряется по требованию, поэтому защищаемся от повторной регистрации. */
 if (window.__jobpilotContentLoaded) {
-  log.debug('content script already active');
+  log.debug('content-скрипт уже активен');
 } else {
   window.__jobpilotContentLoaded = true;
   bootstrap();
@@ -37,13 +37,13 @@ async function buildPageInfo(): Promise<PageInfo> {
     isJob = adapter.isJobPage(ctx);
     isListing = adapter.isListingPage(ctx);
   } catch (error) {
-    log.warn('page classification failed', error);
+    log.warn('не удалось классифицировать страницу', error);
   }
   if (isListing) {
     try {
       listingCount = (await adapter.extractJobsFromListing(ctx)).length;
     } catch (error) {
-      log.warn('listing count failed', error);
+      log.warn('не удалось посчитать вакансии в списке', error);
     }
   }
   return {
@@ -62,7 +62,7 @@ function safeHasForm(): boolean {
   try {
     return hasApplicationForm(document);
   } catch (error) {
-    log.warn('form detection failed', error);
+    log.warn('не удалось определить форму', error);
     return false;
   }
 }
@@ -80,7 +80,7 @@ function bootstrap(): void {
       if (!job.title && !job.description) {
         throw new JobPilotError(
           ERROR_CODES.NO_JOB_ON_PAGE,
-          'Could not find a job posting on this page.',
+          'На этой странице не удалось найти вакансию.',
         );
       }
       return job;
@@ -98,7 +98,7 @@ function bootstrap(): void {
       if (fields.length === 0) {
         throw new JobPilotError(
           ERROR_CODES.NO_FORM_ON_PAGE,
-          'No fillable form fields were found on this page.',
+          'На этой странице не найдено полей, которые можно заполнить.',
         );
       }
       return { fields };
@@ -111,5 +111,5 @@ function bootstrap(): void {
     }),
   });
 
-  log.debug('content script ready', { url: location.href });
+  log.debug('content-скрипт готов', { url: location.href });
 }

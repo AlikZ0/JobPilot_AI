@@ -2,9 +2,9 @@ import type { z } from 'zod';
 import { JobPilotError, ERROR_CODES } from '@/utils/errors';
 
 /**
- * Extracts the first complete JSON object from a model response. Models
- * sometimes wrap JSON in code fences or add a sentence, so we locate the object
- * by brace matching instead of trusting the whole string.
+ * Достаёт первый полный JSON-объект из ответа модели. Модели иногда оборачивают
+ * JSON в блок кода или добавляют фразу, поэтому объект ищется по балансу скобок,
+ * а не берётся вся строка целиком.
  */
 export function extractJsonObject(text: string): string | null {
   const withoutFences = text
@@ -36,16 +36,16 @@ export function extractJsonObject(text: string): string | null {
 }
 
 /**
- * Parses and validates a model response. Nothing from the model is ever
- * executed or trusted — it only becomes data after passing its Zod schema.
+ * Разбирает и валидирует ответ модели. Ничто из ответа не выполняется и не
+ * принимается на веру: данными он становится только после проверки Zod-схемой.
  */
 export function parseAIJson<S extends z.ZodTypeAny>(text: string, schema: S): z.infer<S> {
   const candidate = extractJsonObject(text);
   if (!candidate) {
     throw new JobPilotError(
       ERROR_CODES.AI_INVALID_RESPONSE,
-      'The AI response did not contain a JSON object.',
-      { hint: 'Try a different model — some small models ignore JSON instructions.' },
+      'В ответе AI не оказалось JSON-объекта.',
+      { hint: 'Попробуйте другую модель — небольшие модели часто игнорируют требование JSON.' },
     );
   }
   let parsed: unknown;
@@ -54,8 +54,8 @@ export function parseAIJson<S extends z.ZodTypeAny>(text: string, schema: S): z.
   } catch {
     throw new JobPilotError(
       ERROR_CODES.AI_INVALID_RESPONSE,
-      'The AI response was not valid JSON.',
-      { hint: 'Try again, or lower the temperature in Settings.' },
+      'Ответ AI не является корректным JSON.',
+      { hint: 'Повторите попытку или уменьшите temperature в настройках.' },
     );
   }
   const result = schema.safeParse(parsed);
@@ -66,8 +66,8 @@ export function parseAIJson<S extends z.ZodTypeAny>(text: string, schema: S): z.
       .join('; ');
     throw new JobPilotError(
       ERROR_CODES.AI_INVALID_RESPONSE,
-      `The AI response did not match the expected schema (${issues}).`,
-      { hint: 'A more capable model usually fixes this.' },
+      `Ответ AI не соответствует ожидаемой схеме (${issues}).`,
+      { hint: 'Обычно помогает более сильная модель.' },
     );
   }
   return result.data;

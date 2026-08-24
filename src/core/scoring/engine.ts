@@ -11,7 +11,7 @@ import { SCORE_WEIGHTS, bandForScore } from './weights';
 export interface ScoringInput {
   job: ExtractedJob;
   profile: UserProfile;
-  /** Optional qualitative AI findings; scoring works without them. */
+  /** Необязательные качественные выводы AI; скоринг работает и без них. */
   findings?: AIJobFindings | null;
 }
 
@@ -37,9 +37,9 @@ function round(value: number): number {
 }
 
 /**
- * Merges AI findings into deterministic matching: the AI may add skills it
- * recognised from prose, but a skill the dictionary matched can never be
- * downgraded to "missing" by the model.
+ * Вливает выводы AI в детерминированное сопоставление: модель может добавить
+ * навыки, распознанные в тексте, но не может перевести в «отсутствующие» тот
+ * навык, который уже подтверждён словарём.
  */
 function mergeSkillFindings(
   base: SkillMatch,
@@ -98,7 +98,7 @@ function scoreTechnical(match: SkillMatch): { earned: number; detail: string } {
       detail: 'No technologies detected in the posting — scored as neutral.',
     };
   }
-  // Coverage carries most of the weight; unmet mandatory skills are punished.
+  // Основной вес — за покрытие; за незакрытые обязательные навыки штрафуем.
   const coverageScore = match.coverage * max * 0.75;
   const mandatoryScore = match.mandatoryCoverage * max * 0.25;
   const earned = Math.max(0, Math.min(max, coverageScore + mandatoryScore));
@@ -137,7 +137,7 @@ function scoreExperience(
   };
 }
 
-/** Reads "5+ years", "at least 3 years", "3-5 years of experience". */
+/** Читает «5+ years», «at least 3 years», «3-5 years of experience». */
 export function parseRequiredYears(text: string): number | null {
   const patterns = [
     /(\d{1,2})\s*\+?\s*(?:-|–|to)\s*(\d{1,2})\s*(?:\+)?\s*years?/i,
@@ -342,8 +342,8 @@ function scoreResponsibilities(
   if (job.responsibilities.length === 0) {
     return { earned: round(max * 0.6), detail: 'Responsibilities not listed.' };
   }
-  // Deterministic fallback: how many responsibility lines mention something the
-  // user actually knows.
+  // Детерминированный запасной вариант: сколько строк с обязанностями упоминают
+  // то, что пользователь действительно знает.
   const owned = profileSkillSet(profile);
   const hits = job.responsibilities.filter((line) =>
     [...owned].some((skill) => skill.length > 2 && normalizeToken(line).includes(skill)),
@@ -391,7 +391,7 @@ function scoreOther(
   };
 }
 
-/** Deterministic red flags computed from the posting itself. */
+/** Красные флаги, вычисляемые детерминированно по самому тексту вакансии. */
 export function detectRedFlags(job: ExtractedJob, match: SkillMatch): RedFlag[] {
   const flags: RedFlag[] = [];
   const text = `${job.title}\n${job.description}`.toLowerCase();
@@ -467,8 +467,8 @@ export function detectRedFlags(job: ExtractedJob, match: SkillMatch): RedFlag[] 
 }
 
 /**
- * The single place where a match percentage is produced. The AI never returns
- * a score; it only supplies findings that feed these deterministic rules.
+ * Единственное место, где рождается процент совпадения. AI никогда не возвращает
+ * балл — он лишь поставляет выводы, которые питают эти детерминированные правила.
  */
 export function scoreJob(input: ScoringInput): ScoringOutput {
   const { job, profile, findings } = input;
@@ -532,7 +532,7 @@ export function scoreJob(input: ScoringInput): ScoringOutput {
   };
 }
 
-/** score + salary + preference + urgency, as described in the README. */
+/** балл + зарплата + предпочтения + срочность, как описано в README. */
 export function computePriority(
   job: Job | (ExtractedJob & { score: number | null }),
   profile: UserProfile,

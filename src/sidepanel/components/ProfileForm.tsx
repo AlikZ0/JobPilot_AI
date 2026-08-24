@@ -12,6 +12,14 @@ import {
 } from '@/types/profile';
 import { canonicalizeTech, categoryOf } from '@/core/extraction/techDictionary';
 import { createId } from '@/utils/id';
+import {
+  EMPLOYMENT_TYPE_LABEL,
+  LANGUAGE_LEVEL_LABEL,
+  SALARY_PERIOD_LABEL,
+  SENIORITY_LABEL,
+  SKILL_CATEGORY_LABEL,
+  WORK_MODE_LABEL,
+} from '../labels';
 
 interface Props {
   profile: UserProfile;
@@ -39,7 +47,7 @@ function Field({
   );
 }
 
-/** Shared profile editor used by both the Profile page and onboarding. */
+/** Общий редактор профиля — используется и на странице профиля, и в онбординге. */
 export function ProfileForm({ profile, onChange, sections }: Props) {
   const visible = sections ?? [
     'personal',
@@ -73,9 +81,9 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
     <div className="flex flex-col gap-4">
       {visible.includes('personal') ? (
         <section className="flex flex-col gap-2">
-          <h3 className="jp-section-title">Personal</h3>
+          <h3 className="jp-section-title">Личные данные</h3>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="First name">
+            <Field label="Имя">
               <input
                 className="jp-input"
                 value={profile.personal.firstName}
@@ -84,7 +92,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 }
               />
             </Field>
-            <Field label="Last name">
+            <Field label="Фамилия">
               <input
                 className="jp-input"
                 value={profile.personal.lastName}
@@ -94,7 +102,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               />
             </Field>
           </div>
-          <Field label="Email" hint="Stored locally. Never included in AI prompts.">
+          <Field label="Email" hint="Хранится локально. Никогда не попадает в промпты AI.">
             <input
               className="jp-input"
               type="email"
@@ -104,7 +112,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               }
             />
           </Field>
-          <Field label="Phone">
+          <Field label="Телефон">
             <input
               className="jp-input"
               type="tel"
@@ -115,7 +123,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Country">
+            <Field label="Страна">
               <input
                 className="jp-input"
                 value={profile.location.country}
@@ -124,7 +132,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 }
               />
             </Field>
-            <Field label="City">
+            <Field label="Город">
               <input
                 className="jp-input"
                 value={profile.location.city}
@@ -134,7 +142,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               />
             </Field>
           </div>
-          <Field label="LinkedIn URL">
+          <Field label="Ссылка на LinkedIn">
             <input
               className="jp-input"
               value={profile.links.linkedin}
@@ -143,7 +151,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               }
             />
           </Field>
-          <Field label="GitHub URL">
+          <Field label="Ссылка на GitHub">
             <input
               className="jp-input"
               value={profile.links.github}
@@ -152,7 +160,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               }
             />
           </Field>
-          <Field label="Portfolio URL">
+          <Field label="Ссылка на портфолио">
             <input
               className="jp-input"
               value={profile.links.portfolio}
@@ -166,8 +174,8 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
 
       {visible.includes('professional') ? (
         <section className="flex flex-col gap-2">
-          <h3 className="jp-section-title">Professional</h3>
-          <Field label="Current position">
+          <h3 className="jp-section-title">Профессиональный профиль</h3>
+          <Field label="Текущая должность">
             <input
               className="jp-input"
               value={profile.professional.currentPosition}
@@ -178,7 +186,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               }
             />
           </Field>
-          <Field label="Desired position">
+          <Field label="Желаемая должность">
             <input
               className="jp-input"
               value={profile.professional.desiredPosition}
@@ -190,7 +198,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Seniority">
+            <Field label="Уровень">
               <select
                 className="jp-input"
                 value={profile.professional.seniority}
@@ -205,12 +213,12 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               >
                 {SENIORITY_LEVELS.map((level) => (
                   <option key={level} value={level}>
-                    {level}
+                    {SENIORITY_LABEL[level]}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Years of experience">
+            <Field label="Лет опыта">
               <input
                 className="jp-input"
                 type="number"
@@ -228,7 +236,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               />
             </Field>
           </div>
-          <Field label="Summary" hint="Used to ground cover letters in real facts.">
+          <Field label="О себе" hint="На этом AI строит сопроводительные письма, не выдумывая фактов.">
             <textarea
               className="jp-input min-h-[70px]"
               value={profile.professional.summary}
@@ -238,7 +246,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             />
           </Field>
           <div className="grid grid-cols-3 gap-2">
-            <Field label="Currency">
+            <Field label="Валюта">
               <input
                 className="jp-input"
                 value={profile.salary.currency}
@@ -247,7 +255,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 }
               />
             </Field>
-            <Field label="Current salary">
+            <Field label="Текущая зарплата">
               <input
                 className="jp-input"
                 type="number"
@@ -263,7 +271,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 }
               />
             </Field>
-            <Field label="Desired salary">
+            <Field label="Желаемая зарплата">
               <input
                 className="jp-input"
                 type="number"
@@ -280,7 +288,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               />
             </Field>
           </div>
-          <Field label="Salary period">
+          <Field label="Период зарплаты">
             <select
               className="jp-input"
               value={profile.salary.period}
@@ -295,7 +303,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             >
               {(['hour', 'day', 'month', 'year'] as const).map((period) => (
                 <option key={period} value={period}>
-                  per {period}
+                  {SALARY_PERIOD_LABEL[period]}
                 </option>
               ))}
             </select>
@@ -305,11 +313,11 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
 
       {visible.includes('skills') ? (
         <section className="flex flex-col gap-2">
-          <h3 className="jp-section-title">Technical stack</h3>
+          <h3 className="jp-section-title">Технический стек</h3>
           <div className="flex gap-1.5">
             <input
               className="jp-input"
-              placeholder="Add any technology…"
+              placeholder="Добавьте любую технологию…"
               value={skillDraft}
               onChange={(event) => {
                 setSkillDraft(event.target.value);
@@ -322,22 +330,22 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                   addSkill();
                 }
               }}
-              aria-label="Technology name"
+              aria-label="Название технологии"
             />
             <select
               className="jp-input w-28"
               value={skillCategory}
               onChange={(event) => setSkillCategory(event.target.value as SkillCategory)}
-              aria-label="Skill category"
+              aria-label="Категория навыка"
             >
               {SKILL_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {SKILL_CATEGORY_LABEL[category]}
                 </option>
               ))}
             </select>
             <button type="button" className="jp-button-primary" onClick={addSkill}>
-              Add
+              Добавить
             </button>
           </div>
           {SKILL_CATEGORIES.map((category) => {
@@ -345,13 +353,15 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             if (items.length === 0) return null;
             return (
               <div key={category}>
-                <p className="text-[11px] font-semibold capitalize text-muted">{category}</p>
+                <p className="text-[11px] font-semibold text-muted">
+                  {SKILL_CATEGORY_LABEL[category]}
+                </p>
                 <ul className="mt-1 flex flex-wrap gap-1">
                   {items.map((skill) => (
                     <li key={skill.name} className="jp-badge gap-1.5">
                       <button
                         type="button"
-                        title={skill.primary ? 'Core skill' : 'Mark as core skill'}
+                        title={skill.primary ? 'Ключевой навык' : 'Отметить как ключевой'}
                         aria-pressed={skill.primary}
                         onClick={() =>
                           onChange({
@@ -369,7 +379,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       {skill.name}
                       <button
                         type="button"
-                        aria-label={`Remove ${skill.name}`}
+                        aria-label={`Убрать ${skill.name}`}
                         onClick={() =>
                           onChange({
                             skills: profile.skills.filter((entry) => entry.name !== skill.name),
@@ -390,24 +400,24 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
 
       {visible.includes('languages') ? (
         <section className="flex flex-col gap-2">
-          <h3 className="jp-section-title">Languages</h3>
+          <h3 className="jp-section-title">Языки</h3>
           <div className="flex gap-1.5">
             <input
               className="jp-input"
-              placeholder="English"
+              placeholder="Английский"
               value={languageDraft}
               onChange={(event) => setLanguageDraft(event.target.value)}
-              aria-label="Language name"
+              aria-label="Название языка"
             />
             <select
               className="jp-input w-24"
               value={languageLevel}
               onChange={(event) => setLanguageLevel(event.target.value as LanguageLevel)}
-              aria-label="Language level"
+              aria-label="Уровень языка"
             >
               {LANGUAGE_LEVELS.map((level) => (
                 <option key={level} value={level}>
-                  {level.toUpperCase()}
+                  {LANGUAGE_LEVEL_LABEL[level]}
                 </option>
               ))}
             </select>
@@ -428,16 +438,16 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 setLanguageDraft('');
               }}
             >
-              Add
+              Добавить
             </button>
           </div>
           <ul className="flex flex-wrap gap-1">
             {profile.languages.map((language) => (
               <li key={language.name} className="jp-badge gap-1.5">
-                {language.name} · {language.level.toUpperCase()}
+                {language.name} · {LANGUAGE_LEVEL_LABEL[language.level]}
                 <button
                   type="button"
-                  aria-label={`Remove ${language.name}`}
+                  aria-label={`Убрать ${language.name}`}
                   onClick={() =>
                     onChange({
                       languages: profile.languages.filter((entry) => entry.name !== language.name),
@@ -455,9 +465,9 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
 
       {visible.includes('preferences') ? (
         <section className="flex flex-col gap-2">
-          <h3 className="jp-section-title">Preferences</h3>
+          <h3 className="jp-section-title">Предпочтения</h3>
           <fieldset>
-            <legend className="jp-label">Employment type</legend>
+            <legend className="jp-label">Тип занятости</legend>
             <div className="flex flex-wrap gap-1">
               {EMPLOYMENT_TYPES.map((type) => (
                 <button
@@ -478,13 +488,13 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       : ''
                   }`}
                 >
-                  {type.replace('_', ' ')}
+                  {EMPLOYMENT_TYPE_LABEL[type]}
                 </button>
               ))}
             </div>
           </fieldset>
           <fieldset>
-            <legend className="jp-label">Work mode</legend>
+            <legend className="jp-label">Формат работы</legend>
             <div className="flex flex-wrap gap-1">
               {WORK_MODES.map((mode) => (
                 <button
@@ -503,7 +513,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                     profile.preferences.workModes.includes(mode) ? 'border-brand text-brand' : ''
                   }`}
                 >
-                  {mode}
+                  {WORK_MODE_LABEL[mode]}
                 </button>
               ))}
             </div>
@@ -518,9 +528,9 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 })
               }
             />
-            Willing to relocate
+            Готов(а) к переезду
           </label>
-          <Field label="Relocation countries" hint="Comma separated. Leave empty for anywhere.">
+          <Field label="Страны для переезда" hint="Через запятую. Пусто — куда угодно.">
             <input
               className="jp-input"
               value={profile.location.relocationCountries.join(', ')}
@@ -537,7 +547,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               }
             />
           </Field>
-          <Field label="Dealbreakers" hint="Comma separated, e.g. on-call, crypto.">
+          <Field label="Стоп-факторы" hint="Через запятую, например: дежурства, крипта.">
             <input
               className="jp-input"
               value={profile.preferences.dealbreakers.join(', ')}
@@ -567,20 +577,20 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 })
               }
             />
-            I need visa sponsorship
+            Мне нужно спонсорство визы
           </label>
         </section>
       ) : null}
 
       {visible.includes('experience') ? (
         <section className="flex flex-col gap-2">
-          <h3 className="jp-section-title">Experience</h3>
+          <h3 className="jp-section-title">Опыт работы</h3>
           {profile.experience.map((entry) => (
             <div key={entry.id} className="jp-card flex flex-col gap-1.5">
               <div className="grid grid-cols-2 gap-2">
                 <input
                   className="jp-input"
-                  placeholder="Company"
+                  placeholder="Компания"
                   value={entry.company}
                   onChange={(event) =>
                     onChange({
@@ -592,7 +602,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 />
                 <input
                   className="jp-input"
-                  placeholder="Position"
+                  placeholder="Должность"
                   value={entry.position}
                   onChange={(event) =>
                     onChange({
@@ -606,7 +616,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               <div className="grid grid-cols-2 gap-2">
                 <input
                   className="jp-input"
-                  placeholder="Start (2021-03)"
+                  placeholder="Начало (2021-03)"
                   value={entry.startDate}
                   onChange={(event) =>
                     onChange({
@@ -618,7 +628,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 />
                 <input
                   className="jp-input"
-                  placeholder="End (or empty)"
+                  placeholder="Окончание (или пусто)"
                   value={entry.endDate}
                   onChange={(event) =>
                     onChange({
@@ -633,7 +643,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               </div>
               <textarea
                 className="jp-input min-h-[54px]"
-                placeholder="What you did there"
+                placeholder="Чем вы там занимались"
                 value={entry.description}
                 onChange={(event) =>
                   onChange({
@@ -645,7 +655,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               />
               <input
                 className="jp-input"
-                placeholder="Technologies (comma separated)"
+                placeholder="Технологии (через запятую)"
                 value={entry.technologies.join(', ')}
                 onChange={(event) =>
                   onChange({
@@ -672,7 +682,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                   })
                 }
               >
-                Remove
+                Убрать
               </button>
             </div>
           ))}
@@ -697,7 +707,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               })
             }
           >
-            + Add experience
+            + Добавить место работы
           </button>
         </section>
       ) : null}

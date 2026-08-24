@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { FORM_FIELD_TYPES } from './ai';
 
-/** Lifecycle of an application. See core/state/applicationState.ts. */
+/** Жизненный цикл заявки. См. core/state/applicationState.ts. */
 export const APPLICATION_STATES = [
   'draft',
   'analyzing',
@@ -30,9 +30,9 @@ export interface FormFieldOption {
   label: string;
 }
 
-/** A control discovered on the page by the DOM form analyzer. */
+/** Поле формы, найденное на странице анализатором DOM. */
 export interface DetectedFormField {
-  /** Stable id assigned by the content script for this page session. */
+  /** Стабильный id, который content-скрипт присваивает полю в рамках сессии страницы. */
   fieldId: string;
   kind: FormControlKind;
   inputType: string;
@@ -42,7 +42,7 @@ export interface DetectedFormField {
   placeholder: string;
   ariaLabel: string;
   autocomplete: string;
-  /** Nearby text used as context for classification (bounded length). */
+  /** Текст рядом с полем — контекст для классификации (ограниченной длины). */
   surroundingText: string;
   required: boolean;
   maxLength: number | null;
@@ -112,10 +112,10 @@ export const applicationSchema = z.object({
   questions: z.array(applicationQuestionSchema).default([]),
   fieldMappings: z.array(fieldMappingSchema).default([]),
   attachmentIds: z.array(z.string()).default([]),
-  /** Extra notes the user typed on the review screen. */
+  /** Заметки, которые пользователь написал на экране проверки. */
   notes: z.string().default(''),
   error: z.string().default(''),
-  /** Always true: JobPilot never submits without an explicit click. */
+  /** Всегда true: JobPilot не отправляет заявку без явного клика пользователя. */
   submittedByUser: z.boolean().default(false),
 });
 export type Application = z.infer<typeof applicationSchema>;

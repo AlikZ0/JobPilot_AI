@@ -1,4 +1,4 @@
-/** URL normalisation shared by fingerprints, permissions and adapters. */
+/** Нормализация URL — общая для отпечатков, разрешений и адаптеров. */
 
 const TRACKING_PARAM_RE =
   /^(utm_|gclid|fbclid|mc_|ref|refid|referrer|trk|trackingId|origin|eBP|savedSearchId|position|pageNum|src|source_id)/i;
@@ -11,7 +11,7 @@ export function safeUrl(value: string): URL | null {
   }
 }
 
-/** Strips tracking params and normalises casing so the same posting matches. */
+/** Убирает трекинговые параметры и нормализует регистр, чтобы одна и та же вакансия совпадала. */
 export function normalizeUrl(value: string): string {
   const url = safeUrl(value);
   if (!url) return value.trim();
@@ -32,7 +32,7 @@ export function hostnameOf(value: string): string {
   return safeUrl(value)?.hostname.replace(/^www\./, '') ?? '';
 }
 
-/** Origin pattern accepted by chrome.permissions.request. */
+/** Шаблон origin, который принимает chrome.permissions.request. */
 export function originPattern(value: string): string | null {
   const url = safeUrl(value);
   if (!url || !/^https?:$/.test(url.protocol)) return null;
