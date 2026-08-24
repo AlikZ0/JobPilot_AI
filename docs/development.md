@@ -1,89 +1,107 @@
-# Development
+# Разработка
 
-## Requirements
+## Требования
 
 - Node.js 20+
-- Chrome 116+ (side panel API)
+- Chrome 116+ (нужен API боковой панели)
 
-## Setup
+## Установка
 
 ```bash
 npm install
 npm run build
 ```
 
-Load `dist/` at `chrome://extensions` → Developer mode → Load unpacked.
+Загрузите `dist/` на `chrome://extensions` → Режим разработчика → Загрузить
+распакованное расширение.
 
-## Scripts
+## Команды
 
-| Command              | What it does                                          |
-| -------------------- | ----------------------------------------------------- |
-| `npm run dev`        | Vite watch build into `dist/`                         |
-| `npm run build`      | Production build (app bundle + content script bundle) |
-| `npm run test`       | Vitest unit suite                                     |
-| `npm run test:watch` | Vitest in watch mode                                  |
-| `npm run test:e2e`   | Playwright suite against the built extension          |
-| `npm run lint`       | ESLint, `--max-warnings=0`                            |
-| `npm run typecheck`  | `tsc --noEmit`                                        |
-| `npm run format`     | Prettier write                                        |
-| `npm run zip`        | Package `dist/` as `dist.zip` for the Web Store       |
+| Команда              | Что делает                                         |
+| -------------------- | -------------------------------------------------- |
+| `npm run dev`        | Сборка Vite в `dist/` в режиме watch               |
+| `npm run build`      | Продакшен-сборка (основной бандл + content-скрипт) |
+| `npm run test`       | Юнит-тесты Vitest                                  |
+| `npm run test:watch` | Vitest в режиме watch                              |
+| `npm run test:e2e`   | Playwright по собранному расширению                |
+| `npm run lint`       | ESLint, `--max-warnings=0`                         |
+| `npm run typecheck`  | `tsc --noEmit`                                     |
+| `npm run format`     | Prettier                                           |
+| `npm run zip`        | Упаковка `dist/` в `dist.zip` для Chrome Web Store |
 
-Run `lint`, `typecheck` and `test` before every commit; `build` before every E2E run.
+Перед каждым коммитом прогоняйте `lint`, `typecheck` и `test`, а перед E2E —
+`build`.
 
-## Two builds, one dist
+## Две сборки, одна папка
 
-`vite.config.ts` builds the side panel, popup and service worker (ES modules).
-`vite.content.config.ts` builds the content script as a single IIFE, because a
-script injected with `chrome.scripting.executeScript({ files })` cannot use ESM
-imports. The second build runs with `emptyOutDir: false` so it lands next to the
-first.
+`vite.config.ts` собирает боковую панель, попап и service worker (ES-модули).
+`vite.content.config.ts` собирает content-скрипт одним IIFE, потому что скрипт,
+внедряемый через `chrome.scripting.executeScript({ files })`, не может
+использовать ESM-импорты. Вторая сборка идёт с `emptyOutDir: false`, чтобы лечь
+рядом с первой.
 
-## Reloading during development
+## Перезагрузка во время разработки
 
-| Change             | What to do                                    |
-| ------------------ | --------------------------------------------- |
-| Side panel / popup | Close and reopen the panel                    |
-| Service worker     | Reload the extension on `chrome://extensions` |
-| Content script     | Reload the extension, then reload the page    |
-| `manifest.json`    | Reload the extension                          |
+| Что изменилось           | Что сделать                                       |
+| ------------------------ | ------------------------------------------------- |
+| Боковая панель или попап | Закрыть и открыть панель заново                   |
+| Service worker           | Обновить расширение на `chrome://extensions`      |
+| Content-скрипт           | Обновить расширение, затем перезагрузить страницу |
+| `manifest.json`          | Обновить расширение                               |
 
-## Debugging
+## Отладка
 
-- **Service worker**: `chrome://extensions` → JobPilot → _service worker_ link.
-- **Side panel**: right-click inside it → Inspect.
-- **Content script**: the page's own DevTools console; logs are prefixed
+- **Service worker**: `chrome://extensions` → JobPilot → ссылка _service worker_.
+- **Боковая панель**: правый клик внутри неё → «Просмотреть код».
+- **Content-скрипт**: консоль самой страницы; логи с префиксом
   `[jobpilot:content]`.
-- **Database**: DevTools → Application → IndexedDB → `jobpilot`.
+- **База**: DevTools → Application → IndexedDB → `jobpilot`.
 
-## Testing
+## Тестирование
 
-Unit tests use happy-dom plus `fake-indexeddb`, with a small `chrome` stub in
-`tests/setup.ts`. They cover extraction, adapters, scoring, deduplication, form
-mapping and filling, the database and its state machines, AI schema validation and
-prompt invariants, the queue, messaging, and the security greps.
+Юнит-тесты используют happy-dom и `fake-indexeddb`, а также небольшую заглушку
+`chrome` в `tests/setup.ts`. Они покрывают извлечение, адаптеры, скоринг, поиск
+дублей, маппинг и заполнение форм, базу и её машины состояний, валидацию
+AI-схем и инварианты промптов, очередь, шину сообщений и проверки безопасности.
 
-E2E tests load the real built extension in Chromium. Extensions require a headed
-browser:
+E2E-набор состоит из двух частей:
+
+- `packaging.spec.ts` проверяет сами артефакты сборки (манифест, наличие файлов,
+  отсутствие доступа к сайтам при установке, CSP, формат content-скрипта,
+  отсутствие `eval` и захардкоженных ключей);
+- `sidepanel.spec.ts` поднимает `dist/` по http и гоняет **реальный собранный
+  интерфейс** в браузере с заглушкой `chrome.*` — онбординг, список вакансий,
+  разбор балла и блокировку отправки без подтверждения.
 
 ```bash
 npm run build
-xvfb-run -a npm run test:e2e            # headless machine
-PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome xvfb-run -a npm run test:e2e
+npx playwright install chromium
+npm run test:e2e
+# или указать свой Chromium:
+PLAYWRIGHT_CHROMIUM_PATH=/путь/к/chrome npm run test:e2e
 ```
 
-## Adding things
+Загрузить упакованное расширение в Playwright получается не в любом окружении:
+Chrome отключает порт удалённой отладки, когда передан `--load-extension`. Поэтому
+интерфейс проверяется через собранный бандл, а сам пакет — через артефакты.
 
-- **A job board** → `docs/job-adapters.md`
-- **An AI provider** → `docs/ai.md`
-- **A message type** → add a `Def<…>` entry to `MessageDefs`, then implement the
-  handler; TypeScript will point at every place that needs updating.
-- **A scoring component** → add the weight in `weights.ts` (the total must stay 100),
-  add the scorer in `engine.ts`, extend `scoreBreakdownSchema`, and bump
-  `ANALYSIS_VERSION` so cached analyses are recomputed.
+## Как что-то добавить
 
-## Conventions
+- **Новый job-сайт** → `docs/job-adapters.md`
+- **Нового AI-провайдера** → `docs/ai.md`
+- **Новый тип сообщения** → добавьте запись `Def<…>` в `MessageDefs` и напишите
+  обработчик; TypeScript сам покажет все места, которые нужно поправить.
+- **Новый компонент скоринга** → добавьте вес в `weights.ts` (сумма обязана
+  остаться 100), функцию-оценщик в `engine.ts`, поле в `scoreBreakdownSchema` и
+  увеличьте `ANALYSIS_VERSION`, чтобы кеш пересчитался.
 
-- Strict TypeScript, no `any` in new code.
-- Zod schemas are the source of truth for every persisted or received shape.
-- Never introduce a string message type at a call site.
-- Comments explain _why_, not _what_.
+## Соглашения
+
+- Строгий TypeScript, `any` в новом коде не используем.
+- Zod-схемы — источник правды для всего, что хранится или приходит извне.
+- Никаких строковых типов сообщений в местах вызова.
+- Комментарии объясняют _почему_, а не _что_.
+- Интерфейс, комментарии и документация — на русском; идентификаторы, значения
+  перечислений и ключи JSON — на английском, потому что они попадают в базу,
+  сообщения и схемы. Русские подписи для перечислений живут в
+  `src/sidepanel/labels.ts`.

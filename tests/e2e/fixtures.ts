@@ -17,11 +17,11 @@ const MIME: Record<string, string> = {
 };
 
 /**
- * Serves dist/ over http so the real built UI can be driven by a plain browser.
- * Loading the packed extension is not possible everywhere — Chrome disables the
- * remote debugging port when --load-extension is present — so the UI suite runs
- * the shipped bundle against a stubbed chrome API, and packaging.spec.ts asserts
- * on the build artefacts themselves.
+ * Отдаёт dist/ по http, чтобы гонять настоящий собранный интерфейс в обычном
+ * браузере. Загрузить упакованное расширение получается не везде: Chrome
+ * отключает порт удалённой отладки при --load-extension. Поэтому интерфейс
+ * проверяется на собранном бандле с заглушкой chrome API, а сам пакет —
+ * в packaging.spec.ts по артефактам сборки.
  */
 function startServer(root: string): Promise<{ url: string; server: Server }> {
   const server = createServer((req, res) => {
@@ -38,7 +38,7 @@ function startServer(root: string): Promise<{ url: string; server: Server }> {
   return new Promise((done) => {
     server.listen(0, '127.0.0.1', () => {
       const address = server.address();
-      if (typeof address === 'string' || address === null) throw new Error('no address');
+      if (typeof address === 'string' || address === null) throw new Error('сервер не выдал адрес');
       done({ url: `http://127.0.0.1:${address.port}`, server });
     });
   });
@@ -46,7 +46,7 @@ function startServer(root: string): Promise<{ url: string; server: Server }> {
 
 export interface Fixtures {
   appUrl: string;
-  /** A side panel page with the chrome extension APIs stubbed out. */
+  /** Страница боковой панели с подменёнными API расширения. */
   panel: Page;
 }
 
@@ -67,7 +67,7 @@ export const test = base.extend<Fixtures, { sharedBrowser: Browser }>({
   // eslint-disable-next-line no-empty-pattern
   appUrl: async ({}, use) => {
     if (!existsSync(resolve(DIST, 'manifest.json'))) {
-      throw new Error('dist/ is missing — run `npm run build` before the E2E suite.');
+      throw new Error('Нет папки dist/ — выполните `npm run build` перед E2E.');
     }
     const { url, server } = await startServer(DIST);
     await use(url);
@@ -83,7 +83,7 @@ export const test = base.extend<Fixtures, { sharedBrowser: Browser }>({
     await use(page);
     await context.close();
     if (errors.length > 0)
-      throw new Error(`Uncaught errors in the side panel: ${errors.join('; ')}`);
+      throw new Error(`Необработанные ошибки в боковой панели: ${errors.join('; ')}`);
   },
 });
 
@@ -107,8 +107,8 @@ export function readManifest(): ChromeManifest {
 }
 
 /**
- * Minimal in-page implementation of the chrome APIs the side panel touches.
- * Responses mirror the message contract in src/types/messages.ts.
+ * Минимальная реализация тех chrome API, которых касается боковая панель.
+ * Ответы повторяют контракт сообщений из src/types/messages.ts.
  */
 const CHROME_STUB = () => {
   const listeners = new Set<(...args: unknown[]) => void>();

@@ -10,13 +10,13 @@ import { SCORE_WEIGHTS, TOTAL_WEIGHT, bandForScore } from '@/core/scoring/weight
 import { makeProfile } from '../fixtures/profile';
 import { makeJob } from '../fixtures/jobs';
 
-describe('score weights', () => {
-  it('sum to exactly 100', () => {
+describe('веса скоринга', () => {
+  it('в сумме дают ровно 100', () => {
     expect(TOTAL_WEIGHT).toBe(100);
     expect(SCORE_WEIGHTS.technicalSkills).toBe(40);
   });
 
-  it('map scores to the documented bands', () => {
+  it('раскладывают балл по описанным уровням', () => {
     expect(bandForScore(95)).toBe('strong_match');
     expect(bandForScore(90)).toBe('strong_match');
     expect(bandForScore(89)).toBe('good_match');
@@ -30,8 +30,8 @@ describe('score weights', () => {
   });
 });
 
-describe('skill matching', () => {
-  it('separates mandatory from optional technologies', () => {
+describe('сопоставление навыков', () => {
+  it('отделяет обязательные технологии от желательных', () => {
     const { mandatory, optional } = classifyJobSkills(makeJob());
     expect(mandatory).toContain('TypeScript');
     expect(mandatory).toContain('Docker');
@@ -39,7 +39,7 @@ describe('skill matching', () => {
     expect(mandatory).not.toContain('AWS');
   });
 
-  it('counts implied skills as owned (Nuxt implies Vue)', () => {
+  it('учитывает подразумеваемые навыки (Nuxt подразумевает Vue)', () => {
     const profile = makeProfile({
       skills: [{ name: 'Nuxt', category: 'frontend', primary: true }],
     });
@@ -48,7 +48,7 @@ describe('skill matching', () => {
     expect(match.matched).toContain('Vue');
   });
 
-  it('reports missing must-have technologies', () => {
+  it('сообщает о недостающих обязательных технологиях', () => {
     const profile = makeProfile({
       skills: [{ name: 'Node.js', category: 'backend', primary: true }],
     });
@@ -58,8 +58,8 @@ describe('skill matching', () => {
   });
 });
 
-describe('deterministic scoring', () => {
-  it('scores a strong match highly and explains every component', () => {
+describe('детерминированный скоринг', () => {
+  it('высоко оценивает сильное совпадение и объясняет каждый компонент', () => {
     const result = scoreJob({ job: makeJob(), profile: makeProfile() });
     expect(result.score).toBeGreaterThanOrEqual(75);
     expect(result.score).toBeLessThanOrEqual(100);
@@ -73,7 +73,7 @@ describe('deterministic scoring', () => {
     expect(Math.round(total)).toBe(result.score);
   });
 
-  it('scores an unrelated job low', () => {
+  it('низко оценивает неподходящую вакансию', () => {
     const job = makeJob({
       title: 'Senior Salesforce Administrator',
       description:
@@ -95,7 +95,7 @@ describe('deterministic scoring', () => {
     expect(result.salaryMatch).toBe(false);
   });
 
-  it('never lets AI findings invent a skill the profile does not have', () => {
+  it('не даёт AI приписать навык, которого нет в профиле', () => {
     const result = scoreJob({
       job: makeJob(),
       profile: makeProfile(),
@@ -119,7 +119,7 @@ describe('deterministic scoring', () => {
     expect(result.matchedSkills).not.toContain('Rust');
   });
 
-  it('is deterministic for the same inputs', () => {
+  it('даёт одинаковый результат на одинаковых входных данных', () => {
     const job = makeJob();
     const profile = makeProfile();
     const first = scoreJob({ job, profile });
@@ -128,7 +128,7 @@ describe('deterministic scoring', () => {
     expect(first.breakdown).toEqual(second.breakdown);
   });
 
-  it('penalises a missing must-have technology', () => {
+  it('штрафует за недостающую обязательную технологию', () => {
     const withDocker = scoreJob({ job: makeJob(), profile: makeProfile() });
     const profileWithoutDocker = makeProfile({
       skills: makeProfile().skills.filter((skill) => skill.name !== 'Docker'),
@@ -139,20 +139,20 @@ describe('deterministic scoring', () => {
   });
 });
 
-describe('required years parsing', () => {
+describe('разбор требуемого стажа', () => {
   it.each([
     ['5+ years of experience', 5],
     ['at least 3 years of commercial experience', 3],
     ['3-5 years of experience with Node', 3],
     ['minimum of 7 years', 7],
     ['no experience requirement', null],
-  ])('parses %s', (text, expected) => {
+  ])('разбирает «%s»', (text, expected) => {
     expect(parseRequiredYears(text)).toBe(expected);
   });
 });
 
-describe('red flags', () => {
-  it('flags unpaid and commission-only roles', () => {
+describe('красные флаги', () => {
+  it('отмечает неоплачиваемые и «только процент» вакансии', () => {
     const job = makeJob({
       description: 'This is an unpaid internship with commission-only bonuses.',
       requirements: [],
@@ -165,13 +165,13 @@ describe('red flags', () => {
   });
 });
 
-describe('priority', () => {
-  it('raises priority for high scoring remote jobs', () => {
+describe('приоритет', () => {
+  it('повышает приоритет удалённым вакансиям с высоким баллом', () => {
     const job = { ...makeJob(), score: 92 };
     expect(computePriority(job, makeProfile())).toBe('critical');
   });
 
-  it('keeps weak matches low', () => {
+  it('оставляет слабые совпадения внизу', () => {
     const job = { ...makeJob(), score: 30, description: '' };
     expect(computePriority(job, makeProfile())).toBe('low');
   });

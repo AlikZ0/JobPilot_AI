@@ -15,8 +15,8 @@ import { bulkPutApplications } from './repositories/applicationRepository';
 const APP_VERSION = '0.1.0';
 
 /**
- * Full local export. API keys are intentionally excluded — they live in
- * chrome.storage, never in the database, and never leave the browser.
+ * Полный локальный экспорт. API-ключи намеренно не включены: они живут в
+ * chrome.storage, никогда не попадают в базу и не покидают браузер.
  */
 export async function exportAllData(): Promise<ExportBundle> {
   const db = getDb();
@@ -53,7 +53,7 @@ export function parseBundle(raw: unknown): ExportBundle {
   const bundle = exportBundleSchema.parse(raw);
   if (bundle.version > EXPORT_VERSION) {
     throw new Error(
-      `This backup was created by a newer version of JobPilot (v${bundle.version}). Update the extension first.`,
+      `Этот файл создан более новой версией JobPilot (v${bundle.version}). Сначала обновите расширение.`,
     );
   }
   return bundle;
@@ -94,7 +94,7 @@ export async function importData(
     const jobIds = new Set((await getDb().jobs.toArray()).map((job) => job.id));
     const importable = bundle.applications.filter((app) => jobIds.has(app.jobId));
     const orphans = bundle.applications.length - importable.length;
-    if (orphans > 0) summary.warnings.push(`${orphans} application(s) skipped: job missing.`);
+    if (orphans > 0) summary.warnings.push(`Пропущено заявок: ${orphans} — нет исходной вакансии.`);
     await bulkPutApplications(importable);
     summary.applications = importable.length;
   }

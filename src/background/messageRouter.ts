@@ -37,14 +37,14 @@ const log = createLogger('router');
 async function resolveTabId(explicit?: number): Promise<{ tabId: number; url: string }> {
   if (typeof explicit === 'number') {
     const tab = await chrome.tabs.get(explicit);
-    if (!tab.url) throw new JobPilotError(ERROR_CODES.NO_ACTIVE_TAB, 'That tab has no URL.');
+    if (!tab.url) throw new JobPilotError(ERROR_CODES.NO_ACTIVE_TAB, 'У этой вкладки нет URL.');
     return { tabId: explicit, url: tab.url };
   }
   const tab = await getActiveTab();
   return { tabId: tab.id as number, url: tab.url as string };
 }
 
-/** Extracts the posting from a tab, injecting the content script if needed. */
+/** Извлекает вакансию из вкладки, при необходимости внедряя content-скрипт. */
 async function extractFromTab(tabId: number, url: string) {
   const settings = await getSettings();
   await ensureContentScript(tabId, url);
@@ -77,15 +77,15 @@ export function registerBackgroundHandlers(): void {
           await ensureContentScript(tabId, url);
           pageInfo = await sendToTab(tabId, MESSAGE_TYPES.CONTENT_PAGE_INFO, undefined);
         } catch (error) {
-          log.debug('page info unavailable', error);
+          log.debug('информация о странице недоступна', error);
         }
       }
       return { tabId, pageInfo, hasPermission: permitted };
     },
 
     [MESSAGE_TYPES.REQUEST_HOST_PERMISSION]: async ({ url }) => ({
-      // The actual prompt must come from a user gesture in the side panel; the
-      // worker can only report the current state.
+      // Само окно запроса должно вызываться из пользовательского жеста в панели;
+      // воркер умеет лишь сообщить текущее состояние.
       granted: await hasHostPermission(url),
     }),
 
@@ -192,7 +192,7 @@ export function registerBackgroundHandlers(): void {
             requireConfirmation,
           });
         } catch (error) {
-          log.warn('AI form analysis failed; using deterministic mappings only', error);
+          log.warn('AI-анализ формы не удался; используем только детерминированные правила', error);
         }
       }
 

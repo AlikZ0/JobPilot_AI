@@ -1,7 +1,7 @@
 import { normalizeWhitespace } from '@/utils/text';
 import { elementText } from './html';
 
-/** Selectors ordered from most to least specific, applied across all sites. */
+/** Селекторы от самых специфичных к самым общим, применяются на всех сайтах. */
 const TITLE_SELECTORS = [
   '[data-testid*="job-title" i]',
   '[data-test*="job-title" i]',
@@ -81,7 +81,7 @@ export function findLocation(root: ParentNode): string {
 export function findSalary(root: ParentNode): string {
   const direct = firstText(root, SALARY_SELECTORS, 120);
   if (direct) return direct;
-  // Fallback: scan visible text for a currency amount.
+  // Запасной вариант: ищем сумму с валютой в видимом тексте.
   const text = normalizeWhitespace(root.textContent ?? '').slice(0, 20_000);
   const match = text.match(
     /(?:[$€£₴₽₸₹]|\b(?:USD|EUR|GBP|PLN|UAH|CZK|CHF|CAD|AUD)\b)\s?\d[\d\s.,]*(?:\s?[-–—to]{1,3}\s?[$€£₴₽₸₹]?\s?\d[\d\s.,]*)?(?:\s?(?:k|K))?\s?(?:per\s+\w+|\/\s*\w+|gross|net)?/,
@@ -90,8 +90,8 @@ export function findSalary(root: ParentNode): string {
 }
 
 /**
- * Layer 4: picks the densest block of text on the page as the description.
- * Scores candidates by text length while penalising nav/footer containers.
+ * Слой 4: выбирает самый «плотный» текстовый блок страницы как описание.
+ * Кандидаты оцениваются по длине текста со штрафом за навигацию и подвалы.
  */
 export function findDescription(root: ParentNode): string {
   for (const selector of DESCRIPTION_SELECTORS) {
@@ -120,7 +120,7 @@ export function findDescription(root: ParentNode): string {
   return best;
 }
 
-/** Heuristic check used by the popup/side panel to label the current page. */
+/** Эвристическая проверка, по которой попап и панель подписывают текущую страницу. */
 export function looksLikeJobPage(doc: Document): boolean {
   if (
     doc.querySelector('script[type="application/ld+json"]')?.textContent?.includes('JobPosting')

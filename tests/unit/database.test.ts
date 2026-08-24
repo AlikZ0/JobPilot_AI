@@ -36,8 +36,8 @@ beforeEach(async () => {
   await getDb().open();
 });
 
-describe('profile repository', () => {
-  it('creates a default profile on first read', async () => {
+describe('репозиторий профиля', () => {
+  it('создаёт профиль по умолчанию при первом чтении', async () => {
     const profile = await getProfile();
     expect(profile.id).toBe('primary');
     expect(profile.version).toBe(1);
@@ -45,7 +45,7 @@ describe('profile repository', () => {
     expect(isProfileUsable(profile)).toBe(false);
   });
 
-  it('bumps the version on every save', async () => {
+  it('увеличивает версию при каждом сохранении', async () => {
     await getProfile();
     const first = await saveProfile({
       personal: { firstName: 'Alex', lastName: '', email: '', phone: '' },
@@ -57,15 +57,15 @@ describe('profile repository', () => {
     expect(second.version).toBe(3);
   });
 
-  it('can save without bumping the version', async () => {
+  it('умеет сохранять без увеличения версии', async () => {
     const before = await getProfile();
     const after = await saveProfile({ notes: undefined } as never, { bumpVersion: false });
     expect(after.version).toBe(before.version);
   });
 });
 
-describe('settings repository', () => {
-  it('always forces the submit-confirmation invariant', async () => {
+describe('репозиторий настроек', () => {
+  it('всегда принудительно включает подтверждение отправки', async () => {
     await getSettings();
     const updated = await saveSettings({
       automation: {
@@ -77,15 +77,15 @@ describe('settings repository', () => {
     expect(updated.privacy.shareContactDetailsWithAI).toBe(false);
   });
 
-  it('applies defaults for newly added fields', async () => {
+  it('подставляет значения по умолчанию для новых полей', async () => {
     const settings = await getSettings();
     expect(settings.automation.maxConcurrentTabs).toBe(1);
     expect(settings.privacy.allowAIRequests).toBe(false);
   });
 });
 
-describe('job repository', () => {
-  it('stores an extracted job and assigns a fingerprint', async () => {
+describe('репозиторий вакансий', () => {
+  it('сохраняет извлечённую вакансию и назначает отпечаток', async () => {
     const { job, created } = await upsertExtractedJob(makeJob());
     expect(created).toBe(true);
     expect(job.fingerprint).toBeTruthy();
@@ -93,7 +93,7 @@ describe('job repository', () => {
     expect(await getJob(job.id)).not.toBeNull();
   });
 
-  it('collapses duplicates instead of creating a second record', async () => {
+  it('схлопывает дубли вместо создания второй записи', async () => {
     const first = await upsertExtractedJob(makeJob());
     const second = await upsertExtractedJob(
       makeJob({
@@ -106,21 +106,21 @@ describe('job repository', () => {
     expect(await listJobs()).toHaveLength(1);
   });
 
-  it('keeps the richer description when merging', async () => {
+  it('при слиянии оставляет более полное описание', async () => {
     await upsertExtractedJob(makeJob({ description: 'short' }));
     const long = 'a much longer description '.repeat(20);
     const merged = await upsertExtractedJob(makeJob({ description: long }));
     expect(merged.job.description).toBe(long);
   });
 
-  it('rejects an illegal state transition', async () => {
+  it('отклоняет недопустимый переход состояния', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     await expect(updateJob(job.id, { state: 'submitted' })).rejects.toThrow(
-      /Invalid job transition/,
+      /Недопустимый переход вакансии/,
     );
   });
 
-  it('cascades deletes to analyses and applications', async () => {
+  it('удаляет вместе с вакансией её анализы и заявки', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     await createApplication(job.id);
     await deleteJob(job.id);
@@ -129,8 +129,8 @@ describe('job repository', () => {
   });
 });
 
-describe('analysis cache', () => {
-  it('only reuses an analysis for the same profile version and analysis version', async () => {
+describe('кеш анализов', () => {
+  it('переиспользует анализ только для той же версии профиля и скоринга', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     await saveAnalysis({
       id: 'ana1',
@@ -172,12 +172,12 @@ describe('analysis cache', () => {
   });
 });
 
-describe('application repository', () => {
-  it('records an audit trail and blocks unconfirmed submission', async () => {
+describe('репозиторий заявок', () => {
+  it('ведёт журнал событий и блокирует неподтверждённую отправку', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     const application = await createApplication(job.id);
     await expect(markSubmitted(application.id, false)).rejects.toThrow(
-      /explicit user confirmation/,
+      /явного подтверждения пользователя/,
     );
 
     await updateApplication(application.id, { state: 'review' });
@@ -192,7 +192,7 @@ describe('application repository', () => {
     );
   });
 
-  it('reuses an existing draft for the same job', async () => {
+  it('переиспользует существующий черновик для той же вакансии', async () => {
     const { job } = await upsertExtractedJob(makeJob());
     const first = await createApplication(job.id);
     const second = await createApplication(job.id);
@@ -200,8 +200,8 @@ describe('application repository', () => {
   });
 });
 
-describe('export and import', () => {
-  it('round-trips the full dataset', async () => {
+describe('экспорт и импорт', () => {
+  it('полный набор данных переживает экспорт и импорт', async () => {
     await saveProfile(makeProfile());
     const { job } = await upsertExtractedJob(makeJob());
     await createApplication(job.id);
@@ -220,13 +220,13 @@ describe('export and import', () => {
     expect((await getProfile()).personal.firstName).toBe('Alex');
   });
 
-  it('rejects a bundle from a newer version', async () => {
+  it('отклоняет файл от более новой версии', async () => {
     await expect(
       importData({ version: 99, exportedAt: new Date().toISOString(), jobs: [] }),
-    ).rejects.toThrow(/newer version/);
+    ).rejects.toThrow(/более новой версией/);
   });
 
-  it('skips applications whose job is missing', async () => {
+  it('пропускает заявки без исходной вакансии', async () => {
     const bundle = await exportAllData();
     const summary = await importData(
       {
@@ -244,6 +244,6 @@ describe('export and import', () => {
       { mode: 'merge' },
     );
     expect(summary.applications).toBe(0);
-    expect(summary.warnings.join(' ')).toMatch(/skipped/);
+    expect(summary.warnings.join(' ')).toMatch(/Пропущено заявок/);
   });
 });

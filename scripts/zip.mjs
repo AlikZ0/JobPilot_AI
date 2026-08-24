@@ -1,7 +1,7 @@
 /**
- * Packages dist/ as dist.zip for the Chrome Web Store.
- * Uses the system `zip` binary when available and falls back to a minimal
- * store-only zip writer so the script works with no extra dependencies.
+ * Упаковывает dist/ в dist.zip для Chrome Web Store.
+ * Использует системный `zip`, если он есть, и откатывается к минимальному
+ * встроенному упаковщику — чтобы скрипт работал без лишних зависимостей.
  */
 import { spawnSync } from 'node:child_process';
 import { deflateRawSync, crc32 } from 'node:zlib';
@@ -14,7 +14,7 @@ const DIST = join(ROOT, 'dist');
 const OUT = join(ROOT, 'dist.zip');
 
 if (!existsSync(join(DIST, 'manifest.json'))) {
-  console.error('dist/manifest.json is missing — run `npm run build` first.');
+  console.error('Нет dist/manifest.json — сначала выполните `npm run build`.');
   process.exit(1);
 }
 
@@ -22,7 +22,7 @@ rmSync(OUT, { force: true });
 
 const system = spawnSync('zip', ['-r', '-q', OUT, '.', '-x', '*.map'], { cwd: DIST });
 if (system.status === 0) {
-  console.log(`Wrote ${relative(ROOT, OUT)} (system zip)`);
+  console.log(`Готово: ${relative(ROOT, OUT)} (системный zip)`);
   process.exit(0);
 }
 
@@ -42,7 +42,7 @@ const central = [];
 let offset = 0;
 
 const dosTime = () => {
-  // A fixed timestamp keeps builds reproducible.
+  // Фиксированная метка времени делает сборку воспроизводимой.
   const date = new Date('2020-01-01T00:00:00Z');
   const time = ((date.getUTCHours() << 11) | (date.getUTCMinutes() << 5) | 0) & 0xffff;
   const day =
@@ -99,4 +99,4 @@ end.writeUInt32LE(centralBuffer.length, 12);
 end.writeUInt32LE(offset, 16);
 
 writeFileSync(OUT, Buffer.concat([...chunks, centralBuffer, end]));
-console.log(`Wrote ${relative(ROOT, OUT)} (${files.length} files)`);
+console.log(`Готово: ${relative(ROOT, OUT)} (файлов: ${files.length})`);

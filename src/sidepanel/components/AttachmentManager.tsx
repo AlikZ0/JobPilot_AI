@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import type { Attachment, UserProfile } from '@/types/profile';
 import { createId } from '@/utils/id';
 import { useStore } from '../state/store';
+import { ATTACHMENT_KIND_LABEL } from '../labels';
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -10,14 +11,14 @@ interface Props {
   onChange(patch: Partial<UserProfile>): void;
 }
 
-/** Resumes and other documents, stored locally as data URLs. */
+/** Резюме и другие документы, хранятся локально как data URL. */
 export function AttachmentManager({ profile, onChange }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const pushToast = useStore((state) => state.pushToast);
 
   const addFile = async (file: File, kind: Attachment['kind']) => {
     if (file.size > MAX_BYTES) {
-      pushToast({ level: 'error', message: 'Files larger than 4 MB cannot be stored.' });
+      pushToast({ level: 'error', message: 'Файлы больше 4 МБ сохранить нельзя.' });
       return;
     }
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -41,10 +42,10 @@ export function AttachmentManager({ profile, onChange }: Props) {
 
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="jp-section-title">Attachments</h3>
+      <h3 className="jp-section-title">Вложения</h3>
       <p className="text-[11px] text-muted">
-        Kept on this device only. JobPilot cannot attach files to a form for you — browsers block
-        that — so you pick the file yourself on the application page.
+        Хранятся только на этом устройстве. JobPilot не может прикрепить файл в форму за вас —
+        браузер это запрещает, — поэтому файл вы выбираете сами на странице отклика.
       </p>
       <input
         ref={input}
@@ -58,7 +59,7 @@ export function AttachmentManager({ profile, onChange }: Props) {
         }}
       />
       <button type="button" className="jp-button self-start" onClick={() => input.current?.click()}>
-        + Add resume / document
+        + Добавить резюме или документ
       </button>
       <ul className="flex flex-col gap-1">
         {profile.attachments.map((attachment) => (
@@ -69,8 +70,8 @@ export function AttachmentManager({ profile, onChange }: Props) {
             <div className="min-w-0">
               <p className="truncate text-[12px] font-medium">{attachment.name}</p>
               <p className="text-[10px] text-muted">
-                {attachment.kind} · {(attachment.size / 1024).toFixed(0)} KB
-                {attachment.isDefault ? ' · default' : ''}
+                {ATTACHMENT_KIND_LABEL[attachment.kind]} · {(attachment.size / 1024).toFixed(0)} КБ
+                {attachment.isDefault ? ' · по умолчанию' : ''}
               </p>
             </div>
             <div className="flex gap-1">
@@ -87,7 +88,7 @@ export function AttachmentManager({ profile, onChange }: Props) {
                     })
                   }
                 >
-                  Make default
+                  Сделать основным
                 </button>
               ) : null}
               <button
@@ -99,7 +100,7 @@ export function AttachmentManager({ profile, onChange }: Props) {
                   })
                 }
               >
-                Remove
+                Удалить
               </button>
             </div>
           </li>

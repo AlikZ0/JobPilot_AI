@@ -11,7 +11,7 @@ export interface SkillMatch {
   matched: string[];
   missing: string[];
   bonus: string[];
-  /** Required skills the ad marks as mandatory that the user does not have. */
+  /** Обязательные по вакансии навыки, которых нет у пользователя. */
   missingMandatory: string[];
   required: string[];
   coverage: number;
@@ -23,7 +23,7 @@ const MANDATORY_MARKERS =
 const NICE_TO_HAVE_MARKERS =
   /\b(nice[- ]to[- ]have|plus|bonus|advantage|would be great|preferred|желательн)\b/i;
 
-/** Every canonical skill the user can claim, including implied ones. */
+/** Все канонические навыки, которые пользователь может заявить, включая подразумеваемые. */
 export function profileSkillSet(profile: UserProfile): Set<string> {
   const set = new Set<string>();
   for (const skill of profile.skills) {
@@ -48,8 +48,8 @@ function requirementLines(job: ExtractedJob): string[] {
 }
 
 /**
- * Splits the job's technologies into mandatory and optional buckets using the
- * wording of the requirement line each technology appears in.
+ * Делит технологии вакансии на обязательные и желательные по формулировке той
+ * строки требований, в которой каждая технология встретилась.
  */
 export function classifyJobSkills(job: ExtractedJob): { mandatory: string[]; optional: string[] } {
   const mandatory = new Set<string>();
@@ -68,14 +68,14 @@ export function classifyJobSkills(job: ExtractedJob): { mandatory: string[]; opt
     }
   }
 
-  // Anything found in the description but not in a bullet is treated as optional.
+  // Всё, что найдено в описании, но не в пункте списка, считаем желательным.
   for (const tech of job.technologies) {
     if (!mandatory.has(tech)) optional.add(tech);
   }
   for (const tech of mandatory) optional.delete(tech);
 
-  // When the ad has no explicit "must have" wording, promote the technologies
-  // mentioned in the title — those are always the core of the role.
+  // Если в объявлении нет явного «must have», повышаем технологии из заголовка —
+  // они всегда составляют суть роли.
   if (mandatory.size === 0) {
     for (const tech of detectTechnologies(job.title)) {
       mandatory.add(tech);
@@ -86,8 +86,8 @@ export function classifyJobSkills(job: ExtractedJob): { mandatory: string[]; opt
 }
 
 /**
- * Deterministic skill matching. AI findings can add to this (see
- * mergeAIFindings) but can never remove a match the dictionary proved.
+ * Детерминированное сопоставление навыков. Выводы AI могут его дополнить (см.
+ * mergeSkillFindings), но не могут убрать совпадение, доказанное словарём.
  */
 export function matchSkills(job: ExtractedJob, profile: UserProfile): SkillMatch {
   const owned = profileSkillSet(profile);

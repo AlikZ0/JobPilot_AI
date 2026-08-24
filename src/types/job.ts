@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { EMPLOYMENT_TYPES, SENIORITY_LEVELS, WORK_MODES } from './profile';
 
-/** Lifecycle of a job inside JobPilot. See core/state/jobState.ts. */
+/** Жизненный цикл вакансии внутри JobPilot. См. core/state/jobState.ts. */
 export const JOB_STATES = [
   'discovered',
   'queued',
@@ -28,7 +28,7 @@ export const salaryRangeSchema = z.object({
 });
 export type SalaryRange = z.infer<typeof salaryRangeSchema>;
 
-/** Where a given field came from — used to show extraction confidence. */
+/** Откуда взято поле — показывает, насколько можно доверять извлечению. */
 export const EXTRACTION_SOURCES = ['jsonld', 'meta', 'semantic', 'dom', 'ai', 'manual'] as const;
 export type ExtractionSource = (typeof EXTRACTION_SOURCES)[number];
 
@@ -53,7 +53,7 @@ export const extractedJobSchema = z.object({
   postedAt: z.string().max(60).default(''),
   applyUrl: z.string().max(1000).default(''),
   source: z.string().max(80).default('generic'),
-  /** Per-field provenance, e.g. { title: 'jsonld', salary: 'dom' }. */
+  /** Происхождение каждого поля, например { title: 'jsonld', salary: 'dom' }. */
   fieldSources: z.record(z.string(), z.enum(EXTRACTION_SOURCES)).default({}),
   extractionQuality: z.number().min(0).max(1).default(0),
 });
@@ -71,7 +71,7 @@ export type JobSummary = z.infer<typeof jobSummarySchema>;
 
 export const jobSchema = extractedJobSchema.extend({
   id: z.string(),
-  /** Stable content hash used for duplicate detection across job boards. */
+  /** Стабильный хеш содержимого для поиска дублей между разными job-сайтами. */
   fingerprint: z.string(),
   state: z.enum(JOB_STATES).default('discovered'),
   priority: z.enum(JOB_PRIORITIES).default('normal'),
@@ -80,7 +80,7 @@ export const jobSchema = extractedJobSchema.extend({
   updatedAt: z.number(),
   analyzedAt: z.number().nullable().default(null),
   savedAt: z.number().nullable().default(null),
-  /** Ids of other job records recognised as the same posting. */
+  /** Идентификатор записи, признанной той же самой вакансией. */
   duplicateOf: z.string().nullable().default(null),
   notes: z.string().max(4000).default(''),
   error: z.string().max(600).default(''),

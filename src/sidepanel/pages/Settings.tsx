@@ -85,21 +85,21 @@ export function SettingsPage() {
     });
 
   const saveKey = () =>
-    void withBusy('Saving key', async () => {
+    void withBusy('Сохраняем ключ', async () => {
       await setApiKey(activeProvider, keyDraft.trim());
       setKeyDraft('');
       setConfigured(await listConfiguredProviders());
-      pushToast({ level: 'success', message: `Key stored for ${provider.label}.` });
+      pushToast({ level: 'success', message: `Ключ сохранён для «${provider.label}».` });
     });
 
   const testConnection = () =>
-    void withBusy('Testing provider', async () => {
+    void withBusy('Проверяем провайдера', async () => {
       const result = await sendToBackground(MESSAGE_TYPES.TEST_AI_PROVIDER, undefined);
       pushToast({ level: result.ok ? 'success' : 'error', message: result.message });
     });
 
   const exportData = () =>
-    void withBusy('Exporting', async () => {
+    void withBusy('Экспортируем', async () => {
       const bundle = await exportAllData();
       const url = URL.createObjectURL(bundleToBlob(bundle));
       const anchor = document.createElement('a');
@@ -107,17 +107,17 @@ export function SettingsPage() {
       anchor.download = suggestedExportFilename();
       anchor.click();
       URL.revokeObjectURL(url);
-      pushToast({ level: 'success', message: 'Export downloaded.' });
+      pushToast({ level: 'success', message: 'Файл экспорта скачан.' });
     });
 
   const importFile = (file: File) =>
-    void withBusy('Importing', async () => {
+    void withBusy('Импортируем', async () => {
       const text = await file.text();
       const summary = await importData(JSON.parse(text), { mode: 'merge' });
       await refreshData();
       pushToast({
         level: 'success',
-        message: `Imported ${summary.jobs} jobs, ${summary.applications} applications.${
+        message: `Импортировано вакансий: ${summary.jobs}, заявок: ${summary.applications}.${
           summary.warnings.length ? ` ${summary.warnings.join(' ')}` : ''
         }`,
       });
@@ -126,19 +126,19 @@ export function SettingsPage() {
   return (
     <div className="flex flex-col gap-4">
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Appearance</h2>
-        <Row label="Theme">
+        <h2 className="jp-section-title">Внешний вид</h2>
+        <Row label="Тема">
           <select
             className="jp-input w-auto py-1"
             value={settings.theme}
             onChange={(event) => void updateSettings({ theme: event.target.value as 'system' })}
           >
-            <option value="system">System</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
+            <option value="system">Как в системе</option>
+            <option value="light">Светлая</option>
+            <option value="dark">Тёмная</option>
           </select>
         </Row>
-        <Row label="AI output language" hint="Language used for letters and answers.">
+        <Row label="Язык ответов AI" hint="На нём пишутся письма и ответы на вопросы.">
           <input
             className="jp-input w-32 py-1"
             value={settings.generationLanguage}
@@ -148,19 +148,19 @@ export function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">AI provider</h2>
-        <Row label="Mode" hint="Local uses your own key. Cloud calls your own gateway.">
+        <h2 className="jp-section-title">AI-провайдер</h2>
+        <Row label="Режим" hint="Локальный использует ваш ключ, облачный — ваш собственный шлюз.">
           <select
             className="jp-input w-auto py-1"
             value={settings.aiMode}
             onChange={(event) => void updateSettings({ aiMode: event.target.value as 'local' })}
           >
-            <option value="local">Local (your API key)</option>
-            <option value="cloud">Cloud gateway</option>
+            <option value="local">Локальный (ваш API-ключ)</option>
+            <option value="cloud">Облачный шлюз</option>
           </select>
         </Row>
         {settings.aiMode === 'local' ? (
-          <Row label="Provider">
+          <Row label="Провайдер">
             <select
               className="jp-input w-auto py-1"
               value={settings.activeProvider}
@@ -177,7 +177,7 @@ export function SettingsPage() {
             </select>
           </Row>
         ) : (
-          <Row label="Gateway endpoint">
+          <Row label="Адрес шлюза">
             <input
               className="jp-input w-52 py-1"
               placeholder="https://your-gateway.example"
@@ -187,11 +187,11 @@ export function SettingsPage() {
           </Row>
         )}
         <Row
-          label="API key"
+          label="API-ключ"
           hint={
             configured.includes(activeProvider)
-              ? 'A key is stored for this provider. Entering a new one replaces it; it can never be read back.'
-              : 'Stored in extension storage only. Never sent to job sites, never exported.'
+              ? 'Ключ для этого провайдера сохранён. Новый заменит старый; прочитать его обратно нельзя.'
+              : 'Хранится только в памяти расширения. Не отправляется на сайты вакансий и не попадает в экспорт.'
           }
         >
           <div className="flex gap-1">
@@ -199,7 +199,7 @@ export function SettingsPage() {
               className="jp-input w-40 py-1"
               type="password"
               autoComplete="off"
-              placeholder="Paste key"
+              placeholder="Вставьте ключ"
               value={keyDraft}
               onChange={(event) => setKeyDraft(event.target.value)}
             />
@@ -209,11 +209,11 @@ export function SettingsPage() {
               onClick={saveKey}
               disabled={!keyDraft.trim()}
             >
-              Save
+              Сохранить
             </button>
           </div>
         </Row>
-        <Row label="Key storage" hint="Session mode forgets keys when Chrome closes.">
+        <Row label="Хранение ключа" hint="В режиме сессии ключ стирается при закрытии Chrome.">
           <select
             className="jp-input w-auto py-1"
             value={keyMode}
@@ -223,11 +223,14 @@ export function SettingsPage() {
               )
             }
           >
-            <option value="local">Persistent</option>
-            <option value="session">Session only</option>
+            <option value="local">Постоянно</option>
+            <option value="session">Только на сессию</option>
           </select>
         </Row>
-        <Row label="Model" hint={provider.suggestedModels.join(', ') || 'Enter the model id.'}>
+        <Row
+          label="Модель"
+          hint={provider.suggestedModels.join(', ') || 'Укажите идентификатор модели.'}
+        >
           <input
             className="jp-input w-44 py-1"
             list="jp-models"
@@ -243,7 +246,7 @@ export function SettingsPage() {
               <option key={model} value={model} />
             ))}
         </datalist>
-        <Row label="Base URL" hint="Override for proxies or self-hosted endpoints.">
+        <Row label="Базовый URL" hint="Переопределение для прокси или собственного сервера.">
           <input
             className="jp-input w-44 py-1"
             placeholder={provider.defaultBaseUrl || 'https://…'}
@@ -262,7 +265,7 @@ export function SettingsPage() {
             onChange={(event) => patchProvider({ temperature: Number(event.target.value) })}
           />
         </Row>
-        <Row label="Max tokens">
+        <Row label="Максимум токенов">
           <input
             className="jp-input w-24 py-1"
             type="number"
@@ -273,7 +276,7 @@ export function SettingsPage() {
             onChange={(event) => patchProvider({ maxTokens: Number(event.target.value) })}
           />
         </Row>
-        <Row label="Timeout (s)">
+        <Row label="Таймаут (с)">
           <input
             className="jp-input w-20 py-1"
             type="number"
@@ -284,26 +287,38 @@ export function SettingsPage() {
           />
         </Row>
         <button type="button" className="jp-button self-start" onClick={testConnection}>
-          Test connection
+          Проверить подключение
         </button>
       </section>
 
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Automation</h2>
+        <h2 className="jp-section-title">Автоматизация</h2>
         {(
           [
-            ['autoAnalyzeJobs', 'Auto analyze jobs', 'Analyze automatically during a scan.'],
-            ['autoOpenJobs', 'Auto open jobs', 'Open postings from a listing in background tabs.'],
-            ['autoFillForms', 'Auto fill forms', 'Fill high-confidence fields without asking.'],
+            [
+              'autoAnalyzeJobs',
+              'Анализировать автоматически',
+              'Анализировать вакансии во время массового прохода.',
+            ],
+            [
+              'autoOpenJobs',
+              'Открывать вакансии автоматически',
+              'Открывать вакансии из списка в фоновых вкладках.',
+            ],
+            [
+              'autoFillForms',
+              'Заполнять формы автоматически',
+              'Заполнять поля с высокой уверенностью без вопросов.',
+            ],
             [
               'autoGenerateCoverLetter',
-              'Auto generate cover letter',
-              'Draft a letter when an application starts.',
+              'Генерировать письмо автоматически',
+              'Готовить письмо сразу при создании заявки.',
             ],
             [
               'requireConfirmationBeforeFill',
-              'Confirm before filling',
-              'Review every field before it is written.',
+              'Подтверждать перед заполнением',
+              'Показывать каждое поле до того, как оно будет записано.',
             ],
           ] as const
         ).map(([key, label, hint]) => (
@@ -320,12 +335,12 @@ export function SettingsPage() {
           </Row>
         ))}
         <Row
-          label="Confirm before submit"
-          hint="Always on. JobPilot never submits an application by itself."
+          label="Подтверждение перед отправкой"
+          hint="Всегда включено. JobPilot никогда не отправляет заявку сам."
         >
-          <input type="checkbox" checked readOnly disabled aria-label="Always required" />
+          <input type="checkbox" checked readOnly disabled aria-label="Всегда обязательно" />
         </Row>
-        <Row label="Max jobs per session">
+        <Row label="Максимум вакансий за проход">
           <input
             className="jp-input w-20 py-1"
             type="number"
@@ -342,7 +357,7 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Max concurrent tabs" hint="1–3. Higher values risk rate limiting.">
+        <Row label="Параллельных вкладок" hint="1–3. Больше — риск блокировки за частые запросы.">
           <input
             className="jp-input w-20 py-1"
             type="number"
@@ -359,7 +374,7 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Delay between jobs (ms)">
+        <Row label="Пауза между вакансиями (мс)">
           <input
             className="jp-input w-24 py-1"
             type="number"
@@ -380,8 +395,8 @@ export function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Notifications</h2>
-        <Row label="Enabled">
+        <h2 className="jp-section-title">Уведомления</h2>
+        <Row label="Включены">
           <input
             type="checkbox"
             checked={settings.notifications.enabled}
@@ -392,7 +407,7 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Minimum score to notify">
+        <Row label="Порог балла для уведомления">
           <input
             className="jp-input w-20 py-1"
             type="number"
@@ -409,10 +424,10 @@ export function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Privacy</h2>
+        <h2 className="jp-section-title">Приватность</h2>
         <Row
-          label="Allow AI requests"
-          hint="Off by default. When off, everything still works deterministically."
+          label="Разрешить запросы к AI"
+          hint="По умолчанию выключено. Без AI всё продолжает работать детерминированно."
         >
           <input
             type="checkbox"
@@ -424,7 +439,10 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Share work history with AI" hint="Needed for grounded cover letters.">
+        <Row
+          label="Передавать опыт работы в AI"
+          hint="Нужно, чтобы письма опирались на реальные факты."
+        >
           <input
             type="checkbox"
             checked={settings.privacy.shareExperienceWithAI}
@@ -435,10 +453,13 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Share contact details with AI" hint="Never. Name, email and phone stay local.">
+        <Row
+          label="Передавать контакты в AI"
+          hint="Никогда. Имя, почта и телефон остаются локально."
+        >
           <input type="checkbox" checked={false} readOnly disabled />
         </Row>
-        <Row label="Store AI reasoning" hint="Keeps explanations in the local database.">
+        <Row label="Хранить обоснования AI" hint="Сохраняет объяснения в локальной базе.">
           <input
             type="checkbox"
             checked={settings.privacy.storeAIResponses}
@@ -452,10 +473,10 @@ export function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Cost control</h2>
+        <h2 className="jp-section-title">Контроль расходов</h2>
         <Row
-          label="Max description characters"
-          hint="Longer descriptions are truncated before sending."
+          label="Максимум символов описания"
+          hint="Более длинные описания обрезаются перед отправкой."
         >
           <input
             className="jp-input w-24 py-1"
@@ -475,8 +496,8 @@ export function SettingsPage() {
           />
         </Row>
         <Row
-          label="Cache analyses"
-          hint="Never analyze the same posting for the same profile twice."
+          label="Кешировать анализы"
+          hint="Не анализировать одну вакансию дважды для одного профиля."
         >
           <input
             type="checkbox"
@@ -488,7 +509,7 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Daily request limit" hint="0 disables the limit.">
+        <Row label="Дневной лимит запросов" hint="0 — без ограничения.">
           <input
             className="jp-input w-20 py-1"
             type="number"
@@ -505,7 +526,7 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Price per 1K input tokens (USD)">
+        <Row label="Цена за 1К входных токенов (USD)">
           <input
             className="jp-input w-24 py-1"
             type="number"
@@ -522,7 +543,7 @@ export function SettingsPage() {
             }
           />
         </Row>
-        <Row label="Price per 1K output tokens (USD)">
+        <Row label="Цена за 1К выходных токенов (USD)">
           <input
             className="jp-input w-24 py-1"
             type="number"
@@ -541,13 +562,13 @@ export function SettingsPage() {
         </Row>
         {usage ? (
           <p className="text-[11px] text-muted">
-            Last 30 days: {usage.requests} AI requests · estimated ${usage.cost.toFixed(4)}
+            За 30 дней: запросов к AI — {usage.requests} · примерно ${usage.cost.toFixed(4)}
           </p>
         ) : null}
       </section>
 
       <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Permissions</h2>
+        <h2 className="jp-section-title">Разрешения</h2>
         <ul className="flex flex-col gap-1">
           {PERMISSION_EXPLANATIONS.map((permission) => (
             <li key={permission.id} className="text-[11px]">
@@ -556,9 +577,9 @@ export function SettingsPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-1 text-[11px] font-medium">Sites you granted access to</p>
+        <p className="mt-1 text-[11px] font-medium">Сайты, которым выдан доступ</p>
         {origins.length === 0 ? (
-          <p className="text-[11px] text-muted">None yet.</p>
+          <p className="text-[11px] text-muted">Пока ни одного.</p>
         ) : (
           <ul className="flex flex-wrap gap-1">
             {origins.map((origin) => (
@@ -566,7 +587,7 @@ export function SettingsPage() {
                 {origin}
                 <button
                   type="button"
-                  aria-label={`Revoke ${origin}`}
+                  aria-label={`Отозвать доступ к ${origin}`}
                   className="text-muted hover:text-poor"
                   onClick={() =>
                     void removeHostPermission(origin.replace('/*', '')).then(async () =>
@@ -583,13 +604,13 @@ export function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="jp-section-title">Your data</h2>
+        <h2 className="jp-section-title">Ваши данные</h2>
         <div className="flex flex-wrap gap-1.5">
           <button type="button" className="jp-button" onClick={exportData}>
-            Export JSON
+            Экспорт в JSON
           </button>
           <label className="jp-button cursor-pointer">
-            Import JSON
+            Импорт из JSON
             <input
               type="file"
               accept="application/json"
@@ -606,23 +627,23 @@ export function SettingsPage() {
             className="jp-button border-poor/40 text-poor"
             onClick={() => {
               const confirmed = window.confirm(
-                'Delete every job, analysis, application, setting and API key stored by JobPilot? This cannot be undone.',
+                'Удалить все вакансии, анализы, заявки, настройки и API-ключи, сохранённые JobPilot? Отменить это будет нельзя.',
               );
               if (!confirmed) return;
-              void withBusy('Clearing data', async () => {
+              void withBusy('Удаляем данные', async () => {
                 await clearAllData();
                 await clearApiKeys();
                 await refreshData();
-                pushToast({ level: 'success', message: 'All local data deleted.' });
+                pushToast({ level: 'success', message: 'Все локальные данные удалены.' });
                 window.location.reload();
               });
             }}
           >
-            Clear all data
+            Удалить все данные
           </button>
         </div>
         <p className="text-[11px] text-muted">
-          Exports contain your profile, jobs, analyses and applications — never API keys.
+          В экспорт попадают профиль, вакансии, анализы и заявки — API-ключи туда не входят.
         </p>
       </section>
     </div>

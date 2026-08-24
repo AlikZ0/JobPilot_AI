@@ -1,229 +1,235 @@
 # JobPilot AI
 
-A Chrome extension (Manifest V3) that reads a job posting, scores it against your
-structured developer profile with a deterministic engine, explains every point of
-that score, and helps you prepare the application. **It never submits anything for
-you.**
+Расширение для Chrome (Manifest V3), которое читает вакансию, считает совпадение
+с вашим структурированным профилем разработчика детерминированным движком,
+объясняет каждый балл и помогает подготовить отклик. **Заявку за вас оно не
+отправляет никогда.**
 
 <!-- prettier-ignore -->
-> Local-first: your profile, jobs, analyses and applications live in IndexedDB on
-> your machine. An AI provider is optional — matching, extraction and scoring all
-> work with AI turned off.
+> Работает локально: профиль, вакансии, анализы и заявки лежат в IndexedDB на
+> вашей машине. AI-провайдер не обязателен — извлечение, сопоставление и подсчёт
+> балла работают с выключенным AI.
 
 ---
 
-## Features
+## Возможности
 
-| Area                        | What it does                                                                                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Job extraction**          | JSON-LD → meta tags → semantic HTML → DOM heuristics → optional AI fallback, with per-field provenance and a quality score |
-| **Site adapters**           | Dedicated adapters for LinkedIn, Indeed and Glassdoor; a generic adapter handles every other board                         |
-| **Deterministic scoring**   | 8 weighted components summing to 100. The AI supplies findings; the app computes the number                                |
-| **Score explanation**       | Every component shows earned/max plus a sentence explaining it                                                             |
-| **Bulk scan**               | Opens each posting from a results page in a rate-limited background tab, analyzes it and closes it again                   |
-| **Duplicate detection**     | Content fingerprint (company + title + location, description digest) collapses the same posting across boards              |
-| **Application autofill**    | Deterministic field mapper with an AI fallback; anything under 80 % confidence waits for you                               |
-| **Cover letters & answers** | Grounded strictly in your profile; unverifiable claims are surfaced, never invented                                        |
-| **Assistant**               | Answers questions using only the slice of your local data the question needs                                               |
-| **Dashboard**               | Daily counts, average score, most common skill gaps, roles that fit you most often                                         |
-| **Privacy controls**        | AI off by default, per-site access, export/import, clear-all-data                                                          |
+| Область                       | Что делает                                                                                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Извлечение вакансии**       | JSON-LD → meta-теги → семантический HTML → DOM-эвристики → при необходимости AI, с указанием источника каждого поля и оценкой качества |
+| **Адаптеры сайтов**           | Отдельные адаптеры для LinkedIn, Indeed и Glassdoor; для всех прочих сайтов работает общий адаптер                                     |
+| **Детерминированный скоринг** | 8 взвешенных компонентов, в сумме 100. AI поставляет выводы, число считает приложение                                                  |
+| **Объяснение балла**          | По каждому компоненту видно «заработано / максимум» и фразу с обоснованием                                                             |
+| **Массовый анализ**           | Открывает каждую вакансию из списка в фоновой вкладке с ограничением скорости, анализирует и закрывает                                 |
+| **Поиск дублей**              | Отпечаток по содержимому (компания + должность + локация, дайджест описания) схлопывает одну вакансию с разных сайтов                  |
+| **Автозаполнение отклика**    | Детерминированный маппинг полей плюс AI для нераспознанных; всё, что ниже 80 % уверенности, ждёт вашего решения                        |
+| **Письма и ответы**           | Строго на фактах из профиля; неподтверждаемые утверждения выносятся наружу, а не выдумываются                                          |
+| **Ассистент**                 | Отвечает, используя только тот срез ваших локальных данных, который нужен для вопроса                                                  |
+| **Обзор**                     | Счётчики за день, средний балл, самые частые пробелы в навыках, роли, которые подходят вам чаще всего                                  |
+| **Приватность**               | AI выключен по умолчанию, доступ выдаётся отдельно каждому сайту, есть экспорт, импорт и полное удаление данных                        |
 
-### The match score
+### Как считается совпадение
 
-| Component                                        | Weight |
-| ------------------------------------------------ | ------ |
-| Technical skills                                 | 40     |
-| Experience                                       | 15     |
-| Seniority                                        | 10     |
-| Location                                         | 10     |
-| Salary                                           | 10     |
-| Language                                         | 5      |
-| Responsibilities                                 | 5      |
-| Other (employment type, red flags, dealbreakers) | 5      |
+| Компонент                                           | Вес |
+| --------------------------------------------------- | --- |
+| Технические навыки                                  | 40  |
+| Опыт                                                | 15  |
+| Уровень                                             | 10  |
+| Локация                                             | 10  |
+| Зарплата                                            | 10  |
+| Языки                                               | 5   |
+| Обязанности                                         | 5   |
+| Прочее (тип занятости, красные флаги, стоп-факторы) | 5   |
 
-| Score  | Band            |
-| ------ | --------------- |
-| 90–100 | Excellent match |
-| 75–89  | Good match      |
-| 60–74  | Potential match |
-| 40–59  | Weak match      |
-| 0–39   | Not suitable    |
+| Балл   | Уровень             |
+| ------ | ------------------- |
+| 90–100 | Отличное совпадение |
+| 75–89  | Хорошее совпадение  |
+| 60–74  | Возможный вариант   |
+| 40–59  | Слабое совпадение   |
+| 0–39   | Не подходит         |
 
-The model is never asked for a percentage. It returns structured findings
-(matched/missing skills, detected seniority, red flags, alignment estimate) and
-`src/core/scoring/engine.ts` turns those into the score. A skill the model claims
-you have is discarded unless it is actually in your profile.
+Модель никогда не просят назвать процент. Она возвращает структурированные выводы
+(совпавшие и недостающие навыки, определённый уровень, красные флаги, оценку
+совпадения обязанностей), а балл из них считает `src/core/scoring/engine.ts`.
+Навык, который модель приписала вам, отбрасывается, если его нет в профиле.
 
 ---
 
-## Installation
+## Установка
 
 ```bash
 npm install
 npm run build
 ```
 
-Then in Chrome:
+Дальше в Chrome:
 
-1. Open `chrome://extensions`
-2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select the `dist/` folder
+1. Откройте `chrome://extensions`
+2. Включите **Режим разработчика**
+3. Нажмите **Загрузить распакованное расширение**
+4. Выберите папку `dist/`
 
-Pin the extension so the toolbar icon is visible.
-
----
-
-## Quick start
-
-1. **Create your profile.** The first run opens onboarding: name and contacts, role
-   and seniority, your technology stack, and what you are looking for. Nothing here
-   leaves your machine.
-2. **(Optional) Configure AI.** Side panel → Settings → AI provider. Pick a provider
-   (OpenAI, Anthropic, Gemini, OpenRouter, any OpenAI-compatible endpoint, or your own
-   cloud gateway), paste an API key, choose a model, then enable
-   _Settings → Privacy → Allow AI requests_. Press **Test connection**.
-3. **Analyze one job.** Open a posting, click the JobPilot icon, grant access to that
-   site once, then press **Analyze this job** (or `Alt+Shift+A`).
-4. **Run a bulk scan.** Open a search-results page, open the side panel
-   (`Alt+Shift+P`) and press **Analyze jobs on this page**. JobPilot opens each
-   posting in a background tab, one at a time by default, and shows live progress.
-5. **Prepare an application.** From a job card press **Prepare application**. On the
-   application page press **Read form on this page**, review the mapped fields, then
-   **Fill approved fields**. Generate a cover letter and draft answers if you want.
-6. **Submit it yourself.** JobPilot fills and drafts; you press Submit on the site.
-   Tick _"I submitted this application myself"_ to record it in your history.
-
-### Keyboard shortcuts
-
-| Shortcut      | Action                                     |
-| ------------- | ------------------------------------------ |
-| `Alt+Shift+J` | Open the popup                             |
-| `Alt+Shift+P` | Open the side panel                        |
-| `Alt+Shift+A` | Analyze the job in the current tab         |
-| `Alt+Shift+S` | Save the job in the current tab            |
-| `Alt+Shift+F` | Prepare an application for the current job |
-
-Change them at `chrome://extensions/shortcuts`.
+Закрепите иконку расширения на панели, чтобы она была под рукой.
 
 ---
 
-## Architecture
+## Быстрый старт
+
+1. **Заполните профиль.** При первом запуске откроется онбординг: имя и контакты,
+   должность и уровень, технический стек, чего вы ищете. Эти данные не покидают
+   вашу машину.
+2. **(По желанию) Настройте AI.** Боковая панель → Настройки → AI-провайдер.
+   Выберите провайдера (OpenAI, Anthropic, Gemini, OpenRouter, любой
+   OpenAI-совместимый endpoint или собственный облачный шлюз), вставьте API-ключ,
+   выберите модель и включите _Настройки → Приватность → Разрешить запросы к AI_.
+   Нажмите **Проверить подключение**.
+3. **Проанализируйте одну вакансию.** Откройте вакансию, нажмите иконку JobPilot,
+   один раз выдайте доступ к этому сайту и нажмите **Анализировать эту вакансию**
+   (или `Alt+Shift+A`).
+4. **Запустите массовый анализ.** Откройте страницу с результатами поиска,
+   откройте боковую панель (`Alt+Shift+P`) и нажмите **Анализировать вакансии на
+   странице**. JobPilot будет открывать вакансии в фоновых вкладках — по одной за
+   раз по умолчанию — и показывать живой прогресс.
+5. **Подготовьте заявку.** В карточке вакансии нажмите **Подготовить заявку**. На
+   странице отклика нажмите **Прочитать форму на странице**, проверьте
+   сопоставление полей и нажмите **Заполнить одобренные поля**. При желании
+   сгенерируйте сопроводительное письмо и ответы на вопросы.
+6. **Отправьте сами.** JobPilot заполняет и готовит тексты; кнопку отправки на
+   сайте нажимаете вы. Отметьте галочку _«Я сам(а) отправил(а) эту заявку»_,
+   чтобы это попало в историю.
+
+### Горячие клавиши
+
+| Сочетание     | Действие                                    |
+| ------------- | ------------------------------------------- |
+| `Alt+Shift+J` | Открыть всплывающее окно                    |
+| `Alt+Shift+P` | Открыть боковую панель                      |
+| `Alt+Shift+A` | Проанализировать вакансию в текущей вкладке |
+| `Alt+Shift+S` | Сохранить вакансию из текущей вкладки       |
+
+Команда «Подготовить заявку» тоже есть, но без предустановленного сочетания:
+Chrome разрешает не более четырёх. Назначить его можно на
+`chrome://extensions/shortcuts` — там же меняются и остальные.
+
+---
+
+## Архитектура
 
 ```
 src/
-  background/     service worker: message router, job queue, tab manager, commands
-  content/        injected on demand: adapters, extraction, form analyzer, filler
-  sidepanel/      React UI: dashboard, jobs, applications, assistant, settings
-  popup/          small launcher
+  background/     service worker: маршрутизатор сообщений, очередь, вкладки, команды
+  content/        внедряется по требованию: адаптеры, извлечение, анализ и заполнение форм
+  sidepanel/      интерфейс на React: обзор, вакансии, заявки, ассистент, настройки
+  popup/          небольшой лаунчер
   core/
-    extraction/   JSON-LD, meta, heuristics, sections, fingerprint, tech dictionary
-    scoring/      weights, skill matcher, deterministic engine
-    ai/           provider abstraction, prompts, JSON validation, key store, usage
-    application/  field mapper, profile paths, application service
-    analysis/     analysis pipeline (cache → AI findings → score → persist)
-    assistant/    context builder and assistant service
-    state/        job and application state machines
-  database/       Dexie schema, repositories, export/import
+    extraction/   JSON-LD, meta, эвристики, разделы, отпечатки, словарь технологий
+    scoring/      веса, сопоставление навыков, детерминированный движок
+    ai/           абстракция провайдера, промпты, валидация JSON, хранилище ключей, учёт расхода
+    application/  маппинг полей, пути профиля, сервис заявок
+    analysis/     конвейер анализа (кеш → выводы AI → балл → сохранение)
+    assistant/    сбор контекста и сервис ассистента
+    state/        машины состояний вакансии и заявки
+  database/       схема Dexie, репозитории, экспорт и импорт
   providers/      openai, anthropic, gemini, openrouter, custom, cloud
-  types/          Zod schemas and the typed message contract
-  utils/          messaging, errors, logging (with redaction), url, text, time
+  types/          Zod-схемы и типизированный контракт сообщений
+  utils/          сообщения, ошибки, логирование с маскировкой, url, текст, время
 ```
 
-Details live in [`docs/architecture.md`](docs/architecture.md).
+Подробности — в [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
-## Development
+## Разработка
 
 ```bash
-npm run dev        # watch build into dist/
-npm run build      # production build (dist/)
-npm run test       # unit tests (vitest)
-npm run test:e2e   # Playwright end-to-end tests (needs a build first)
-npm run lint       # eslint, zero warnings allowed
+npm run dev        # сборка в dist/ в режиме watch
+npm run build      # продакшен-сборка (dist/)
+npm run test       # юнит-тесты (vitest)
+npm run test:e2e   # end-to-end тесты Playwright (нужна свежая сборка)
+npm run lint       # eslint, предупреждения запрещены
 npm run typecheck  # tsc --noEmit
 npm run format     # prettier
 ```
 
-`npm run dev` rebuilds on change; press the reload button on
-`chrome://extensions` to pick up service-worker or content-script changes.
+`npm run dev` пересобирает проект при изменениях; чтобы подхватить правки в
+service worker или content-скрипте, нажмите «Обновить» на `chrome://extensions`.
 
-The E2E suite loads the real extension, so it needs a headed Chromium. On a
-machine without a display:
+E2E-набор состоит из двух частей: проверки артефактов сборки и прогона реального
+собранного интерфейса в браузере. Ему нужен установленный Playwright-Chromium:
 
 ```bash
 npm run build
-xvfb-run -a npm run test:e2e
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Set `PLAYWRIGHT_CHROMIUM_PATH` if you want to use a Chromium that Playwright did
-not download itself.
+Переменная `PLAYWRIGHT_CHROMIUM_PATH` позволяет указать свой Chromium.
 
-### Environment variables
+### Переменные окружения
 
-Nothing is required. `.env.example` documents two optional build-time values for
-teams running their own AI gateway (`VITE_JOBPILOT_CLOUD_ENDPOINT`,
-`VITE_JOBPILOT_CLOUD_LABEL`). **Never put an API key in a `VITE_` variable** — it
-would be inlined into the public bundle.
-
----
-
-## AI providers
-
-| Provider      | Notes                                                             |
-| ------------- | ----------------------------------------------------------------- |
-| OpenAI        | Chat Completions, `response_format: json_object`                  |
-| Anthropic     | Messages API, browser access header, JSON prefill                 |
-| Google Gemini | `generateContent`, `responseMimeType: application/json`           |
-| OpenRouter    | OpenAI-compatible, any routed model                               |
-| Custom        | Any OpenAI-compatible endpoint (LM Studio, Ollama, vLLM, a proxy) |
-| Cloud gateway | Your own backend holds the keys; the extension stores none        |
-
-Model, base URL, temperature, max tokens and timeout are per provider and never
-hardcoded. See [`docs/ai.md`](docs/ai.md).
+Ничего обязательного нет. В `.env.example` описаны два необязательных значения
+для тех, кто поднимает собственный AI-шлюз (`VITE_JOBPILOT_CLOUD_ENDPOINT`,
+`VITE_JOBPILOT_CLOUD_LABEL`). **Никогда не кладите API-ключ в переменную с
+префиксом `VITE_`** — она попадает в публичный бандл.
 
 ---
 
-## Security
+## AI-провайдеры
 
-- Manifest V3, `script-src 'self'` — no remote code, no `eval`, no `new Function`.
-- Every AI response is parsed as JSON and validated with Zod before use. Model
-  output is data, never code, and is never inserted as HTML.
-- API keys live in `chrome.storage` (optionally session-only), never in IndexedDB,
-  never in an export, never in a log, and never in a content script.
-- Content scripts are injected on demand and only ever read the page.
-- A lint rule and a unit test both fail the build if `eval`, `new Function`,
-  `innerHTML =`, `form.submit()` or a key read from the UI layer appears in `src/`.
+| Провайдер     | Особенности                                                           |
+| ------------- | --------------------------------------------------------------------- |
+| OpenAI        | Chat Completions, `response_format: json_object`                      |
+| Anthropic     | Messages API, заголовок для прямого доступа из браузера, префилл JSON |
+| Google Gemini | `generateContent`, `responseMimeType: application/json`               |
+| OpenRouter    | OpenAI-совместимый, любая маршрутизируемая модель                     |
+| Custom        | Любой OpenAI-совместимый endpoint (LM Studio, Ollama, vLLM, прокси)   |
+| Облачный шлюз | Ключи держит ваш бэкенд, расширение не хранит ни одного               |
 
-See [`docs/security.md`](docs/security.md).
-
-## Privacy
-
-- Everything is stored locally. There is no JobPilot server.
-- AI requests are **off by default**. When enabled, the profile projection sent to
-  the provider excludes name, email, phone, links and attachments.
-- Host access is requested per site, at the moment you use it, and can be revoked
-  from Settings.
-- Export, import and delete-everything are all one click.
-
-See [`docs/privacy.md`](docs/privacy.md).
-
-## The one rule that never changes
-
-JobPilot can open a posting, analyze it, fill fields, draft a letter and draft
-answers. It cannot submit an application. `requireConfirmationBeforeSubmit` is a
-literal `true` in the settings schema, the application state machine only reaches
-`submitted` from `ready`, and `markSubmitted()` throws unless it is called with an
-explicit user confirmation. All three are covered by tests.
+Модель, базовый URL, temperature, максимум токенов и таймаут задаются для каждого
+провайдера и нигде не захардкожены. См. [`docs/ai.md`](docs/ai.md).
 
 ---
 
-## Publishing
+## Безопасность
 
-See [`docs/publishing.md`](docs/publishing.md) for the Chrome Web Store checklist,
-including the permission justifications and the data-usage disclosures.
+- Manifest V3, `script-src 'self'` — никакого удалённого кода, `eval` и `new Function`.
+- Каждый ответ AI разбирается как JSON и валидируется Zod до использования. Вывод
+  модели — это данные, а не код, и он никогда не вставляется как HTML.
+- API-ключи живут в `chrome.storage` (при желании только на сессию), их нет ни в
+  IndexedDB, ни в экспорте, ни в логах, ни в content-скриптах.
+- Content-скрипт внедряется по требованию и только читает страницу.
+- Правило ESLint и юнит-тест валят сборку, если в `src/` появятся `eval`,
+  `new Function`, `innerHTML =`, отправка формы или чтение ключа со стороны UI.
 
-## License
+См. [`docs/security.md`](docs/security.md).
+
+## Приватность
+
+- Всё хранится локально. Сервера у JobPilot нет.
+- Запросы к AI **выключены по умолчанию**. Когда они включены, в проекции профиля
+  для провайдера нет имени, почты, телефона, ссылок и вложений.
+- Доступ к сайту запрашивается в момент использования и отзывается в настройках.
+- Экспорт, импорт и полное удаление — по одной кнопке.
+
+См. [`docs/privacy.md`](docs/privacy.md).
+
+## Правило, которое не меняется
+
+JobPilot может открыть вакансию, проанализировать её, заполнить поля, написать
+письмо и черновики ответов. Отправить заявку он не может.
+`requireConfirmationBeforeSubmit` — это литерал `true` в схеме настроек, машина
+состояний заявки попадает в `submitted` только из `ready`, а `markSubmitted()`
+бросает исключение без явного подтверждения пользователя. Все три механизма
+покрыты тестами.
+
+---
+
+## Публикация
+
+Чек-лист для Chrome Web Store, включая обоснования разрешений и раскрытие данных,
+— в [`docs/publishing.md`](docs/publishing.md).
+
+## Лицензия
 
 MIT

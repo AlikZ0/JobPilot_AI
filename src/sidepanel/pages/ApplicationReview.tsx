@@ -12,11 +12,17 @@ import { createId } from '@/utils/id';
 import { useStore, withBusy } from '../state/store';
 import { Empty } from '../components/Empty';
 import { MatchScore } from '../components/MatchScore';
+import {
+  APPLICATION_STATE_LABEL,
+  FILL_DECISION_LABEL,
+  MAPPING_SOURCE_LABEL,
+  fieldTypeLabel,
+} from '../labels';
 
 /**
- * The review screen. JobPilot fills fields and drafts text, but the actual
- * submission is always performed by the user on the site itself — this screen
- * only records that they confirmed it.
+ * Экран проверки. JobPilot заполняет поля и готовит тексты, но саму отправку
+ * всегда делает пользователь на сайте вакансии — этот экран лишь фиксирует, что
+ * он это подтвердил.
  */
 export function ApplicationReview() {
   const applicationId = useStore((state) => state.selectedApplicationId);
@@ -44,8 +50,8 @@ export function ApplicationReview() {
     setMappings(application.fieldMappings);
     setCoverLetter(application.coverLetter);
     setConfirmChecked(false);
-    // Re-syncs whenever the stored application changes; `applicationKey`
-    // captures both identity and revision.
+    // Пересинхронизируется при любом изменении сохранённой заявки:
+    // `applicationKey` включает и её id, и время последнего обновления.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationKey]);
 
@@ -61,14 +67,14 @@ export function ApplicationReview() {
   if (!application || !job || !profile) {
     return (
       <Empty
-        title="Application not found"
-        action={{ label: 'Back to applications', onClick: () => navigate('applications') }}
+        title="Заявка не найдена"
+        action={{ label: 'К списку заявок', onClick: () => navigate('applications') }}
       />
     );
   }
 
   const analyzeForm = () =>
-    void withBusy('Reading the form', async () => {
+    void withBusy('Читаем форму', async () => {
       const plan = await sendToBackground(MESSAGE_TYPES.ANALYZE_APPLICATION_FORM, {
         applicationId: application.id,
         ...(activeTabId ? { tabId: activeTabId } : {}),
@@ -77,15 +83,15 @@ export function ApplicationReview() {
       await refreshData();
       pushToast({
         level: 'info',
-        message: `${plan.mappings.length} fields mapped, ${plan.unknownFields.length} unrecognised.`,
+        message: `Размечено полей: ${plan.mappings.length}, не распознано: ${plan.unknownFields.length}.`,
       });
     });
 
   const fillForm = () =>
-    void withBusy('Filling the form', async () => {
+    void withBusy('Заполняем форму', async () => {
       const approved = mappings.filter((mapping) => mapping.decision === 'auto');
       if (approved.length === 0) {
-        pushToast({ level: 'warning', message: 'Approve at least one field first.' });
+        pushToast({ level: 'warning', message: 'Сначала одобрите хотя бы одно поле.' });
         return;
       }
       const result = await sendToBackground(MESSAGE_TYPES.FILL_APPLICATION_FORM, {
@@ -96,12 +102,12 @@ export function ApplicationReview() {
       await refreshData();
       pushToast({
         level: result.filled > 0 ? 'success' : 'warning',
-        message: `Filled ${result.filled} field(s), skipped ${result.skipped}.`,
+        message: `Заполнено полей: ${result.filled}, пропущено: ${result.skipped}.`,
       });
     });
 
   const generateLetter = () =>
-    void withBusy('Writing cover letter', async () => {
+    void withBusy('Пишем сопроводительное письмо', async () => {
       const result = await sendToBackground(MESSAGE_TYPES.GENERATE_COVER_LETTER, {
         jobId: job.id,
         applicationId: application.id,
@@ -111,13 +117,13 @@ export function ApplicationReview() {
       if (result.status === 'needs_user_confirmation') {
         pushToast({
           level: 'warning',
-          message: `Review needed: ${result.unverifiedClaims.join('; ') || 'some claims could not be verified.'}`,
+          message: `Нужна ваша проверка: ${result.unverifiedClaims.join('; ') || 'часть утверждений не удалось подтвердить профилем.'}`,
         });
       }
     });
 
   const answerQuestion = () =>
-    void withBusy('Drafting answer', async () => {
+    void withBusy('Составляем ответ', async () => {
       const question = questionDraft.trim();
       if (!question) return;
       const result = await sendToBackground(MESSAGE_TYPES.GENERATE_ANSWER, {
@@ -131,8 +137,7 @@ export function ApplicationReview() {
       if (result.status === 'needs_user_confirmation') {
         pushToast({
           level: 'warning',
-          message:
-            'The answer needs your confirmation — it contains facts the profile cannot prove.',
+          message: 'Ответ требует подтверждения: в нём есть факты, которых нет в профиле.',
         });
       }
     });
@@ -152,7 +157,7 @@ export function ApplicationReview() {
   };
 
   const saveDraft = () =>
-    void withBusy('Saving draft', async () => {
+    void withBusy('Сохраняем черновик', async () => {
       await updateApplication(application.id, {
         fieldMappings: mappings,
         coverLetter,
@@ -162,20 +167,20 @@ export function ApplicationReview() {
     });
 
   const markReady = () =>
-    void withBusy('Marking ready', async () => {
+    void withBusy('Отмечаем готовой', async () => {
       await updateApplication(application.id, { fieldMappings: mappings, coverLetter });
       await markApplicationReady(application.id);
       await refreshData();
-      pushToast({ level: 'success', message: 'Application marked as ready for your review.' });
+      pushToast({ level: 'success', message: 'Заявка отмечена как готовая к проверке.' });
     });
 
   const confirmSubmitted = () =>
-    void withBusy('Recording submission', async () => {
+    void withBusy('Фиксируем отправку', async () => {
       const fresh = await getApplication(application.id);
       if (fresh && fresh.state !== 'ready') await markApplicationReady(application.id);
       await markSubmitted(application.id, true);
       await refreshData();
-      pushToast({ level: 'success', message: 'Recorded as submitted.' });
+      pushToast({ level: 'success', message: 'Отмечено как отправленное.' });
     });
 
   return (
@@ -185,28 +190,28 @@ export function ApplicationReview() {
         className="jp-button-ghost self-start"
         onClick={() => navigate('applications')}
       >
-        ← Applications
+        ← Заявки
       </button>
 
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-[15px] font-semibold leading-tight">{job.title}</h2>
           <p className="text-[12px] text-muted">
-            {job.company} · state: {application.state}
+            {job.company} · статус: {APPLICATION_STATE_LABEL[application.state]}
           </p>
         </div>
         {analysis ? <MatchScore score={analysis.score} band={analysis.band} /> : null}
       </header>
 
       <section className="jp-card flex flex-col gap-2">
-        <h3 className="jp-section-title">1 · Form fields</h3>
+        <h3 className="jp-section-title">1 · Поля формы</h3>
         <p className="text-[11px] text-muted">
-          Open the application page in the active tab, then read the form. Fields below the
-          confidence threshold always wait for you.
+          Откройте страницу отклика в активной вкладке и прочитайте форму. Поля с уверенностью ниже
+          порога всегда ждут вашего решения.
         </p>
         <div className="flex flex-wrap gap-1.5">
           <button type="button" className="jp-button" onClick={analyzeForm}>
-            Read form on this page
+            Прочитать форму на странице
           </button>
           <button
             type="button"
@@ -214,7 +219,7 @@ export function ApplicationReview() {
             onClick={fillForm}
             disabled={autoFillable.length === 0}
           >
-            Fill {autoFillable.length} approved field(s)
+            Заполнить одобренные поля ({autoFillable.length})
           </button>
         </div>
 
@@ -226,8 +231,9 @@ export function ApplicationReview() {
                   <div className="min-w-0">
                     <p className="truncate text-[12px] font-medium">{mapping.label}</p>
                     <p className="text-[10px] text-muted">
-                      {mapping.fieldType.replace(/_/g, ' ')} ·{' '}
-                      {Math.round(mapping.confidence * 100)}% confidence · {mapping.source}
+                      {fieldTypeLabel(mapping.fieldType)} · уверенность{' '}
+                      {Math.round(mapping.confidence * 100)}% ·{' '}
+                      {MAPPING_SOURCE_LABEL[mapping.source]}
                     </p>
                   </div>
                   <select
@@ -236,47 +242,49 @@ export function ApplicationReview() {
                     onChange={(event) =>
                       setDecision(mapping.fieldId, event.target.value as FieldMapping['decision'])
                     }
-                    aria-label={`Decision for ${mapping.label}`}
+                    aria-label={`Что делать с полем «${mapping.label}»`}
                   >
-                    <option value="auto">Fill</option>
-                    <option value="needs_confirmation">Ask me</option>
-                    <option value="skipped">Skip</option>
+                    <option value="auto">{FILL_DECISION_LABEL.auto}</option>
+                    <option value="needs_confirmation">
+                      {FILL_DECISION_LABEL.needs_confirmation}
+                    </option>
+                    <option value="skipped">{FILL_DECISION_LABEL.skipped}</option>
                   </select>
                 </div>
                 <input
                   className="jp-input mt-1.5"
                   value={mapping.value}
-                  placeholder="No value in profile"
+                  placeholder="В профиле нет значения"
                   onChange={(event) => setValue(mapping.fieldId, event.target.value)}
-                  aria-label={`Value for ${mapping.label}`}
+                  aria-label={`Значение для поля «${mapping.label}»`}
                 />
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-[11px] text-muted">No fields read yet.</p>
+          <p className="text-[11px] text-muted">Форма ещё не прочитана.</p>
         )}
         {needsAttention.length > 0 ? (
           <p className="text-[11px] text-potential">
-            ⚠ {needsAttention.length} field(s) need your confirmation before they can be filled.
+            ⚠ Полей, ждущих вашего подтверждения: {needsAttention.length}.
           </p>
         ) : null}
       </section>
 
       <section className="jp-card flex flex-col gap-2">
-        <h3 className="jp-section-title">2 · Cover letter</h3>
+        <h3 className="jp-section-title">2 · Сопроводительное письмо</h3>
         <button type="button" className="jp-button self-start" onClick={generateLetter}>
-          Generate cover letter
+          Сгенерировать письмо
         </button>
         <textarea
           className="jp-input min-h-[140px] font-mono text-[12px]"
           value={coverLetter}
           onChange={(event) => setCoverLetter(event.target.value)}
-          placeholder="Your cover letter will appear here. Edit freely — your version is what gets saved."
+          placeholder="Здесь появится сопроводительное письмо. Правьте как угодно — сохранится ваш вариант."
         />
         {application.unverifiedClaims.length > 0 ? (
           <div className="rounded-md border border-potential/40 bg-potential/10 p-2 text-[11px]">
-            <p className="font-semibold text-potential">User confirmation required</p>
+            <p className="font-semibold text-potential">Требуется ваше подтверждение</p>
             <ul className="ml-4 list-disc">
               {application.unverifiedClaims.map((claim, index) => (
                 <li key={index}>{claim}</li>
@@ -287,16 +295,16 @@ export function ApplicationReview() {
       </section>
 
       <section className="jp-card flex flex-col gap-2">
-        <h3 className="jp-section-title">3 · Application questions</h3>
+        <h3 className="jp-section-title">3 · Вопросы анкеты</h3>
         <div className="flex gap-1.5">
           <input
             className="jp-input"
-            placeholder="Paste a question from the form…"
+            placeholder="Вставьте вопрос из формы…"
             value={questionDraft}
             onChange={(event) => setQuestionDraft(event.target.value)}
           />
           <button type="button" className="jp-button" onClick={answerQuestion}>
-            Draft answer
+            Составить ответ
           </button>
         </div>
         <ul className="flex flex-col gap-2">
@@ -318,7 +326,7 @@ export function ApplicationReview() {
               />
               {question.status === 'needs_user_confirmation' ? (
                 <p className="mt-1 text-[11px] text-potential">
-                  ⚠ User confirmation required: {question.missingInformation.join('; ')}
+                  ⚠ Требуется подтверждение: {question.missingInformation.join('; ')}
                 </p>
               ) : null}
             </li>
@@ -327,42 +335,42 @@ export function ApplicationReview() {
       </section>
 
       <section className="jp-card flex flex-col gap-2">
-        <h3 className="jp-section-title">4 · Review &amp; submit</h3>
+        <h3 className="jp-section-title">4 · Проверка и отправка</h3>
         <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
-          <dt className="text-muted">Position</dt>
+          <dt className="text-muted">Должность</dt>
           <dd>{job.title}</dd>
-          <dt className="text-muted">Company</dt>
+          <dt className="text-muted">Компания</dt>
           <dd>{job.company}</dd>
-          <dt className="text-muted">Name</dt>
+          <dt className="text-muted">Имя</dt>
           <dd>
             {profile.personal.firstName} {profile.personal.lastName}
           </dd>
           <dt className="text-muted">Email</dt>
           <dd>{profile.personal.email || '—'}</dd>
-          <dt className="text-muted">Expected salary</dt>
+          <dt className="text-muted">Ожидаемая зарплата</dt>
           <dd>
             {profile.salary.expected
               ? `${profile.salary.currency} ${profile.salary.expected}/${profile.salary.period}`
               : '—'}
           </dd>
-          <dt className="text-muted">Attachment</dt>
-          <dd>{profile.attachments.find((a) => a.isDefault)?.name ?? 'none selected'}</dd>
+          <dt className="text-muted">Вложение</dt>
+          <dd>{profile.attachments.find((a) => a.isDefault)?.name ?? 'не выбрано'}</dd>
         </dl>
 
         <div className="rounded-md border border-border bg-surface-3 p-2 text-[11px]">
-          <p className="font-semibold">JobPilot never submits an application for you.</p>
+          <p className="font-semibold">JobPilot никогда не отправляет заявку за вас.</p>
           <p className="text-muted">
-            Press Submit on the job site yourself. Use the checkbox below only to record that you
-            did.
+            Кнопку отправки на сайте вакансии нажимаете вы сами. Галочка ниже нужна только для того,
+            чтобы зафиксировать это в истории.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-1.5">
           <button type="button" className="jp-button" onClick={saveDraft}>
-            Save draft
+            Сохранить черновик
           </button>
           <button type="button" className="jp-button" onClick={markReady}>
-            Mark as ready
+            Отметить готовой
           </button>
         </div>
 
@@ -373,7 +381,7 @@ export function ApplicationReview() {
             onChange={(event) => setConfirmChecked(event.target.checked)}
             disabled={application.state === 'submitted'}
           />
-          <span>I submitted this application on the job site myself.</span>
+          <span>Я сам(а) отправил(а) эту заявку на сайте вакансии.</span>
         </label>
         <button
           type="button"
@@ -381,7 +389,7 @@ export function ApplicationReview() {
           onClick={confirmSubmitted}
           disabled={!confirmChecked || application.state === 'submitted'}
         >
-          {application.state === 'submitted' ? 'Recorded as submitted' : 'Record submission'}
+          {application.state === 'submitted' ? 'Отправка зафиксирована' : 'Зафиксировать отправку'}
         </button>
       </section>
     </div>

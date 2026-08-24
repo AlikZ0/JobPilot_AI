@@ -1,8 +1,9 @@
 import type { JobState } from '@/types/job';
 
 /**
- * Allowed job lifecycle transitions. Anything not listed here is rejected so a
- * bug cannot, for example, move a job straight from `discovered` to `submitted`.
+ * Разрешённые переходы жизненного цикла вакансии. Всё, чего здесь нет,
+ * отклоняется: из-за ошибки в коде вакансия не сможет, например, прыгнуть из
+ * `discovered` сразу в `submitted`.
  */
 export const JOB_TRANSITIONS: Record<JobState, readonly JobState[]> = {
   discovered: ['queued', 'analyzing', 'saved', 'rejected', 'error'],
@@ -24,7 +25,7 @@ export function canTransitionJob(from: JobState, to: JobState): boolean {
 
 export class JobStateError extends Error {
   constructor(from: JobState, to: JobState) {
-    super(`Invalid job transition: ${from} -> ${to}`);
+    super(`Недопустимый переход вакансии: ${from} -> ${to}`);
     this.name = 'JobStateError';
   }
 }
@@ -33,5 +34,5 @@ export function assertJobTransition(from: JobState, to: JobState): void {
   if (!canTransitionJob(from, to)) throw new JobStateError(from, to);
 }
 
-/** States that mean the job no longer needs analysis work. */
+/** Состояния, в которых вакансию больше не нужно анализировать. */
 export const TERMINAL_JOB_STATES: readonly JobState[] = ['submitted', 'rejected'];

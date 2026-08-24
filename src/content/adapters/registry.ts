@@ -4,7 +4,7 @@ import { indeedAdapter } from './indeed';
 import { linkedinAdapter } from './linkedin';
 import type { JobSiteAdapter } from './types';
 
-/** Ordered: the first adapter that claims the URL wins, generic is last. */
+/** Порядок важен: побеждает первый адаптер, принявший URL; общий адаптер — последний. */
 export const ADAPTERS: JobSiteAdapter[] = [linkedinAdapter, indeedAdapter, glassdoorAdapter];
 
 export function resolveAdapter(url: string): JobSiteAdapter {

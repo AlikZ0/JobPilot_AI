@@ -66,20 +66,20 @@ export function Dashboard() {
       <PageActions />
 
       <section>
-        <h2 className="jp-section-title mb-1.5">Today</h2>
+        <h2 className="jp-section-title mb-1.5">Сегодня</h2>
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="Analyzed" value={stats.analyzedToday} />
-          <Stat label="Good" value={stats.good} hint="75–89%" />
-          <Stat label="Excellent" value={stats.excellent} hint="90%+" />
-          <Stat label="Prepared" value={stats.prepared} />
-          <Stat label="Submitted" value={stats.submitted} />
-          <Stat label="Avg score" value={`${stats.average}%`} />
+          <Stat label="Проанализировано" value={stats.analyzedToday} />
+          <Stat label="Хорошие" value={stats.good} hint="75–89%" />
+          <Stat label="Отличные" value={stats.excellent} hint="90%+" />
+          <Stat label="Заявок готово" value={stats.prepared} />
+          <Stat label="Отправлено" value={stats.submitted} />
+          <Stat label="Средний балл" value={`${stats.average}%`} />
         </div>
       </section>
 
       {stats.topMissing.length > 0 ? (
         <section className="jp-card">
-          <h2 className="jp-section-title mb-1.5">Most common gaps</h2>
+          <h2 className="jp-section-title mb-1.5">Чего чаще всего не хватает</h2>
           <ul className="flex flex-wrap gap-1">
             {stats.topMissing.map(([skill, count]) => (
               <li key={skill} className="jp-badge">
@@ -88,15 +88,15 @@ export function Dashboard() {
             ))}
           </ul>
           <p className="mt-1.5 text-[11px] text-muted">
-            Learning the top item would improve {stats.topMissing[0]?.[1] ?? 0} of your analyzed
-            matches.
+            Освоив первый пункт, вы улучшите совпадение по {stats.topMissing[0]?.[1] ?? 0}{' '}
+            проанализированным вакансиям.
           </p>
         </section>
       ) : null}
 
       {stats.recommendedRoles.length > 0 ? (
         <section className="jp-card">
-          <h2 className="jp-section-title mb-1.5">Roles that fit you most often</h2>
+          <h2 className="jp-section-title mb-1.5">Какие роли подходят вам чаще всего</h2>
           <ul className="flex flex-col gap-0.5 text-[12px]">
             {stats.recommendedRoles.map(([role, count]) => (
               <li key={role} className="flex justify-between gap-2">
@@ -110,15 +110,15 @@ export function Dashboard() {
 
       <section>
         <div className="mb-1.5 flex items-center justify-between">
-          <h2 className="jp-section-title">Recent jobs</h2>
+          <h2 className="jp-section-title">Последние вакансии</h2>
           <button type="button" className="jp-button-ghost" onClick={() => navigate('jobs')}>
-            See all
+            Все вакансии
           </button>
         </div>
         {recent.length === 0 ? (
           <Empty
-            title="No jobs yet"
-            hint="Open a job posting and press “Analyze this job”, or run a scan on a search results page."
+            title="Вакансий пока нет"
+            hint="Откройте вакансию и нажмите «Анализировать эту вакансию» или запустите массовый анализ на странице поиска."
           />
         ) : (
           <div className="flex flex-col gap-2">

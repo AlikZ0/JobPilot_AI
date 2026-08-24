@@ -28,8 +28,8 @@ export async function getProfileOrNull(): Promise<UserProfile | null> {
 }
 
 /**
- * Persists a profile change and bumps `version`, which invalidates every
- * cached analysis (analyses are stored with the version they were made for).
+ * Сохраняет изменение профиля и увеличивает `version`, что обесценивает весь кеш
+ * анализов (каждый анализ хранится с версией профиля, для которой он сделан).
  */
 export async function saveProfile(
   patch: Partial<UserProfile>,
@@ -55,7 +55,7 @@ export async function replaceProfile(profile: UserProfile): Promise<UserProfile>
   return parsed;
 }
 
-/** True once the minimum data needed for meaningful scoring is present. */
+/** true, когда собран минимум данных для осмысленного скоринга. */
 export function isProfileUsable(profile: UserProfile): boolean {
   return (
     profile.onboardingCompleted &&

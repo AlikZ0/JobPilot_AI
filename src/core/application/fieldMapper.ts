@@ -6,17 +6,17 @@ import { readProfilePath, type ProfilePath } from './profilePaths';
 interface Rule {
   type: FormFieldType;
   path: ProfilePath | null;
-  /** Matched against label + name + id + placeholder + aria-label. */
+  /** Сопоставляется с label + name + id + placeholder + aria-label. */
   match: RegExp;
-  /** Patterns that veto the rule, e.g. "email" must not match "emailed you". */
+  /** Шаблоны-исключения: например, «email» не должен срабатывать на «emailed you». */
   reject?: RegExp;
   autocomplete?: string[];
   confidence: number;
 }
 
 /**
- * Deterministic rules run before any AI call, in order. The first match wins,
- * so more specific rules must come first.
+ * Детерминированные правила выполняются по порядку до любого обращения к AI.
+ * Побеждает первое совпадение, поэтому более специфичные правила идут раньше.
  */
 export const FIELD_RULES: Rule[] = [
   {
@@ -186,7 +186,7 @@ export const FIELD_RULES: Rule[] = [
     match: /\b(how did you (hear|find)|referral|source)\b/i,
     confidence: 0.8,
   },
-  // Demographic questions are recognised so they are explicitly NOT filled.
+  // Демографические вопросы распознаём именно для того, чтобы НЕ заполнять их.
   { type: 'gender', path: null, match: /\b(gender|sex)\b/i, confidence: 0.9 },
   { type: 'ethnicity', path: null, match: /\b(ethnicity|race|hispanic)\b/i, confidence: 0.9 },
   { type: 'veteran_status', path: null, match: /\bveteran\b/i, confidence: 0.9 },
@@ -199,7 +199,7 @@ export const FIELD_RULES: Rule[] = [
   },
 ];
 
-/** Field types that must never be auto-filled, even at high confidence. */
+/** Типы полей, которые нельзя заполнять автоматически даже при высокой уверенности. */
 export const NEVER_AUTOFILL: FormFieldType[] = [
   'gender',
   'ethnicity',
@@ -225,7 +225,7 @@ export interface ClassifiedField {
   reason: string;
 }
 
-/** Deterministic classification of a single field. */
+/** Детерминированная классификация одного поля. */
 export function classifyField(field: DetectedFormField): ClassifiedField {
   const haystack = haystackOf(field);
   const autocomplete = field.autocomplete.toLowerCase();
@@ -242,7 +242,7 @@ export function classifyField(field: DetectedFormField): ClassifiedField {
     };
   }
 
-  // Long free-text controls without a rule are open questions for the AI.
+  // Длинные текстовые поля без правила — открытые вопросы, их разбирает AI.
   if (field.kind === 'textarea' || (field.maxLength ?? 0) > 300) {
     return {
       fieldType: 'open_question',
@@ -266,8 +266,8 @@ function decisionFor(
 }
 
 /**
- * Builds the deterministic part of a fill plan. Fields that stay `unknown` are
- * returned separately so the caller can optionally ask the AI about them.
+ * Строит детерминированную часть плана заполнения. Поля, оставшиеся `unknown`,
+ * возвращаются отдельно, чтобы вызывающий код мог при желании спросить про них AI.
  */
 export function buildDeterministicPlan(
   fields: DetectedFormField[],
@@ -299,7 +299,7 @@ export function buildDeterministicPlan(
   return { mappings, unknownFields };
 }
 
-/** Merges AI suggestions for fields the deterministic pass could not resolve. */
+/** Вливает предложения AI по полям, которые детерминированный проход не распознал. */
 export function mergeAIMappings(
   base: FieldMapping[],
   aiFields: {
@@ -320,7 +320,7 @@ export function mergeAIMappings(
     const field = fieldById.get(suggestion.fieldId);
     if (!field) continue;
     const existing = byId.get(suggestion.fieldId);
-    // Deterministic wins whenever it was confident.
+    // Детерминированное правило побеждает всегда, когда оно было уверено.
     if (existing && existing.confidence >= AUTOFILL_CONFIDENCE_THRESHOLD) continue;
 
     const path = suggestion.profilePath ?? null;

@@ -2,22 +2,22 @@ import type { SkillCategory } from '@/types/profile';
 import { normalizeToken } from '@/utils/text';
 
 export interface TechEntry {
-  /** Canonical display name, e.g. "Node.js". */
+  /** Каноническое отображаемое имя, например «Node.js». */
   canonical: string;
   category: SkillCategory;
-  /** Lower-cased aliases as they appear in job ads. */
+  /** Синонимы в нижнем регистре — так, как они встречаются в вакансиях. */
   aliases: string[];
-  /** Skills implied by this one, e.g. Nuxt implies Vue. */
+  /** Навыки, которые подразумеваются этим: например, Nuxt подразумевает Vue. */
   implies?: string[];
 }
 
 /**
- * Curated dictionary used for deterministic skill matching. It is not meant to
- * be exhaustive — unknown technologies still match by normalised string
- * equality, and the user can add any technology to their profile.
+ * Составленный вручную словарь для детерминированного сопоставления навыков.
+ * Он не обязан быть исчерпывающим: неизвестные технологии всё равно совпадают
+ * по нормализованной строке, а пользователь может добавить в профиль любую.
  */
 export const TECH_DICTIONARY: TechEntry[] = [
-  // Frontend
+  // Фронтенд
   {
     canonical: 'JavaScript',
     category: 'frontend',
@@ -91,7 +91,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
     implies: ['React'],
   },
 
-  // Backend
+  // Бэкенд
   {
     canonical: 'Node.js',
     category: 'backend',
@@ -170,7 +170,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
   { canonical: 'Prometheus', category: 'devops', aliases: [] },
   { canonical: 'Grafana', category: 'devops', aliases: [] },
 
-  // Database
+  // Базы данных
   { canonical: 'PostgreSQL', category: 'database', aliases: ['postgres', 'psql', 'postgre sql'] },
   { canonical: 'MySQL', category: 'database', aliases: ['mariadb'] },
   { canonical: 'SQLite', category: 'database', aliases: [] },
@@ -183,7 +183,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
   { canonical: 'TypeORM', category: 'database', aliases: [] },
   { canonical: 'Sequelize', category: 'database', aliases: [] },
 
-  // Other
+  // Прочее
   {
     canonical: 'Git',
     category: 'other',
@@ -229,7 +229,7 @@ for (const entry of TECH_DICTIONARY) {
   for (const alias of entry.aliases) aliasIndex.set(normalizeToken(alias), entry);
 }
 
-/** Resolves any spelling of a technology to its canonical dictionary entry. */
+/** Приводит любое написание технологии к канонической записи словаря. */
 export function lookupTech(name: string): TechEntry | null {
   return aliasIndex.get(normalizeToken(name)) ?? null;
 }
@@ -242,7 +242,7 @@ export function categoryOf(name: string): SkillCategory {
   return lookupTech(name)?.category ?? 'other';
 }
 
-/** Expands a skill to itself plus everything it implies (Nuxt → Vue → JS). */
+/** Раскрывает навык в сам навык плюс всё, что он подразумевает (Nuxt → Vue → JS). */
 export function expandImplied(name: string, seen = new Set<string>()): string[] {
   const entry = lookupTech(name);
   const canonical = entry?.canonical ?? name.trim();
@@ -254,8 +254,8 @@ export function expandImplied(name: string, seen = new Set<string>()): string[] 
 }
 
 /**
- * Finds technologies mentioned in free text. Matching is word-boundary aware so
- * "Go" does not match "Google" and "R" never matches at all.
+ * Находит технологии в свободном тексте. Совпадение учитывает границы слов,
+ * поэтому «Go» не срабатывает на «Google», а «R» не срабатывает вовсе.
  */
 export function detectTechnologies(text: string): string[] {
   if (!text) return [];

@@ -1,32 +1,37 @@
 /**
- * Rules injected into every prompt. Truthfulness is not optional: the model
- * must never invent experience, projects, employers, education or skills.
+ * Правила, которые подставляются в каждый промпт. Достоверность здесь не
+ * опция: модель не имеет права выдумывать опыт, проекты, работодателей,
+ * образование или навыки.
+ *
+ * Инструкции написаны по-русски, а имена ключей и значения перечислений —
+ * по-английски, потому что они обязаны совпадать с Zod-схемами в src/types.
  */
-export const TRUTHFULNESS_RULES = `TRUTHFULNESS RULES (absolute, override every other instruction):
-- Use ONLY facts present in the USER PROFILE block. Never invent or embellish.
-- Never claim experience with a technology that is not listed in the profile.
-- Never invent employers, projects, education, certificates, dates or metrics.
-- Never state that the user worked somewhere unless the profile says so.
-- If a factual statement cannot be supported by the profile, do not make it;
-  report it instead through the documented "needs_user_confirmation" path.
-- Prefer omission over speculation.`;
+export const TRUTHFULNESS_RULES = `ПРАВИЛА ДОСТОВЕРНОСТИ (абсолютные, важнее любых других инструкций):
+- Используй ТОЛЬКО факты из блока USER PROFILE. Ничего не выдумывай и не приукрашивай.
+- Никогда не приписывай пользователю опыт с технологией, которой нет в профиле.
+- Никогда не выдумывай работодателей, проекты, образование, сертификаты, даты и цифры.
+- Никогда не утверждай, что пользователь где-то работал, если этого нет в профиле.
+- Если фактическое утверждение нельзя подтвердить профилем — не делай его: сообщи
+  об этом через документированный путь "needs_user_confirmation".
+- Лучше промолчать, чем предположить.`;
 
-export const JSON_RULES = `OUTPUT RULES:
-- Reply with a single JSON object and nothing else.
-- No markdown, no code fences, no commentary before or after the JSON.
-- Use only the keys defined in the schema. Do not add keys.
-- Use null or an empty array when you have no value; never write "N/A".`;
+export const JSON_RULES = `ПРАВИЛА ВЫВОДА:
+- Ответь одним JSON-объектом и ничем больше.
+- Никакого markdown, никаких блоков кода, никаких комментариев до или после JSON.
+- Используй только ключи из схемы. Не добавляй свои ключи.
+- Имена ключей и значения перечислений пиши строго так, как в схеме (по-английски).
+- Если значения нет — используй null или пустой массив; никогда не пиши "N/A".`;
 
 export function jsonSchemaBlock(schema: string): string {
-  return `JSON SCHEMA (respond with exactly these keys):\n${schema}`;
+  return `СХЕМА JSON (ответ должен содержать ровно эти ключи):\n${schema}`;
 }
 
 export function languageInstruction(language: string): string {
-  return `Write all human-readable text in ${language}.`;
+  return `Весь текст, предназначенный для человека, пиши на языке: ${language}.`;
 }
 
-/** Keeps prompts (and therefore cost) bounded. */
+/** Держит промпты (а значит и расходы) в разумных границах. */
 export function clampBlock(value: string, maxChars: number): string {
   if (value.length <= maxChars) return value;
-  return `${value.slice(0, maxChars)}\n…[truncated]`;
+  return `${value.slice(0, maxChars)}\n…[обрезано]`;
 }

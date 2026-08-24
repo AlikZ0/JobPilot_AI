@@ -1,19 +1,19 @@
-# Job site adapters
+# Адаптеры job-сайтов
 
-One adapter per job board. Site-specific DOM knowledge must never leak into shared
-code — if a selector mentions a brand, it belongs in that brand's folder.
+По одному адаптеру на сайт. Знание о DOM конкретного сайта не должно протекать в
+общий код: если в селекторе есть название бренда, ему место в папке этого бренда.
 
 ```
 src/content/adapters/
-  types.ts        the interface
-  registry.ts     routing (first match wins, generic last)
+  types.ts        интерфейс
+  registry.ts     маршрутизация (побеждает первый подошедший, общий — последний)
   linkedin/
   indeed/
   glassdoor/
   generic/
 ```
 
-## The interface
+## Интерфейс
 
 ```ts
 interface JobSiteAdapter {
@@ -28,10 +28,10 @@ interface JobSiteAdapter {
 }
 ```
 
-`AdapterContext` is `{ doc, url, maxDescriptionChars }`, so adapters are pure with
-respect to the document and can be tested against a static HTML string.
+`AdapterContext` — это `{ doc, url, maxDescriptionChars }`, поэтому адаптеры
+чисты относительно документа и тестируются на статической HTML-строке.
 
-## Writing one
+## Как написать свой
 
 ```ts
 export class ExampleAdapter implements JobSiteAdapter {
@@ -82,24 +82,24 @@ export class ExampleAdapter implements JobSiteAdapter {
 }
 ```
 
-Then add it to `ADAPTERS` in `registry.ts` — before `genericAdapter`, which always
-claims the URL.
+Затем добавьте его в `ADAPTERS` в `registry.ts` — до `genericAdapter`, который
+принимает любой URL.
 
-Hints are merged _under_ JSON-LD, so you only need selectors for the fields the
-site does not publish as structured data.
+Подсказки сливаются **под** JSON-LD, поэтому селекторы нужны только для тех полей,
+которые сайт не публикует в структурированном виде.
 
-## Generic adapter
+## Общий адаптер
 
-Used for every unknown site. It relies entirely on the shared pipeline for
-extraction and, for listings, collects same-origin links whose path looks like a
-posting (`/job`, `/vacancy`, `/career`, `/position`, …), pulls company/location
-text from the surrounding card, and de-duplicates by normalised URL.
+Используется для всех незнакомых сайтов. Извлечение он целиком отдаёт общему
+конвейеру, а для списков собирает ссылки того же домена, путь которых похож на
+вакансию (`/job`, `/vacancy`, `/career`, `/position`, …), подтягивает название
+компании и локацию из окружающей карточки и убирает дубли по нормализованному URL.
 
-## Testing an adapter
+## Как тестировать адаптер
 
-`tests/unit/adapters.test.ts` builds a happy-dom document from an HTML string and
-asserts on the extraction result. No network, no browser, fast enough to run on
-every commit:
+`tests/unit/adapters.test.ts` строит документ happy-dom из HTML-строки и проверяет
+результат извлечения. Ни сети, ни браузера — достаточно быстро, чтобы гонять на
+каждом коммите:
 
 ```ts
 const context = contextFor(html, 'https://example.com/jobs/1');
@@ -107,11 +107,12 @@ const job = await exampleAdapter.extractJob(context);
 expect(job.company).toBe('Example Inc.');
 ```
 
-Also assert that other adapters reject the URL, which is what keeps the routing
-table honest.
+Заодно проверяйте, что другие адаптеры этот URL отклоняют, — именно это держит
+таблицу маршрутизации честной.
 
-## When a site changes
+## Когда сайт меняется
 
-DOM breakage degrades rather than crashes: hints come back empty, the shared
-heuristics take over, and `extractionQuality` drops. The side panel shows the
-quality figure, so a sudden drop is the signal that an adapter needs updating.
+Поломка вёрстки приводит к деградации, а не к падению: подсказки возвращаются
+пустыми, работу берут на себя общие эвристики, а `extractionQuality` падает.
+Боковая панель показывает это число, поэтому резкое падение — сигнал, что адаптер
+пора обновить.

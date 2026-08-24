@@ -12,18 +12,18 @@ const SCHEMA = `{
 }`;
 
 export function buildResumeAnalysisPrompt(input: ResumeAnalysisInput): ChatMessage[] {
-  const system = `You extract structured facts from a CV so the user can review and
-import them. Extract ONLY what the document literally contains. Never infer a
-skill, employer, date or degree that is not written down. Leave fields empty
-when the CV does not state them.
+  const system = `Ты извлекаешь структурированные факты из резюме, чтобы пользователь
+мог их просмотреть и импортировать. Извлекай ТОЛЬКО то, что буквально написано в
+документе. Никогда не домысливай навык, работодателя, дату или степень, которых
+там нет. Если чего-то в резюме не сказано — оставь поле пустым.
 ${JSON_RULES}
 ${languageInstruction(input.language)}
 ${jsonSchemaBlock(SCHEMA)}`;
 
-  const user = `CV TEXT:
+  const user = `ТЕКСТ РЕЗЮМЕ:
 ${clampBlock(input.resumeText, 14_000)}
 
-Return the JSON object now.`;
+Верни JSON-объект.`;
 
   return [
     { role: 'system', content: system },

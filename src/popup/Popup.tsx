@@ -16,7 +16,7 @@ interface State {
   error: string;
 }
 
-/** Small launcher: the real UI lives in the side panel. */
+/** Небольшой лаунчер: основной интерфейс живёт в боковой панели. */
 export function Popup() {
   const [state, setState] = useState<State>({
     loading: true,
@@ -92,80 +92,88 @@ export function Popup() {
           ▲
         </span>
         <h1 className="text-[13px] font-semibold">JobPilot AI</h1>
-        <span className="ml-auto text-[11px] text-muted">{state.jobsToday} analyzed today</span>
+        <span className="ml-auto text-[11px] text-muted">
+          сегодня проанализировано: {state.jobsToday}
+        </span>
       </header>
 
       {state.loading ? (
-        <p className="text-[12px] text-muted">Loading…</p>
+        <p className="text-[12px] text-muted">Загрузка…</p>
       ) : !state.hasPermission ? (
         <>
           <p className="text-[12px] text-muted">
-            JobPilot has no access to this site yet. Access is granted per site and can be revoked
-            in Settings.
+            У JobPilot пока нет доступа к этому сайту. Доступ выдаётся отдельно для каждого сайта и
+            отзывается в настройках.
           </p>
           <button
             type="button"
             className="jp-button-primary"
             onClick={() =>
-              void run('Requesting access', async () => {
+              void run('Запрашиваем доступ', async () => {
                 const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-                if (!tab?.url) return 'No active tab.';
+                if (!tab?.url) return 'Нет активной вкладки.';
                 const granted = await requestHostPermission(tab.url);
                 if (granted) await load();
-                return granted ? 'Access granted.' : 'Access declined.';
+                return granted ? 'Доступ выдан.' : 'В доступе отказано.';
               })
             }
           >
-            Grant access to this site
+            Выдать доступ к этому сайту
           </button>
         </>
       ) : (
         <>
           <p className="truncate text-[11px] text-muted">
             {state.pageInfo
-              ? `${state.pageInfo.adapterId} · ${state.pageInfo.looksLikeJobPage ? 'job posting' : state.pageInfo.looksLikeListingPage ? `listing (${state.pageInfo.listingCount})` : 'no posting detected'}`
-              : 'Page not readable.'}
+              ? `${state.pageInfo.adapterId} · ${
+                  state.pageInfo.looksLikeJobPage
+                    ? 'вакансия'
+                    : state.pageInfo.looksLikeListingPage
+                      ? `список (${state.pageInfo.listingCount})`
+                      : 'вакансия не найдена'
+                }`
+              : 'Страницу не удалось прочитать.'}
           </p>
           <button
             type="button"
             className="jp-button-primary"
             onClick={() =>
-              void run('Analyzing', async () => {
+              void run('Анализируем', async () => {
                 const result = await sendToBackground(MESSAGE_TYPES.ANALYZE_CURRENT_JOB, {
                   ...(state.tabId ? { tabId: state.tabId } : {}),
                 });
-                return `${result.job.title || 'Job'}: ${result.analysis.score}%`;
+                return `«${result.job.title || 'Вакансия'}» — ${result.analysis.score}%`;
               })
             }
           >
-            Analyze this job
+            Анализировать эту вакансию
           </button>
           <button
             type="button"
             className="jp-button"
             onClick={() =>
-              void run('Saving', async () => {
+              void run('Сохраняем', async () => {
                 const result = await sendToBackground(MESSAGE_TYPES.SAVE_CURRENT_JOB, {
                   ...(state.tabId ? { tabId: state.tabId } : {}),
                 });
-                return `Saved "${result.job.title}".`;
+                return `Сохранено: «${result.job.title}».`;
               })
             }
           >
-            Save this job
+            Сохранить вакансию
           </button>
         </>
       )}
 
       <button type="button" className="jp-button" onClick={() => void openPanel()}>
-        Open side panel
+        Открыть боковую панель
       </button>
 
       {state.message ? <p className="text-[11px] text-excellent">{state.message}</p> : null}
       {state.error ? <p className="text-[11px] text-poor">{state.error}</p> : null}
 
       <p className="text-[10px] text-muted">
-        Shortcuts: Alt+Shift+A analyze · Alt+Shift+S save · Alt+Shift+P panel
+        Горячие клавиши: Alt+Shift+A — анализ · Alt+Shift+S — сохранить · Alt+Shift+P — панель
       </p>
     </div>
   );

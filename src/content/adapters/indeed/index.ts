@@ -5,7 +5,7 @@ import { normalizeWhitespace, uniqueBy } from '@/utils/text';
 import { absoluteUrl, hostnameOf, normalizeUrl } from '@/utils/url';
 import type { AdapterContext, JobSiteAdapter } from '../types';
 
-/** Indeed runs on many country domains: indeed.com, de.indeed.com, indeed.co.uk. */
+/** У Indeed много страновых доменов: indeed.com, de.indeed.com, indeed.co.uk. */
 export class IndeedAdapter implements JobSiteAdapter {
   readonly id = 'indeed';
   readonly label = 'Indeed';

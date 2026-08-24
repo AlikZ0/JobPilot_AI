@@ -18,15 +18,15 @@ beforeEach(async () => {
   await clearApiKeys();
 });
 
-describe('log redaction', () => {
-  it('removes emails, phones and keys from strings', () => {
+describe('маскировка в логах', () => {
+  it('убирает почту, телефоны и ключи из строк', () => {
     const redacted = redact('contact alex@example.com or +1 555 0100 with sk-abcdef123456');
     expect(redacted).not.toContain('alex@example.com');
     expect(redacted).not.toContain('sk-abcdef123456');
     expect(String(redacted)).toContain('[email]');
   });
 
-  it('masks sensitive object keys', () => {
+  it('маскирует чувствительные поля объектов', () => {
     const redacted = redact({
       apiKey: 'sk-secret',
       authorization: 'Bearer abc',
@@ -39,26 +39,26 @@ describe('log redaction', () => {
     expect(redacted.safe).toBe('value');
   });
 
-  it('does not blow up on deep structures', () => {
+  it('не падает на глубоко вложенных структурах', () => {
     const deep = { a: { b: { c: { d: { e: { f: 'x' } } } } } };
     expect(() => redact(deep)).not.toThrow();
   });
 
-  it('logs through the redacting logger', () => {
+  it('пишет через логгер с маскировкой', () => {
     const logger = createLogger('test');
     expect(() => logger.info('hello', { apiKey: 'sk-1' })).not.toThrow();
   });
 });
 
-describe('API key storage', () => {
-  it('stores and reads a key per provider', async () => {
+describe('хранение API-ключей', () => {
+  it('хранит и читает ключ по провайдеру', async () => {
     await setApiKey('openai', 'sk-test');
     expect(await getApiKey('openai')).toBe('sk-test');
     expect(await hasApiKey('anthropic')).toBe(false);
     expect(await listConfiguredProviders()).toEqual(['openai']);
   });
 
-  it('moves keys when the storage mode changes', async () => {
+  it('переносит ключи при смене режима хранения', async () => {
     await setApiKey('openai', 'sk-move');
     await setKeyStorageMode('session');
     expect(await getApiKey('openai')).toBe('sk-move');
@@ -66,54 +66,54 @@ describe('API key storage', () => {
     expect(await getApiKey('openai')).toBe('sk-move');
   });
 
-  it('clears every key', async () => {
+  it('удаляет все ключи', async () => {
     await setApiKey('openai', 'sk-a');
     await setApiKey('gemini', 'sk-b');
     await clearApiKeys();
     expect(await listConfiguredProviders()).toEqual([]);
   });
 
-  it('masks keys for display', () => {
+  it('маскирует ключ для показа', () => {
     expect(maskKey('sk-1234567890')).toBe('sk-…7890');
     expect(maskKey('')).toBe('');
   });
 });
 
-describe('URL guards', () => {
-  it('blocks browser-internal pages', () => {
+describe('защита по URL', () => {
+  it('блокирует служебные страницы браузера', () => {
     expect(isRestrictedUrl('chrome://extensions')).toBe(true);
     expect(isRestrictedUrl('https://chromewebstore.google.com/x')).toBe(true);
     expect(isRestrictedUrl('https://linkedin.com/jobs')).toBe(false);
   });
 
-  it('builds origin patterns for permission requests', () => {
+  it('строит шаблоны origin для запроса разрешений', () => {
     expect(originPattern('https://www.linkedin.com/jobs/view/1')).toBe(
       'https://www.linkedin.com/*',
     );
     expect(originPattern('chrome://x')).toBeNull();
   });
 
-  it('normalises URLs deterministically', () => {
+  it('нормализует URL детерминированно', () => {
     expect(normalizeUrl('https://x.test/a/?b=2&a=1')).toBe(
       normalizeUrl('https://x.test/a?a=1&b=2'),
     );
   });
 });
 
-describe('errors', () => {
-  it('serialises with a code and a friendly hint', () => {
+describe('ошибки', () => {
+  it('сериализуются с кодом и понятной подсказкой', () => {
     const error = new JobPilotError(ERROR_CODES.AI_NOT_CONFIGURED, 'no key');
     const serialized = toSerializedError(error);
     expect(serialized.code).toBe('ai_not_configured');
-    expect(describeError(serialized)).toMatch(/Settings/);
+    expect(describeError(serialized)).toMatch(/настройках/);
   });
 
-  it('wraps unknown throwables', () => {
+  it('оборачивают неизвестные исключения', () => {
     expect(toSerializedError('boom').code).toBe('unknown');
   });
 });
 
-describe('source-level security rules', () => {
+describe('правила безопасности на уровне исходников', () => {
   const sourceFiles: string[] = [];
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir)) {
@@ -124,7 +124,7 @@ describe('source-level security rules', () => {
   };
   walk('src');
 
-  it('never uses eval or the Function constructor', () => {
+  it('нигде нет eval и конструктора Function', () => {
     for (const file of sourceFiles) {
       const source = readFileSync(file, 'utf8');
       expect(source, file).not.toMatch(/\beval\s*\(/);
@@ -132,7 +132,7 @@ describe('source-level security rules', () => {
     }
   });
 
-  it('never assigns innerHTML', () => {
+  it('нигде не присваивается innerHTML', () => {
     for (const file of sourceFiles) {
       const source = readFileSync(file, 'utf8');
       expect(source, file).not.toMatch(/\.innerHTML\s*=/);
@@ -140,18 +140,18 @@ describe('source-level security rules', () => {
     }
   });
 
-  it('keeps API key access out of content scripts and UI pages', () => {
+  it('чтение API-ключа недоступно из content-скриптов и страниц UI', () => {
     for (const file of sourceFiles) {
       if (!/^src[/\\](content|sidepanel|popup)/.test(file)) continue;
-      // The settings page writes keys but must never read them back.
+      // Страница настроек записывает ключи, но не должна читать их обратно.
       const source = readFileSync(file, 'utf8');
       expect(source, file).not.toMatch(/\bgetApiKey\s*\(/);
     }
   });
 
-  it('never calls form.submit() or clicks submit controls', () => {
+  it('нигде не вызывается отправка формы и не кликаются кнопки отправки', () => {
     for (const file of sourceFiles) {
-      // Comments may mention the rule; only real code is checked.
+      // В комментариях правило упоминать можно; проверяем только реальный код.
       const source = readFileSync(file, 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/^\s*\/\/.*$/gm, '');

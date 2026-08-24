@@ -8,11 +8,11 @@ import { useJobActions } from '../hooks/useJobActions';
 type SortKey = 'score' | 'recent';
 
 const STATE_FILTERS: { value: 'all' | JobState; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'analyzed', label: 'Analyzed' },
-  { value: 'saved', label: 'Saved' },
-  { value: 'application_ready', label: 'Ready' },
-  { value: 'submitted', label: 'Submitted' },
+  { value: 'all', label: 'Все' },
+  { value: 'analyzed', label: 'Проанализированные' },
+  { value: 'saved', label: 'Сохранённые' },
+  { value: 'application_ready', label: 'Заявка готова' },
+  { value: 'submitted', label: 'Отправленные' },
 ];
 
 export function Jobs() {
@@ -49,10 +49,10 @@ export function Jobs() {
         <input
           className="jp-input"
           type="search"
-          placeholder="Search title, company or technology"
+          placeholder="Поиск по должности, компании или технологии"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          aria-label="Search jobs"
+          aria-label="Поиск вакансий"
         />
         <div className="flex flex-wrap items-center gap-1.5">
           {STATE_FILTERS.map((filter) => (
@@ -69,7 +69,7 @@ export function Jobs() {
         </div>
         <div className="flex items-center gap-2 text-[11px]">
           <label className="flex flex-1 items-center gap-1.5">
-            Min score
+            Мин. балл
             <input
               type="range"
               min={0}
@@ -82,27 +82,27 @@ export function Jobs() {
             <span className="w-8 tabular-nums">{minScore}%</span>
           </label>
           <label className="flex items-center gap-1">
-            Sort
+            Сортировка
             <select
               className="jp-input w-auto py-0.5"
               value={sort}
               onChange={(event) => setSort(event.target.value as SortKey)}
             >
-              <option value="score">Best match</option>
-              <option value="recent">Most recent</option>
+              <option value="score">Лучшее совпадение</option>
+              <option value="recent">Сначала новые</option>
             </select>
           </label>
         </div>
       </div>
 
       <p className="text-[11px] text-muted">
-        {visible.length} of {jobs.length} jobs
+        Показано {visible.length} из {jobs.length}
       </p>
 
       {visible.length === 0 ? (
         <Empty
-          title="Nothing matches these filters"
-          hint="Lower the minimum score or clear the search."
+          title="Под эти фильтры ничего не подходит"
+          hint="Снизьте минимальный балл или очистите поиск."
         />
       ) : (
         <div className="flex flex-col gap-2">

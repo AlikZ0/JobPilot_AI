@@ -16,8 +16,8 @@ interface Props {
 }
 
 /**
- * Colour is never the only signal: the band label and a glyph are always
- * rendered next to the percentage (WCAG 1.4.1).
+ * Цвет никогда не единственный сигнал: рядом с процентом всегда есть подпись
+ * уровня и значок (WCAG 1.4.1).
  */
 export function MatchScore({ score, band, size = 'sm' }: Props) {
   const isLarge = size === 'lg';
@@ -25,7 +25,7 @@ export function MatchScore({ score, band, size = 'sm' }: Props) {
     <div
       className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 ${BAND_CLASS[band]}`}
       role="img"
-      aria-label={`Match score ${score} percent, ${labelForBand(band)}`}
+      aria-label={`Совпадение ${score} процентов, ${labelForBand(band)}`}
     >
       <span
         className={isLarge ? 'text-2xl font-bold leading-none' : 'text-sm font-bold leading-none'}
@@ -45,14 +45,14 @@ export function MatchScore({ score, band, size = 'sm' }: Props) {
 }
 
 const COMPONENT_LABELS: Record<keyof ScoreBreakdown, string> = {
-  technicalSkills: 'Technical skills',
-  experience: 'Experience',
-  seniority: 'Seniority',
-  location: 'Location',
-  salary: 'Salary',
-  language: 'Language',
-  responsibilities: 'Responsibilities',
-  other: 'Other',
+  technicalSkills: 'Технические навыки',
+  experience: 'Опыт',
+  seniority: 'Уровень',
+  location: 'Локация',
+  salary: 'Зарплата',
+  language: 'Языки',
+  responsibilities: 'Обязанности',
+  other: 'Прочее',
 };
 
 export function ScoreBreakdownList({ breakdown }: { breakdown: ScoreBreakdown }) {

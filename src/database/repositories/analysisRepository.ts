@@ -1,7 +1,7 @@
 import { getDb } from '../db';
 import { jobAnalysisSchema, type JobAnalysis } from '@/types/ai';
 
-/** Bump when the scoring engine changes so old analyses are recomputed. */
+/** Увеличивайте при изменении движка скоринга, чтобы старые анализы пересчитались. */
 export const ANALYSIS_VERSION = 1;
 
 export async function saveAnalysis(analysis: JobAnalysis): Promise<JobAnalysis> {
@@ -18,8 +18,8 @@ export async function getLatestAnalysis(jobId: string): Promise<JobAnalysis | nu
 }
 
 /**
- * Cache lookup: an analysis is reusable only when it was produced for the same
- * posting content, the same profile version and the same scoring version.
+ * Поиск в кеше: анализ можно переиспользовать, только если он сделан для того же
+ * содержимого вакансии, той же версии профиля и той же версии скоринга.
  */
 export async function findCachedAnalysis(
   fingerprint: string,

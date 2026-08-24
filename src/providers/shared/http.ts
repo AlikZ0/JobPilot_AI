@@ -10,9 +10,9 @@ export interface HttpJsonOptions {
 }
 
 /**
- * Single HTTP entry point for every provider so timeouts, aborts and error
- * mapping behave identically. Requests are only ever made from the extension
- * service worker — never from a content script (docs/security.md).
+ * Единая точка входа HTTP для всех провайдеров: таймауты, отмена и разбор ошибок
+ * ведут себя одинаково. Запросы уходят только из service worker расширения и
+ * никогда из content-скрипта (docs/security.md).
  */
 export async function postJson<T>(options: HttpJsonOptions): Promise<T> {
   const controller = new AbortController();
@@ -38,13 +38,13 @@ export async function postJson<T>(options: HttpJsonOptions): Promise<T> {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new JobPilotError(
         ERROR_CODES.AI_TIMEOUT,
-        `${options.providerLabel} did not respond within ${Math.round(options.timeoutMs / 1000)}s.`,
+        `${options.providerLabel} не ответил за ${Math.round(options.timeoutMs / 1000)} с.`,
       );
     }
     throw new JobPilotError(
       ERROR_CODES.AI_REQUEST_FAILED,
-      `Could not reach ${options.providerLabel}: ${error instanceof Error ? error.message : String(error)}`,
-      { hint: 'Check your connection and the base URL in Settings.' },
+      `Не удалось связаться с ${options.providerLabel}: ${error instanceof Error ? error.message : String(error)}`,
+      { hint: 'Проверьте соединение и базовый URL в настройках.' },
     );
   } finally {
     clearTimeout(timer);
@@ -63,27 +63,27 @@ async function safeText(response: Response): Promise<string> {
 
 function mapHttpError(status: number, detail: string, provider: string): JobPilotError {
   if (status === 401 || status === 403) {
-    return new JobPilotError(ERROR_CODES.AI_AUTH_FAILED, `${provider} rejected the API key.`, {
-      hint: 'Open Settings → AI provider and re-enter your key.',
+    return new JobPilotError(ERROR_CODES.AI_AUTH_FAILED, `${provider} отклонил API-ключ.`, {
+      hint: 'Откройте «Настройки → AI-провайдер» и введите ключ заново.',
     });
   }
   if (status === 429) {
     return new JobPilotError(
       ERROR_CODES.AI_RATE_LIMITED,
-      `${provider} is rate limiting requests.`,
+      `${provider} ограничивает частоту запросов.`,
       {
-        hint: 'Wait a moment, or lower the scan concurrency in Settings.',
+        hint: 'Подождите немного или уменьшите число параллельных вкладок в настройках.',
       },
     );
   }
   if (status >= 500) {
     return new JobPilotError(
       ERROR_CODES.AI_REQUEST_FAILED,
-      `${provider} returned a server error (${status}).`,
+      `${provider} вернул ошибку сервера (${status}).`,
     );
   }
   return new JobPilotError(
     ERROR_CODES.AI_REQUEST_FAILED,
-    `${provider} returned ${status}: ${detail || 'no details'}`,
+    `${provider} вернул ${status}: ${detail || 'без подробностей'}`,
   );
 }

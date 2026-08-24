@@ -92,7 +92,7 @@ export const useStore = create<JobPilotState>((set, get) => ({
     try {
       set({ scan: await sendToBackground(MESSAGE_TYPES.GET_SCAN_PROGRESS, undefined) });
     } catch {
-      // The worker may still be starting; progress arrives via broadcast.
+      // Воркер может ещё запускаться; прогресс всё равно придёт широковещательно.
     }
   },
 
@@ -170,7 +170,7 @@ export const useStore = create<JobPilotState>((set, get) => ({
   },
 }));
 
-/** Runs an async action with a busy label and centralised error reporting. */
+/** Выполняет асинхронное действие с индикатором занятости и общей обработкой ошибок. */
 export async function withBusy<T>(label: string, action: () => Promise<T>): Promise<T | null> {
   const { setBusy, reportError } = useStore.getState();
   setBusy(label);

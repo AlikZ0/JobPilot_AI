@@ -14,12 +14,12 @@ import { Onboarding } from './pages/Onboarding';
 import { ScanBar } from './components/ScanBar';
 
 const TABS: { route: Route; label: string; icon: string }[] = [
-  { route: 'dashboard', label: 'Dashboard', icon: '◈' },
-  { route: 'jobs', label: 'Jobs', icon: '☰' },
-  { route: 'applications', label: 'Applications', icon: '✎' },
-  { route: 'assistant', label: 'Assistant', icon: '✦' },
-  { route: 'profile', label: 'Profile', icon: '☺' },
-  { route: 'settings', label: 'Settings', icon: '⚙' },
+  { route: 'dashboard', label: 'Обзор', icon: '◈' },
+  { route: 'jobs', label: 'Вакансии', icon: '☰' },
+  { route: 'applications', label: 'Заявки', icon: '✎' },
+  { route: 'assistant', label: 'Ассистент', icon: '✦' },
+  { route: 'profile', label: 'Профиль', icon: '☺' },
+  { route: 'settings', label: 'Настройки', icon: '⚙' },
 ];
 
 function useTheme() {
@@ -37,7 +37,7 @@ function useTheme() {
   }, [theme]);
 }
 
-/** Subscribes to background broadcasts (scan progress, analyses, toasts). */
+/** Подписка на сообщения фонового воркера (прогресс, анализы, уведомления). */
 function useBackgroundEvents() {
   useEffect(() => {
     const listener = (raw: unknown) => {
@@ -100,7 +100,7 @@ export default function App() {
   if (!ready) {
     return (
       <div className="flex h-full items-center justify-center text-muted" role="status">
-        Loading JobPilot…
+        Загружаем JobPilot…
       </div>
     );
   }
@@ -143,7 +143,7 @@ export default function App() {
         {route === 'settings' ? <SettingsPage /> : null}
       </main>
 
-      <nav className="grid grid-cols-6 border-t border-border" aria-label="Main">
+      <nav className="grid grid-cols-6 border-t border-border" aria-label="Основная навигация">
         {TABS.map((tab) => {
           const active =
             route === tab.route ||

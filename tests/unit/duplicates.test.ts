@@ -23,32 +23,32 @@ function toJob(overrides = {}): Job {
   });
 }
 
-describe('normalisation', () => {
-  it('strips noise from titles', () => {
+describe('нормализация', () => {
+  it('убирает шум из названий вакансий', () => {
     expect(normalizeTitle('Senior Node.js Developer (m/f/d) — Remote')).toBe(
       'senior node.js developer',
     );
   });
 
-  it('strips legal suffixes from company names', () => {
+  it('убирает правовые формы из названий компаний', () => {
     expect(normalizeCompany('Example Inc.')).toBe('example');
     expect(normalizeCompany('Acme GmbH')).toBe('acme');
   });
 
-  it('removes tracking parameters from URLs', () => {
+  it('убирает трекинговые параметры из URL', () => {
     expect(normalizeUrl('https://www.Example.com/jobs/1?utm_source=x&id=5#top')).toBe(
       'https://example.com/jobs/1?id=5',
     );
   });
 
-  it('extracts board listing ids', () => {
+  it('извлекает id вакансии на сайте', () => {
     expect(listingIdFromUrl('https://indeed.com/viewjob?jk=abc123')).toBe('abc123');
     expect(listingIdFromUrl('https://linkedin.com/jobs/view/3912345678')).toBe('3912345678');
   });
 });
 
-describe('fingerprints', () => {
-  it('matches the same posting across two job boards', () => {
+describe('отпечатки', () => {
+  it('совпадает для одной вакансии на двух сайтах', () => {
     const linkedin = makeJob({ url: 'https://linkedin.com/jobs/view/1?trk=abc' });
     const indeed = makeJob({
       url: 'https://indeed.com/viewjob?jk=zzz',
@@ -58,13 +58,13 @@ describe('fingerprints', () => {
     expect(fingerprintOf(linkedin)).toBe(fingerprintOf(indeed));
   });
 
-  it('separates different roles at the same company', () => {
+  it('различает разные вакансии одной компании', () => {
     const a = makeJob();
     const b = makeJob({ title: 'Senior Python Developer' });
     expect(fingerprintOf(a)).not.toBe(fingerprintOf(b));
   });
 
-  it('falls back to the URL when the company is unknown', () => {
+  it('опирается на URL, когда компания неизвестна', () => {
     const fingerprint = jobFingerprint({
       title: 'Dev',
       company: '',
@@ -75,27 +75,27 @@ describe('fingerprints', () => {
     expect(fingerprint.startsWith('u:')).toBe(true);
   });
 
-  it('hashes descriptions stably regardless of whitespace', () => {
+  it('хеширует описание стабильно, невзирая на пробелы', () => {
     expect(descriptionHash('Hello   world\n\n')).toBe(descriptionHash('hello world'));
   });
 });
 
-describe('duplicate detection', () => {
-  it('detects an exact fingerprint duplicate', () => {
+describe('поиск дублей', () => {
+  it('находит точный дубль по отпечатку', () => {
     const existing = toJob();
     const match = findDuplicate(makeJob(), [existing]);
     expect(match?.reason).toBe('fingerprint');
     expect(match?.confidence).toBe(1);
   });
 
-  it('detects a duplicate by URL when titles differ', () => {
+  it('находит дубль по URL, даже если названия разные', () => {
     const existing = toJob();
     const candidate = makeJob({ title: 'Completely Different Heading', company: 'Other Co' });
     const match = findDuplicate(candidate, [existing]);
     expect(match?.reason).toBe('url');
   });
 
-  it('detects near-duplicates from the same company', () => {
+  it('находит почти-дубли одной компании', () => {
     const existing = toJob();
     const candidate = makeJob({
       url: 'https://other.test/job/9',
@@ -106,7 +106,7 @@ describe('duplicate detection', () => {
     expect(match!.confidence).toBeGreaterThanOrEqual(0.8);
   });
 
-  it('does not treat unrelated postings as duplicates', () => {
+  it('не считает дублями разные вакансии', () => {
     const existing = toJob();
     const candidate = makeJob({
       url: 'https://other.test/job/42',

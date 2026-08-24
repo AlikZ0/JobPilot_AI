@@ -6,11 +6,12 @@ import type { UserProfile } from './profile';
 import type { Settings } from './settings';
 
 /**
- * Every cross-context call goes through this union. No magic strings: senders
- * build a message with `msg(...)` and handlers are exhaustively type-checked.
+ * Любой вызов между контекстами идёт через это объединение. Никаких «магических»
+ * строк: отправитель собирает сообщение через `msg(...)`, а обработчики
+ * полностью проверяются типами.
  */
 export const MESSAGE_TYPES = {
-  // side panel / popup -> background
+  // боковая панель / попап -> фоновый воркер
   PING: 'ping',
   EXTRACT_CURRENT_JOB: 'extract_current_job',
   ANALYZE_CURRENT_JOB: 'analyze_current_job',
@@ -34,7 +35,7 @@ export const MESSAGE_TYPES = {
   GET_ACTIVE_TAB_CONTEXT: 'get_active_tab_context',
   OPEN_SIDE_PANEL: 'open_side_panel',
 
-  // background -> content
+  // фоновый воркер -> content-скрипт
   CONTENT_PING: 'content_ping',
   CONTENT_EXTRACT_JOB: 'content_extract_job',
   CONTENT_EXTRACT_LISTING: 'content_extract_listing',
@@ -43,7 +44,7 @@ export const MESSAGE_TYPES = {
   CONTENT_HIGHLIGHT_FIELD: 'content_highlight_field',
   CONTENT_PAGE_INFO: 'content_page_info',
 
-  // background -> side panel (broadcast)
+  // фоновый воркер -> боковая панель (широковещательно)
   EVENT_SCAN_PROGRESS: 'event_scan_progress',
   EVENT_JOB_UPDATED: 'event_job_updated',
   EVENT_ANALYSIS_READY: 'event_analysis_ready',
@@ -183,7 +184,7 @@ export type ResultOf<T extends MessageType> = MessageOf<T>['result'];
 export interface Envelope<T extends MessageType = MessageType> {
   type: T;
   payload: PayloadOf<T>;
-  /** Monotonic id used only for log correlation. */
+  /** Монотонный id — нужен только для сопоставления записей в логе. */
   requestId: string;
 }
 
@@ -192,7 +193,7 @@ export type Response<R> = { ok: true; data: R } | { ok: false; error: Serialized
 export interface SerializedError {
   code: string;
   message: string;
-  /** Actionable hint shown in the UI, e.g. "Add an API key in Settings". */
+  /** Подсказка с конкретным действием, например «Добавьте API-ключ в настройках». */
   hint?: string;
   recoverable: boolean;
 }

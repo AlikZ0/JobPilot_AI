@@ -35,8 +35,8 @@ import type {
 } from '@/core/ai/types';
 
 /**
- * Implements every AI task in terms of a single `chat` call, so a new provider
- * only has to speak its own HTTP dialect.
+ * Реализует все AI-задачи через единственный вызов `chat`, поэтому новому
+ * провайдеру достаточно уметь говорить на своём HTTP-диалекте.
  */
 export abstract class BaseAIProvider implements AIProvider {
   abstract readonly id: AIProviderId;

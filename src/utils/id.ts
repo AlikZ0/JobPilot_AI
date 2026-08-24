@@ -1,4 +1,4 @@
-/** Collision-resistant id that works in every extension context. */
+/** Устойчивый к коллизиям идентификатор, работающий в любом контексте расширения. */
 export function createId(prefix = ''): string {
   const random =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto

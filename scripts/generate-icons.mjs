@@ -1,6 +1,6 @@
 /**
- * Generates the extension icon set as PNGs with zero dependencies.
- * Run: node scripts/generate-icons.mjs
+ * Генерирует набор иконок расширения в PNG без единой зависимости.
+ * Запуск: node scripts/generate-icons.mjs
  */
 import { deflateSync } from 'node:zlib';
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -61,7 +61,7 @@ function png(size, pixel) {
   ]);
 }
 
-/** Rounded square badge with a stylised upward "pilot" chevron. */
+/** Скруглённый квадрат со стилизованным «шевроном» вверх. */
 function pixel(x, y, size) {
   const s = size;
   const r = s * 0.22;
@@ -72,7 +72,7 @@ function pixel(x, y, size) {
   const cy = Math.min(Math.max(y + 0.5, min + r), max - r);
   const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
   if (d > r) return [0, 0, 0, 0];
-  // Vertical brand gradient (indigo -> violet).
+  // Вертикальный градиент бренда (индиго -> фиолетовый).
   const t = y / s;
   const bg = [
     Math.round(79 + (124 - 79) * t),
@@ -80,7 +80,7 @@ function pixel(x, y, size) {
     Math.round(229 + (237 - 229) * t),
     255,
   ];
-  // Chevron mark.
+  // Значок-шеврон.
   const nx = (x + 0.5) / s;
   const ny = (y + 0.5) / s;
   const arm = Math.abs(nx - 0.5);
@@ -95,4 +95,4 @@ function pixel(x, y, size) {
 for (const size of [16, 32, 48, 128]) {
   writeFileSync(resolve(OUT, `icon${size}.png`), png(size, pixel));
 }
-console.log('icons written to', OUT);
+console.log('иконки записаны в', OUT);

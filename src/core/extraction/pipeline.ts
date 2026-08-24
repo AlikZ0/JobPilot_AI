@@ -19,11 +19,11 @@ export interface ExtractionContext {
   doc: Document;
   url: string;
   maxDescriptionChars: number;
-  /** Adapter id recorded on the job so the UI can show where it came from. */
+  /** Id адаптера, сохраняемый в вакансии, чтобы UI показал источник данных. */
   source: string;
 }
 
-/** Values an adapter can force, taking precedence over generic heuristics. */
+/** Значения, которые адаптер может задать принудительно — они важнее общих эвристик. */
 export interface AdapterHints {
   title?: string;
   company?: string;
@@ -44,9 +44,9 @@ function jsonLdScripts(doc: Document): string[] {
 const REQUIRED_FIELDS = ['title', 'company', 'description'] as const;
 
 /**
- * Quality is the share of important fields that were filled, weighted by how
- * trustworthy their source is. It drives the "AI fallback" decision and is
- * shown in the UI so the user knows how much to trust an extraction.
+ * Качество — доля заполненных важных полей, взвешенная по надёжности источника.
+ * От него зависит, нужен ли AI-фолбэк, и оно показывается в интерфейсе, чтобы
+ * пользователь понимал, насколько можно доверять извлечению.
  */
 export function computeQuality(job: ExtractedJob): number {
   const weights: [keyof ExtractedJob, number][] = [
@@ -96,9 +96,9 @@ function mergeField(
 }
 
 /**
- * Runs every extraction layer in priority order: JSON-LD → adapter hints →
- * meta tags → semantic HTML/DOM heuristics. An AI fallback is applied later,
- * in the background worker, only when this result is not usable.
+ * Прогоняет все слои извлечения по приоритету: JSON-LD → подсказки адаптера →
+ * meta-теги → семантический HTML и DOM-эвристики. AI-фолбэк применяется позже,
+ * в фоновом воркере, и только если этот результат непригоден.
  */
 export function extractJobFromDocument(
   context: ExtractionContext,

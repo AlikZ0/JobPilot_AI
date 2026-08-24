@@ -2,9 +2,10 @@ import { JobPilotError, ERROR_CODES } from './errors';
 import { isRestrictedUrl, originPattern } from './url';
 
 /**
- * Host permissions are requested on demand rather than at install time
- * (docs/privacy.md). chrome.permissions.request must run in a user gesture, so
- * the side panel calls this directly; the background worker can only check.
+ * Доступ к сайтам запрашивается по требованию, а не при установке
+ * (docs/privacy.md). chrome.permissions.request должен вызываться из
+ * пользовательского жеста, поэтому его вызывает панель; фоновый воркер умеет
+ * только проверять текущее состояние.
  */
 export async function hasHostPermission(url: string): Promise<boolean> {
   const origin = originPattern(url);
@@ -20,13 +21,13 @@ export async function requestHostPermission(url: string): Promise<boolean> {
   if (isRestrictedUrl(url)) {
     throw new JobPilotError(
       ERROR_CODES.RESTRICTED_PAGE,
-      'Chrome does not allow extensions to access this page.',
+      'Chrome не разрешает расширениям доступ к этой странице.',
       { recoverable: false },
     );
   }
   const origin = originPattern(url);
   if (!origin) {
-    throw new JobPilotError(ERROR_CODES.PERMISSION_DENIED, `Unsupported URL: ${url}`);
+    throw new JobPilotError(ERROR_CODES.PERMISSION_DENIED, `Неподдерживаемый URL: ${url}`);
   }
   if (await hasHostPermission(url)) return true;
   return chrome.permissions.request({ origins: [origin] });
@@ -43,41 +44,41 @@ export async function listGrantedOrigins(): Promise<string[]> {
   return permissions.origins ?? [];
 }
 
-/** Human-readable explanation shown next to each permission in Settings. */
+/** Понятное объяснение, которое показывается рядом с каждым разрешением в настройках. */
 export const PERMISSION_EXPLANATIONS: { id: string; title: string; why: string }[] = [
   {
     id: 'storage',
-    title: 'Storage',
-    why: 'Keeps your profile, jobs and settings on this device. Nothing is uploaded.',
+    title: 'Хранилище',
+    why: 'Хранит профиль, вакансии и настройки на этом устройстве. Никуда ничего не выгружается.',
   },
   {
     id: 'sidePanel',
-    title: 'Side panel',
-    why: 'Renders the JobPilot interface next to the page you are viewing.',
+    title: 'Боковая панель',
+    why: 'Показывает интерфейс JobPilot рядом со страницей, которую вы смотрите.',
   },
   {
     id: 'activeTab',
-    title: 'Active tab',
-    why: 'Reads the job posting in the tab you are on, only when you press a JobPilot button.',
+    title: 'Активная вкладка',
+    why: 'Читает вакансию в текущей вкладке — только когда вы нажимаете кнопку JobPilot.',
   },
   {
     id: 'scripting',
-    title: 'Scripting',
-    why: 'Injects the extraction script into a page on demand instead of running everywhere.',
+    title: 'Внедрение скрипта',
+    why: 'Внедряет скрипт извлечения на страницу по требованию, вместо того чтобы работать везде.',
   },
   {
     id: 'tabs',
-    title: 'Tabs',
-    why: 'Opens and closes background tabs during a bulk scan, and closes them afterwards.',
+    title: 'Вкладки',
+    why: 'Открывает фоновые вкладки во время массового анализа и закрывает их после.',
   },
   {
     id: 'notifications',
-    title: 'Notifications',
-    why: 'Tells you when a high-scoring match is found. Can be turned off in Settings.',
+    title: 'Уведомления',
+    why: 'Сообщает о вакансии с высоким совпадением. Можно выключить в настройках.',
   },
   {
     id: 'host_permissions',
-    title: 'Site access (optional)',
-    why: 'Granted per site, only when you scan or analyze there. Revoke any time below.',
+    title: 'Доступ к сайтам (по требованию)',
+    why: 'Выдаётся отдельно для каждого сайта, только когда вы там анализируете. Отозвать можно ниже.',
   },
 ];

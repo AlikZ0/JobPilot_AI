@@ -46,7 +46,7 @@ export function detectEmploymentType(text: string): MaybeEmployment {
   return 'unknown';
 }
 
-/** Maps schema.org employmentType values onto our enum. */
+/** Приводит значения employmentType из schema.org к нашему перечислению. */
 export function employmentTypeFromSchema(value: string): MaybeEmployment {
   const v = value.toUpperCase().replace(/[^A-Z]/g, '');
   if (v.includes('FULLTIME')) return 'full_time';
@@ -88,8 +88,8 @@ export const EMPTY_SALARY: SalaryRange = {
 };
 
 /**
- * Parses salary strings such as "$3,000 – $4,000 per month", "80k–100k USD/yr"
- * or "від 2000 до 3000 €". Returns nulls rather than guessing when unclear.
+ * Разбирает строки с зарплатой вида «$3,000 – $4,000 per month», «80k–100k USD/yr»
+ * или «от 2000 до 3000 €». Если неясно — возвращает null, а не догадку.
  */
 export function parseSalary(input: string): SalaryRange {
   const raw = normalizeWhitespace(input);
@@ -125,7 +125,7 @@ export function parseSalary(input: string): SalaryRange {
     if (value === null) continue;
     const multiplier = match[2] ? 1000 : 1;
     const scaled = value * multiplier;
-    // Ignore obvious non-salary numbers such as years ("2024") or "40 hours".
+    // Игнорируем очевидно не-зарплатные числа: годы («2024») или «40 часов».
     if (scaled < 3 || scaled > 100_000_000) continue;
     numbers.push(scaled);
   }
@@ -136,7 +136,7 @@ export function parseSalary(input: string): SalaryRange {
   const max = sorted.length > 1 ? sorted[sorted.length - 1]! : null;
 
   if (period === 'unknown') {
-    // Infer a period from magnitude when the ad omits it.
+    // Если период не указан, выводим его из порядка величины.
     const reference = max ?? min;
     if (reference >= 20_000) period = 'year';
     else if (reference >= 500) period = 'month';
@@ -154,7 +154,7 @@ const PERIOD_TO_MONTHLY: Record<Exclude<SalaryRange['period'], 'unknown'>, numbe
   year: 1 / 12,
 };
 
-/** Converts a salary figure to a monthly figure for comparison. */
+/** Приводит зарплату к месячной величине для сравнения. */
 export function toMonthly(amount: number, period: SalaryRange['period']): number | null {
   if (period === 'unknown') return null;
   return amount * PERIOD_TO_MONTHLY[period];
@@ -177,7 +177,7 @@ const LANGUAGE_PATTERNS: [string, RegExp][] = [
   ['Japanese', /\bjapanese/i],
 ];
 
-/** Detects language requirements such as "English B2" or "fluent German". */
+/** Находит требования к языкам вида «English B2» или «fluent German». */
 export function detectLanguageRequirements(text: string): string[] {
   const out: string[] = [];
   for (const [language, pattern] of LANGUAGE_PATTERNS) {
@@ -194,7 +194,7 @@ export function detectLanguageRequirements(text: string): string[] {
 
 const CEFR_ORDER = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'native'];
 
-/** Maps loose descriptions ("fluent", "advanced") onto a CEFR index. */
+/** Переводит вольные формулировки («fluent», «advanced») в индекс по шкале CEFR. */
 export function languageLevelIndex(value: string): number {
   const v = value.toLowerCase();
   const cefr = v.match(/\b([abc][12])\b/);

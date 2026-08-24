@@ -1,10 +1,10 @@
 import type { AIProviderId } from '@/types/ai';
 
 /**
- * API keys never touch IndexedDB, the export bundle, logs, or any content
- * script. They live in chrome.storage — which is extension-private — and can
- * optionally be kept in `session` storage so they are dropped when the browser
- * closes. See docs/security.md.
+ * API-ключи никогда не попадают в IndexedDB, в экспорт, в логи и в content-скрипт.
+ * Они живут в chrome.storage — приватном для расширения — и при желании могут
+ * храниться в `session`, чтобы стираться при закрытии браузера.
+ * См. docs/security.md.
  */
 const KEY_PREFIX = 'jobpilot.apikey.';
 const MODE_KEY = 'jobpilot.apikey.storageMode';
@@ -25,7 +25,7 @@ export async function getKeyStorageMode(): Promise<KeyStorageMode> {
 export async function setKeyStorageMode(mode: KeyStorageMode): Promise<void> {
   const previous = await getKeyStorageMode();
   if (previous === mode) return;
-  // Move existing keys into the new area so the user is not logged out.
+  // Переносим существующие ключи в новую область, чтобы пользователь их не потерял.
   const existing = await areaFor(previous).get(null);
   const entries = Object.entries(existing).filter(([k]) => k.startsWith(KEY_PREFIX));
   await chrome.storage.local.set({ [MODE_KEY]: mode });
@@ -57,7 +57,7 @@ export async function hasApiKey(provider: AIProviderId): Promise<boolean> {
   return (await getApiKey(provider)).length > 0;
 }
 
-/** Which providers currently have a key — never returns the keys themselves. */
+/** Для каких провайдеров сохранён ключ — сами ключи наружу не отдаются. */
 export async function listConfiguredProviders(): Promise<AIProviderId[]> {
   const mode = await getKeyStorageMode();
   const all = await areaFor(mode).get(null);
@@ -75,7 +75,7 @@ export async function clearApiKeys(): Promise<void> {
   }
 }
 
-/** Masks a key for display, e.g. "sk-…f8Ab". */
+/** Маскирует ключ для показа, например «sk-…f8Ab». */
 export function maskKey(key: string): string {
   if (!key) return '';
   if (key.length <= 8) return '••••';

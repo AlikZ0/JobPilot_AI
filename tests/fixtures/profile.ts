@@ -1,6 +1,6 @@
 import { userProfileSchema, type UserProfile } from '@/types/profile';
 
-/** A realistic fullstack profile used across the unit tests. */
+/** Реалистичный fullstack-профиль, который используют все юнит-тесты. */
 export function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
   const now = 1_700_000_000_000;
   return userProfileSchema.parse({

@@ -3,7 +3,7 @@ import { hashString } from '@/utils/hash';
 import { normalizeToken, similarity } from '@/utils/text';
 import { normalizeUrl, safeUrl } from '@/utils/url';
 
-/** Words that differ between boards for the same role and add no identity. */
+/** Слова, которые различаются на разных сайтах для одной вакансии и не несут смысла. */
 const TITLE_NOISE = new Set([
   'm',
   'f',
@@ -43,7 +43,7 @@ export function normalizeCompany(company: string): string {
   return (
     normalizeToken(company)
       .replace(COMPANY_SUFFIX, ' ')
-      // Legal suffixes leave behind stray punctuation ("Example Inc." -> "example .").
+      // После удаления правовых форм остаётся мусорная пунктуация («Example Inc.» -> «example .»).
       .replace(/[.,]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
@@ -58,16 +58,16 @@ export function normalizeLocation(location: string): string {
     .join(' ');
 }
 
-/** Stable digest of the description body, resilient to whitespace changes. */
+/** Стабильный дайджест текста описания, устойчивый к изменениям пробелов. */
 export function descriptionHash(description: string): string {
   const normalized = normalizeToken(description).split(' ').filter(Boolean).slice(0, 400).join(' ');
   return hashString(normalized);
 }
 
 /**
- * Identity of a posting across job boards: company + title + location, with a
- * description digest as the tiebreaker. The URL is deliberately excluded from
- * the primary hash so the same role posted on LinkedIn and Indeed collapses.
+ * Идентичность вакансии между сайтами: компания + должность + локация, а
+ * дайджест описания разрешает спорные случаи. URL намеренно не входит в
+ * основной хеш, чтобы одна вакансия на LinkedIn и Indeed схлопнулась в одну.
  */
 export function jobFingerprint(input: JobFingerprintInput): string {
   const company = normalizeCompany(input.company);
@@ -76,7 +76,7 @@ export function jobFingerprint(input: JobFingerprintInput): string {
   if (company && title) {
     return `c:${hashString(`${company}|${title}|${location}`)}`;
   }
-  // Without a company we cannot match across boards — fall back to the URL.
+  // Без названия компании сопоставить сайты нельзя — опираемся на URL.
   const url = normalizeUrl(input.url);
   const base = url || descriptionHash(input.description);
   return `u:${hashString(`${title}|${base}`)}`;
@@ -98,7 +98,7 @@ export interface DuplicateMatch {
   reason: 'fingerprint' | 'url' | 'similarity';
 }
 
-/** Same posting under a different URL: fuzzy match used as a second pass. */
+/** Та же вакансия по другому URL: нечёткое сопоставление вторым проходом. */
 export function findDuplicate(candidate: ExtractedJob, existing: Job[]): DuplicateMatch | null {
   const fp = fingerprintOf(candidate);
   const candidateUrl = normalizeUrl(candidate.url);
@@ -127,7 +127,7 @@ export function findDuplicate(candidate: ExtractedJob, existing: Job[]): Duplica
   return best;
 }
 
-/** Board-specific posting id, useful for de-duplicating listing links. */
+/** Id вакансии в рамках конкретного сайта — помогает убирать дубли ссылок в списке. */
 export function listingIdFromUrl(url: string): string {
   const parsed = safeUrl(url);
   if (!parsed) return '';

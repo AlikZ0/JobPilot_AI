@@ -25,7 +25,7 @@ export const ERROR_CODES = {
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
-/** Application error carrying a stable code and a user-facing hint. */
+/** Ошибка приложения со стабильным кодом и подсказкой для пользователя. */
 export class JobPilotError extends Error {
   readonly code: ErrorCode;
   readonly hint?: string;
@@ -63,20 +63,22 @@ export function toSerializedError(error: unknown): SerializedError {
 
 const FRIENDLY: Partial<Record<ErrorCode, string>> = {
   [ERROR_CODES.AI_NOT_CONFIGURED]:
-    'No AI provider configured. Add a provider and API key in Settings.',
-  [ERROR_CODES.AI_DISABLED]: 'AI requests are turned off. Enable them in Settings → Privacy.',
-  [ERROR_CODES.AI_AUTH_FAILED]: 'The AI provider rejected the API key. Check it in Settings.',
-  [ERROR_CODES.AI_RATE_LIMITED]: 'The AI provider is rate limiting requests. Try again shortly.',
-  [ERROR_CODES.AI_TIMEOUT]: 'The AI provider did not respond in time.',
+    'AI-провайдер не настроен. Добавьте провайдера и API-ключ в настройках.',
+  [ERROR_CODES.AI_DISABLED]: 'Запросы к AI выключены. Включите их в «Настройки → Приватность».',
+  [ERROR_CODES.AI_AUTH_FAILED]: 'AI-провайдер отклонил API-ключ. Проверьте его в настройках.',
+  [ERROR_CODES.AI_RATE_LIMITED]:
+    'AI-провайдер ограничивает частоту запросов. Повторите чуть позже.',
+  [ERROR_CODES.AI_TIMEOUT]: 'AI-провайдер не ответил вовремя.',
   [ERROR_CODES.AI_BUDGET_EXCEEDED]:
-    'Daily AI request limit reached. Raise it in Settings → Cost control.',
+    'Достигнут дневной лимит запросов к AI. Увеличьте его в «Настройки → Контроль расходов».',
   [ERROR_CODES.CONTENT_SCRIPT_UNAVAILABLE]:
-    'JobPilot cannot read this tab. Reload the page, or grant access for this site.',
-  [ERROR_CODES.PERMISSION_DENIED]: 'Site access was not granted, so this page cannot be read.',
-  [ERROR_CODES.RESTRICTED_PAGE]: 'Chrome does not allow extensions to run on this page.',
-  [ERROR_CODES.NO_JOB_ON_PAGE]: 'No job posting was found on this page.',
-  [ERROR_CODES.NO_FORM_ON_PAGE]: 'No application form was found on this page.',
-  [ERROR_CODES.PROFILE_INCOMPLETE]: 'Complete your profile first so matches can be scored.',
+    'JobPilot не может прочитать эту вкладку. Перезагрузите страницу или выдайте доступ к сайту.',
+  [ERROR_CODES.PERMISSION_DENIED]: 'Доступ к сайту не выдан, поэтому страницу нельзя прочитать.',
+  [ERROR_CODES.RESTRICTED_PAGE]: 'Chrome не разрешает расширениям работать на этой странице.',
+  [ERROR_CODES.NO_JOB_ON_PAGE]: 'На этой странице не найдено вакансии.',
+  [ERROR_CODES.NO_FORM_ON_PAGE]: 'На этой странице не найдено формы заявки.',
+  [ERROR_CODES.PROFILE_INCOMPLETE]:
+    'Сначала заполните профиль, чтобы можно было считать совпадение.',
 };
 
 export function describeError(error: SerializedError): string {

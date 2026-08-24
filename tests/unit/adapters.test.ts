@@ -12,23 +12,23 @@ function contextFor(html: string, url: string): AdapterContext {
   return { doc: window.document as unknown as Document, url, maxDescriptionChars: 6000 };
 }
 
-describe('adapter routing', () => {
+describe('выбор адаптера', () => {
   it.each([
     ['https://www.linkedin.com/jobs/view/123', 'linkedin'],
     ['https://de.indeed.com/viewjob?jk=1', 'indeed'],
     ['https://www.glassdoor.com/job-listing/x', 'glassdoor'],
     ['https://careers.acme.io/jobs/7', 'generic'],
-  ])('routes %s to the %s adapter', (url, expected) => {
+  ])('URL %s достаётся адаптеру %s', (url, expected) => {
     expect(resolveAdapter(url).id).toBe(expected);
   });
 
-  it('exposes every adapter with a distinct id', () => {
+  it('у каждого адаптера уникальный id', () => {
     const ids = listAdapters().map((adapter) => adapter.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain('generic');
   });
 
-  it('keeps site selectors inside their own adapter', () => {
+  it('держит селекторы сайта внутри его адаптера', () => {
     expect(linkedinAdapter.canHandle('https://indeed.com/viewjob')).toBe(false);
     expect(indeedAdapter.canHandle('https://linkedin.com/jobs/view/1')).toBe(false);
     expect(glassdoorAdapter.canHandle('https://linkedin.com/jobs/view/1')).toBe(false);
@@ -36,7 +36,7 @@ describe('adapter routing', () => {
   });
 });
 
-describe('LinkedIn adapter', () => {
+describe('адаптер LinkedIn', () => {
   const html = `<!doctype html><html><body>
     <h1 class="job-details-jobs-unified-top-card__job-title">Senior Vue Engineer</h1>
     <div class="job-details-jobs-unified-top-card__company-name">Acme</div>
@@ -46,12 +46,12 @@ describe('LinkedIn adapter', () => {
       <h3>Requirements</h3><ul><li>Vue experience required</li><li>TypeScript must have</li></ul></div>
   </body></html>`;
 
-  it('recognises a posting page', () => {
+  it('распознаёт страницу вакансии', () => {
     const context = contextFor(html, 'https://www.linkedin.com/jobs/view/4012345678/');
     expect(linkedinAdapter.isJobPage(context)).toBe(true);
   });
 
-  it('extracts title, company, salary and description', async () => {
+  it('извлекает должность, компанию, зарплату и описание', async () => {
     const context = contextFor(html, 'https://www.linkedin.com/jobs/view/4012345678/');
     const job = await linkedinAdapter.extractJob(context);
     expect(job.title).toBe('Senior Vue Engineer');
@@ -63,7 +63,7 @@ describe('LinkedIn adapter', () => {
     expect(job.source).toBe('linkedin');
   });
 
-  it('reads a search results list', async () => {
+  it('читает список результатов поиска', async () => {
     const listing = `<!doctype html><html><body><ul>
       <li class="jobs-search-results__list-item" data-job-id="1">
         <a class="job-card-container__link" href="/jobs/view/1?refId=x" aria-label="Node Developer"></a>
@@ -84,7 +84,7 @@ describe('LinkedIn adapter', () => {
   });
 });
 
-describe('Indeed adapter', () => {
+describe('адаптер Indeed', () => {
   const html = `<!doctype html><html><body>
     <h1 class="jobsearch-JobInfoHeader-title">Backend Developer</h1>
     <div data-testid="inlineHeader-companyName">Globex</div>
@@ -94,7 +94,7 @@ describe('Indeed adapter', () => {
       <ul><li>Node.js required</li><li>Docker is a plus</li></ul></div>
   </body></html>`;
 
-  it('extracts the posting', async () => {
+  it('извлекает вакансию', async () => {
     const job = await indeedAdapter.extractJob(
       contextFor(html, 'https://pl.indeed.com/viewjob?jk=abc'),
     );
@@ -106,7 +106,7 @@ describe('Indeed adapter', () => {
     expect(job.technologies).toEqual(expect.arrayContaining(['Node.js', 'PostgreSQL', 'Docker']));
   });
 
-  it('reads a results list', async () => {
+  it('читает список результатов', async () => {
     const listing = `<!doctype html><html><body>
       <div class="job_seen_beacon">
         <h2><a class="jcs-JobTitle" href="/viewjob?jk=abc" data-jk="abc"><span data-testid="job-title">Node Developer</span></a></h2>
@@ -122,8 +122,8 @@ describe('Indeed adapter', () => {
   });
 });
 
-describe('Glassdoor adapter', () => {
-  it('extracts the posting', async () => {
+describe('адаптер Glassdoor', () => {
+  it('извлекает вакансию', async () => {
     const html = `<!doctype html><html><body>
       <h1 data-test="job-title">Platform Engineer</h1>
       <div data-test="employer-name">Initech</div>
@@ -139,8 +139,8 @@ describe('Glassdoor adapter', () => {
   });
 });
 
-describe('generic adapter', () => {
-  it('collects same-origin job links from an unknown board', async () => {
+describe('общий адаптер', () => {
+  it('собирает ссылки на вакансии того же домена на незнакомом сайте', async () => {
     const listing = `<!doctype html><html><body>
       <a href="/jobs/senior-node-developer">Senior Node Developer</a>
       <a href="/jobs/vue-developer">Vue Developer</a>
@@ -153,7 +153,7 @@ describe('generic adapter', () => {
     expect(jobs.map((job) => job.title)).toEqual(['Senior Node Developer', 'Vue Developer']);
   });
 
-  it('deduplicates repeated links', async () => {
+  it('убирает повторяющиеся ссылки', async () => {
     const listing = `<!doctype html><html><body>
       <a href="/jobs/1?utm_source=a">Role</a><a href="/jobs/1?utm_source=b">Role</a>
     </body></html>`;

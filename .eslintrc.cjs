@@ -20,7 +20,7 @@ module.exports = {
     ],
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
-    // Security rules from docs/security.md — never execute AI-provided code.
+    // Правила безопасности из docs/security.md — код от AI не выполняется никогда.
     'no-eval': 'error',
     'no-implied-eval': 'error',
     'no-new-func': 'error',
@@ -32,8 +32,8 @@ module.exports = {
       rules: { 'no-console': 'off', '@typescript-eslint/no-explicit-any': 'off' },
     },
     {
-      // Playwright fixtures use a `use(...)` callback that the React plugin
-      // mistakes for a hook.
+      // В фикстурах Playwright есть колбэк `use(...)`, который плагин React
+      // принимает за хук.
       files: ['tests/e2e/**/*.ts'],
       rules: { 'react-hooks/rules-of-hooks': 'off' },
     },

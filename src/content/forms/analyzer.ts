@@ -22,7 +22,7 @@ function isVisible(element: Element): boolean {
   }
   if (typeof el.getBoundingClientRect === 'function') {
     const rect = el.getBoundingClientRect();
-    // happy-dom / jsdom report zeroed rects, so only trust a real layout.
+    // happy-dom и jsdom возвращают нулевые прямоугольники — доверяем только реальной раскладке.
     if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) return true;
     if (rect.width < 2 || rect.height < 2) return false;
   }
@@ -55,7 +55,7 @@ function labelFor(element: Element): string {
       .filter(Boolean);
     if (parts.length) return parts.join(' ');
   }
-  // Fall back to the nearest preceding text node inside the field's group.
+  // Запасной вариант: ближайший текст внутри группы, к которой относится поле.
   const group = element.closest('div,fieldset,li,section,td');
   if (group) {
     const legend = group.querySelector('legend,h1,h2,h3,h4,label,.label,[class*="label" i]');
@@ -133,9 +133,9 @@ function kindOf(element: Element): FormControlKind | null {
 const SELECTOR = 'input, textarea, select, [contenteditable="true"], [role="textbox"]';
 
 /**
- * Walks the page (including same-origin iframes) and describes every form
- * control. This never reads values the user did not type — it only reports
- * what is already in the DOM so the mapper can decide what to fill.
+ * Обходит страницу (включая iframes того же origin) и описывает каждое поле
+ * формы. Ничего лишнего не читает — только сообщает, что уже есть в DOM, чтобы
+ * маппинг мог решить, что заполнять.
  */
 export function analyzeForms(doc: Document): DetectedFormField[] {
   counter = 0;
@@ -146,7 +146,7 @@ export function analyzeForms(doc: Document): DetectedFormField[] {
       const inner = (frame as HTMLIFrameElement).contentDocument;
       if (inner) roots.push(inner);
     } catch {
-      // Cross-origin iframe — nothing we can or should read.
+      // Iframe с другого origin — читать нечего и не нужно.
     }
   }
 
@@ -200,13 +200,13 @@ export function findFieldElement(doc: Document, fieldId: string): HTMLElement | 
       const found = inner?.querySelector<HTMLElement>(`[${FIELD_ID_ATTR}="${fieldId}"]`);
       if (found) return found;
     } catch {
-      // ignore cross-origin frames
+      // пропускаем фреймы с другого origin
     }
   }
   return null;
 }
 
-/** True when the page contains something that looks like an application form. */
+/** true, если на странице есть что-то похожее на форму отклика. */
 export function hasApplicationForm(doc: Document): boolean {
   const fields = analyzeForms(doc);
   if (fields.length < 2) return false;

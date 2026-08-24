@@ -4,7 +4,7 @@ import App from './App';
 import './styles.css';
 
 const container = document.getElementById('root');
-if (!container) throw new Error('Root container missing');
+if (!container) throw new Error('Не найден корневой контейнер');
 
 createRoot(container).render(
   <React.StrictMode>

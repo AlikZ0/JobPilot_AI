@@ -1,6 +1,6 @@
 /**
- * Logging with mandatory redaction. Email addresses, phone numbers and
- * anything that looks like an API key never reach the console (docs/privacy.md).
+ * Логирование с обязательной маскировкой. Адреса почты, телефоны и всё, что
+ * похоже на API-ключ, никогда не попадают в консоль (docs/privacy.md).
  */
 const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
 const PHONE_RE = /(?:\+?\d[\d\s().-]{7,}\d)/g;

@@ -18,7 +18,15 @@ const PREFIX: Record<Props['kind'], string> = {
   neutral: '',
 };
 
-/** Skill chip. The glyph carries the meaning so colour is decorative only. */
+/** Подпись для title и скринридера — цвет и значок сами по себе смысла не дают. */
+const KIND_LABEL: Record<Props['kind'], string> = {
+  matched: 'есть у вас',
+  missing: 'не хватает',
+  bonus: 'бонус',
+  neutral: 'навык',
+};
+
+/** Чип навыка. Смысл несёт значок, цвет — только оформление. */
 export function SkillBadge({ name, kind, onClick }: Props) {
   const content = (
     <>
@@ -31,15 +39,16 @@ export function SkillBadge({ name, kind, onClick }: Props) {
     </>
   );
   const className = `jp-badge ${STYLES[kind]}`;
+  const title = `${KIND_LABEL[kind]}: ${name}`;
   if (!onClick) {
     return (
-      <span className={className} title={`${kind}: ${name}`}>
+      <span className={className} title={title}>
         {content}
       </span>
     );
   }
   return (
-    <button type="button" className={className} onClick={onClick} title={`${kind}: ${name}`}>
+    <button type="button" className={className} onClick={onClick} title={title}>
       {content}
     </button>
   );

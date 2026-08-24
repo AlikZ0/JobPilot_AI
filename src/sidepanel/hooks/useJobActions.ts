@@ -4,13 +4,13 @@ import { sendToBackground } from '@/utils/messaging';
 import { updateJob } from '@/database/repositories/jobRepository';
 import { useStore, withBusy } from '../state/store';
 
-/** Shared job actions used by cards, lists and the detail page. */
+/** Общие действия над вакансией — для карточек, списка и страницы вакансии. */
 export function useJobActions() {
   const store = useStore();
 
   return {
     analyze: (job: Job, force = true) =>
-      void withBusy('Analyzing', async () => {
+      void withBusy('Анализируем', async () => {
         const result = await sendToBackground(MESSAGE_TYPES.ANALYZE_JOB_BY_ID, {
           jobId: job.id,
           force,
@@ -18,14 +18,14 @@ export function useJobActions() {
         store.applyAnalysis(result.job, result.analysis);
         store.pushToast({
           level: 'success',
-          message: `${result.job.title || 'Job'}: ${result.analysis.score}%${
-            result.fromCache ? ' (cached)' : ''
+          message: `«${result.job.title || 'Вакансия'}» — ${result.analysis.score}%${
+            result.fromCache ? ' (из кеша)' : ''
           }`,
         });
       }),
 
     save: (job: Job) =>
-      void withBusy('Saving', async () => {
+      void withBusy('Сохраняем', async () => {
         await updateJob(job.id, { state: 'saved', savedAt: Date.now() });
         await store.refreshData();
       }),
@@ -35,7 +35,7 @@ export function useJobActions() {
     },
 
     prepare: (job: Job) =>
-      void withBusy('Preparing application', async () => {
+      void withBusy('Готовим заявку', async () => {
         const result = await sendToBackground(MESSAGE_TYPES.PREPARE_APPLICATION, { jobId: job.id });
         await store.refreshData();
         store.navigate('application', result.applicationId);

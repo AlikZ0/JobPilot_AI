@@ -18,8 +18,8 @@ export interface UpsertResult {
 }
 
 /**
- * Inserts an extracted posting, collapsing duplicates that were already seen
- * (possibly from a different job board) onto the original record.
+ * Сохраняет извлечённую вакансию, схлопывая дубли (в том числе с другого
+ * job-сайта) в уже существующую запись.
  */
 export async function upsertExtractedJob(
   extracted: ExtractedJob,
@@ -50,7 +50,7 @@ export async function upsertExtractedJob(
   if (existing) {
     const merged = jobSchema.parse({
       ...existing,
-      // Keep whichever extraction produced richer data.
+      // Оставляем то извлечение, которое дало более богатые данные.
       ...pickRicherFields(existing, extracted),
       id: existing.id,
       fingerprint: existing.fingerprint,
@@ -154,7 +154,7 @@ export async function listJobs(
 
 export async function updateJob(id: string, patch: Partial<Job>): Promise<Job> {
   const current = await getJob(id);
-  if (!current) throw new Error(`Job not found: ${id}`);
+  if (!current) throw new Error(`Вакансия не найдена: ${id}`);
   if (patch.state && patch.state !== current.state) {
     assertJobTransition(current.state, patch.state);
   }

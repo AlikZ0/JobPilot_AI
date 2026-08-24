@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { vi } from 'vitest';
 
-/** Minimal in-memory chrome API used by unit tests. */
+/** Минимальная реализация chrome API в памяти — для юнит-тестов. */
 const storageAreas = new Map<string, Map<string, unknown>>();
 
 function makeArea(name: string) {

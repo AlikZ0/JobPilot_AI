@@ -1,7 +1,7 @@
 /**
- * FNV-1a (64-bit, expressed as two 32-bit halves) — deterministic, fast and
- * synchronous, which matters because fingerprints are computed inside content
- * scripts and in tests where SubtleCrypto is not always available.
+ * FNV-1a (64 бита в виде двух 32-битных половин) — детерминированный, быстрый и
+ * синхронный. Это важно: отпечатки считаются в content-скриптах и в тестах, где
+ * SubtleCrypto доступен не всегда.
  */
 export function hashString(input: string): string {
   let h1 = 0x811c9dc5;

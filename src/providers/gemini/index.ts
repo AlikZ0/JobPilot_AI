@@ -9,7 +9,7 @@ interface GeminiResponse {
   modelVersion?: string;
 }
 
-/** Google Gemini generateContent API. */
+/** API generateContent от Google Gemini. */
 export class GeminiProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'gemini';
   readonly label = 'Google Gemini';
@@ -30,7 +30,7 @@ export class GeminiProvider extends BaseAIProvider {
       }));
 
     const data = await postJson<GeminiResponse>({
-      // The key goes in a header rather than the URL so it cannot leak via logs.
+      // Ключ уходит в заголовке, а не в URL, чтобы не утёк через логи.
       url: `${baseUrl}/models/${encodeURIComponent(credentials.model)}:generateContent`,
       headers: { 'x-goog-api-key': credentials.apiKey },
       body: {

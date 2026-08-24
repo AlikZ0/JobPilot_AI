@@ -17,7 +17,7 @@ function metaContent(doc: Document, selectors: string[]): string {
   return '';
 }
 
-/** Layer 2: Open Graph / Twitter / standard meta tags. */
+/** Слой 2: Open Graph, Twitter и обычные meta-теги. */
 export function readMeta(doc: Document): MetaSnapshot {
   return {
     title: metaContent(doc, [
@@ -36,7 +36,7 @@ export function readMeta(doc: Document): MetaSnapshot {
   };
 }
 
-/** Splits "Senior Node.js Developer at Example Inc." into title and company. */
+/** Разбивает «Senior Node.js Developer at Example Inc.» на должность и компанию. */
 export function splitTitleAndCompany(pageTitle: string): { title: string; company: string } {
   const cleaned = normalizeWhitespace(pageTitle);
   const atMatch = cleaned.match(/^(.*?)\s+(?:at|@|—|-|\||·)\s+(.+?)(?:\s*[|\-–]\s*[^|\-–]*)?$/i);

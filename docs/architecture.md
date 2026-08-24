@@ -1,125 +1,127 @@
-# Architecture
+# Архитектура
 
-JobPilot AI is a Manifest V3 extension with four runtime contexts. Everything they
-say to each other goes through one typed message union; nothing uses string
-literals at a call site.
+JobPilot AI — расширение на Manifest V3 с четырьмя контекстами выполнения. Всё,
+что они говорят друг другу, идёт через одно типизированное объединение
+сообщений; строковых литералов в местах вызова нет.
 
 ```
-┌──────────────┐   typed messages    ┌─────────────────────┐
-│  Side panel  │◀───────────────────▶│  Service worker     │
-│  (React)     │                     │  (background)       │
-└──────┬───────┘                     └────────┬────────────┘
-       │ direct Dexie reads                   │ chrome.scripting
-       │ (fast, read-mostly)                  │ + typed messages
-       ▼                                      ▼
-┌──────────────┐                     ┌─────────────────────┐
-│  IndexedDB   │                     │  Content script     │
-│  (Dexie)     │                     │  (injected per tab) │
-└──────────────┘                     └─────────────────────┘
+┌──────────────┐  типизированные      ┌─────────────────────┐
+│  Боковая     │  сообщения           │  Service worker     │
+│  панель      │◀────────────────────▶│  (фон)              │
+└──────┬───────┘                      └────────┬────────────┘
+       │ прямое чтение Dexie                   │ chrome.scripting
+       │ (быстро, в основном чтение)           │ + типизированные сообщения
+       ▼                                       ▼
+┌──────────────┐                      ┌─────────────────────┐
+│  IndexedDB   │                      │  Content-скрипт     │
+│  (Dexie)     │                      │  (по вкладке)       │
+└──────────────┘                      └─────────────────────┘
 ```
 
-- **Side panel** (`src/sidepanel`) is the main UI. It reads the database directly
-  for rendering and sends messages for anything that touches a tab or an AI
-  provider.
-- **Service worker** (`src/background`) owns tab automation, the scan queue,
-  keyboard commands, notifications and every AI call. It is the only context that
-  can read an API key.
-- **Content script** (`src/content`) is injected on demand. It extracts postings,
-  reads forms and fills approved fields. It never sees a key and never makes a
-  network request.
-- **Popup** (`src/popup`) is a launcher for the two most common actions.
+- **Боковая панель** (`src/sidepanel`) — основной интерфейс. Для отрисовки она
+  читает базу напрямую, а сообщения шлёт для всего, что касается вкладок и AI.
+- **Service worker** (`src/background`) владеет автоматизацией вкладок, очередью
+  анализа, горячими клавишами, уведомлениями и всеми вызовами AI. Это
+  единственный контекст, который может прочитать API-ключ.
+- **Content-скрипт** (`src/content`) внедряется по требованию. Он извлекает
+  вакансии, читает формы и заполняет одобренные поля. Ключей он не видит и
+  сетевых запросов не делает.
+- **Попап** (`src/popup`) — лаунчер для двух самых частых действий.
 
-## Message bus
+## Шина сообщений
 
-`src/types/messages.ts` defines one `MessageDefs` union. Each entry binds a type
-constant to its payload and its result:
+`src/types/messages.ts` определяет одно объединение `MessageDefs`. Каждый элемент
+связывает константу типа с полезной нагрузкой и результатом:
 
 ```ts
 type Def<T, P, R> = { type: T; payload: P; result: R };
 ```
 
-`sendToBackground(type, payload)` and `sendToTab(tabId, type, payload)` infer both
-sides from that union, and `registerMessageHandlers({...})` type-checks each
-handler against it. Errors cross the boundary as a `SerializedError` with a stable
-code, so the UI can show a specific, actionable message instead of "something went
-wrong".
+`sendToBackground(type, payload)` и `sendToTab(tabId, type, payload)` выводят обе
+стороны из этого объединения, а `registerMessageHandlers({...})` проверяет по нему
+каждый обработчик. Ошибки пересекают границу как `SerializedError` со стабильным
+кодом, поэтому интерфейс показывает конкретное сообщение, а не «что-то пошло не
+так».
 
-## Extraction pipeline
+## Конвейер извлечения
 
-`src/core/extraction/pipeline.ts` merges four layers in priority order and records
-where each field came from in `fieldSources`:
+`src/core/extraction/pipeline.ts` сливает четыре слоя по приоритету и записывает
+источник каждого поля в `fieldSources`:
 
-1. **JSON-LD** `JobPosting` (`jsonld.ts`) — most reliable, wins every field it has.
-2. **Adapter hints** — site-specific selectors supplied by the active adapter.
-3. **Meta tags** (`meta.ts`) — Open Graph and friends.
-4. **DOM heuristics** (`heuristics.ts`) — labelled selectors, then a text-density
-   scan that penalises link-heavy containers.
+1. **JSON-LD** `JobPosting` (`jsonld.ts`) — самый надёжный, выигрывает по всем
+   полям, которые в нём есть.
+2. **Подсказки адаптера** — селекторы конкретного сайта.
+3. **Meta-теги** (`meta.ts`) — Open Graph и родственные.
+4. **DOM-эвристики** (`heuristics.ts`) — сначала подписанные селекторы, затем
+   поиск самого «плотного» текста со штрафом за блоки с обилием ссылок.
 
-An AI extraction fallback exists as a fifth layer but only runs when the merged
-result is unusable, so it costs nothing on well-formed pages.
+Пятый слой — извлечение через AI — включается, только если результат слияния
+непригоден, поэтому на нормальных страницах он ничего не стоит.
 
-`computeQuality()` turns provenance and completeness into a 0–1 score shown in the
-UI, and `splitSections()` divides the description into requirements,
-responsibilities and benefits by following headings (with a bullet-based fallback).
+`computeQuality()` превращает происхождение и полноту в число от 0 до 1, которое
+видно в интерфейсе, а `splitSections()` делит описание на требования, обязанности
+и условия, ориентируясь на заголовки (с запасным вариантом по спискам).
 
-## Scoring
+## Скоринг
 
-`src/core/scoring/engine.ts` is the only place a percentage is produced.
+`src/core/scoring/engine.ts` — единственное место, где рождается процент.
 
-1. `matchSkills()` resolves both sides through the technology dictionary
-   (`techDictionary.ts`), which knows aliases (`nodejs` → `Node.js`) and implications
-   (`Nuxt` → `Vue` → `JavaScript`), and splits the posting's technologies into
-   mandatory and optional using the wording of each requirement line.
-2. AI findings, if present, are merged — but a skill the model claims you have is
-   dropped unless your profile actually contains it.
-3. Eight component scorers each return `{ earned, max, detail }`.
-4. The components are summed and rounded; the band comes from fixed thresholds.
+1. `matchSkills()` приводит обе стороны через словарь технологий
+   (`techDictionary.ts`), который знает синонимы (`nodejs` → `Node.js`) и
+   следствия (`Nuxt` → `Vue` → `JavaScript`), и делит технологии вакансии на
+   обязательные и желательные по формулировке требований.
+2. Выводы AI, если они есть, вливаются — но навык, который модель приписала
+   пользователю, отбрасывается, если его нет в профиле.
+3. Восемь функций-оценщиков возвращают `{ earned, max, detail }`.
+4. Компоненты складываются и округляются; уровень берётся по фиксированным
+   порогам.
 
-Because every scorer is a pure function of `(job, profile, findings)`, the same
-inputs always produce the same number, and the breakdown always adds up to the
-total. Both properties are asserted in `tests/unit/scoring.test.ts`.
+Поскольку каждый оценщик — чистая функция от `(job, profile, findings)`, одни и
+те же входные данные всегда дают одно и то же число, а разбор всегда сходится с
+итогом. Оба свойства проверяются в `tests/unit/scoring.test.ts`.
 
-## Analysis pipeline
+## Конвейер анализа
 
 `src/core/analysis/analyzeJob.ts`:
 
 ```
-cache hit? ──yes──▶ reuse (no AI call)
-   │no
+попадание в кеш? ──да──▶ переиспользуем (без вызова AI)
+   │нет
    ▼
-job → analyzing → AI findings (optional, failure tolerated) → deterministic score
-   → persist analysis → job → analyzed
+вакансия → analyzing → выводы AI (необязательно, сбой допустим) → детерминированный балл
+   → сохранение анализа → вакансия → analyzed
 ```
 
-The cache key is `(jobFingerprint, profileVersion, ANALYSIS_VERSION)`. Editing your
-profile bumps `profileVersion`, which invalidates every cached analysis; changing
-the scoring engine means bumping `ANALYSIS_VERSION`.
+Ключ кеша — `(jobFingerprint, profileVersion, ANALYSIS_VERSION)`. Правка профиля
+увеличивает `profileVersion` и обесценивает весь кеш; при изменении движка
+скоринга нужно увеличить `ANALYSIS_VERSION`.
 
-## Bulk scan
+## Массовый анализ
 
-`src/background/scanController.ts` drives the Job Browser Agent:
+`src/background/scanController.ts` управляет агентом обхода вакансий:
 
-1. Ask the content script on the listing page for job links.
-2. Build a `JobQueue` with `concurrency` (1–3, hard capped) and a delay between
-   task starts.
-3. For each posting: open a background tab → wait for load → inject the content
-   script → extract → upsert (deduplicating) → analyze → close the tab.
-4. Publish `ScanProgress` after every step so the side panel can render live
-   counts; notify on high scores and on completion.
+1. Просит content-скрипт на странице списка отдать ссылки на вакансии.
+2. Собирает `JobQueue` с параллельностью (1–3, жёсткий предел) и паузой между
+   стартами задач.
+3. Для каждой вакансии: открыть фоновую вкладку → дождаться загрузки → внедрить
+   content-скрипт → извлечь → сохранить с дедупликацией → проанализировать →
+   закрыть вкладку.
+4. После каждого шага публикует `ScanProgress`, чтобы панель показывала живые
+   счётчики; шлёт уведомления о высоких баллах и о завершении.
 
-Pause, resume and stop are cooperative: `stop()` aborts the shared `AbortSignal`
-and clears the queue, and every in-flight tab is closed in a `finally` block.
+Пауза, продолжение и остановка кооперативные: `stop()` отменяет общий
+`AbortSignal` и очищает очередь, а каждая открытая вкладка закрывается в блоке
+`finally`.
 
-## State machines
+## Машины состояний
 
-`src/core/state/` declares the allowed transitions for jobs and applications, and
-every repository write goes through an assertion. That is what makes
-"an application can only be submitted from `ready`" a structural property rather
-than a convention.
+В `src/core/state/` описаны разрешённые переходы для вакансий и заявок, и каждая
+запись в репозиторий проходит через проверку. Именно это делает правило «заявку
+можно отправить только из `ready`» структурным свойством, а не договорённостью.
 
-## Data model
+## Модель данных
 
-Dexie (`src/database/db.ts`) with nine stores: profiles, settings, jobs, analyses,
-applications, applicationEvents, aiUsage, assistantMessages, scanSessions. Every
-record is validated with Zod on the way in and on the way out, so a schema change
-or a hand-edited import cannot corrupt the UI.
+Dexie (`src/database/db.ts`), девять хранилищ: profiles, settings, jobs, analyses,
+applications, applicationEvents, aiUsage, assistantMessages, scanSessions. Каждая
+запись валидируется Zod и на входе, и на выходе, поэтому изменение схемы или
+отредактированный вручную импорт не могут сломать интерфейс.

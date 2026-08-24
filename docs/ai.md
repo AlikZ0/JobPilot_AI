@@ -1,6 +1,6 @@
-# AI layer
+# Слой AI
 
-## Provider abstraction
+## Абстракция провайдера
 
 ```ts
 interface AIProvider {
@@ -16,13 +16,13 @@ interface AIProvider {
 }
 ```
 
-`BaseAIProvider` (`src/providers/shared/base.ts`) implements every task in terms of
-`chat()`, so adding a provider means writing one HTTP method:
+`BaseAIProvider` (`src/providers/shared/base.ts`) реализует все задачи через
+`chat()`, поэтому добавить провайдера — значит написать один HTTP-метод:
 
 ```ts
 export class MyProvider extends BaseAIProvider {
   readonly id = 'custom';
-  readonly label = 'My Provider';
+  readonly label = 'Мой провайдер';
   readonly defaultBaseUrl = 'https://api.example.com/v1';
   readonly suggestedModels = ['my-model'];
 
@@ -38,67 +38,73 @@ export class MyProvider extends BaseAIProvider {
 }
 ```
 
-Register it in `src/providers/registry.ts` and add its id to `AI_PROVIDER_IDS`.
+Дальше зарегистрируйте его в `src/providers/registry.ts` и добавьте id в
+`AI_PROVIDER_IDS`.
 
-## Prompts
+## Промпты
 
-Prompts live in `src/core/ai/prompts/` — never inside a component:
+Промпты живут в `src/core/ai/prompts/` и никогда не внутри компонентов:
 
-| File                   | Task                                 |
-| ---------------------- | ------------------------------------ |
-| `jobAnalysis.ts`       | structured findings for one posting  |
-| `coverLetter.ts`       | cover letter grounded in the profile |
-| `formAnalysis.ts`      | classify unknown form fields         |
-| `applicationAnswer.ts` | answer one application question      |
-| `assistant.ts`         | assistant chat over local data       |
-| `resumeAnalysis.ts`    | extract facts from a pasted CV       |
+| Файл                   | Задача                                     |
+| ---------------------- | ------------------------------------------ |
+| `jobAnalysis.ts`       | структурированные выводы по одной вакансии |
+| `coverLetter.ts`       | сопроводительное письмо на фактах профиля  |
+| `formAnalysis.ts`      | классификация неизвестных полей формы      |
+| `applicationAnswer.ts` | ответ на один вопрос анкеты                |
+| `assistant.ts`         | чат ассистента по локальным данным         |
+| `resumeAnalysis.ts`    | извлечение фактов из вставленного резюме   |
 
-Every prompt includes `TRUTHFULNESS_RULES` and `JSON_RULES` from `shared.ts`, and a
-literal schema block. Job-analysis prompts additionally state that the model must
-not produce a match percentage.
+В каждый промпт подставляются `TRUTHFULNESS_RULES` и `JSON_RULES` из `shared.ts`
+плюс блок со схемой. В промпте анализа вакансии дополнительно сказано, что модель
+не должна выдавать процент совпадения.
 
-## Response handling
+Инструкции написаны по-русски, а **имена ключей и значения перечислений остаются
+английскими**: их проверяют Zod-схемы из `src/types`, и перевод сломал бы
+валидацию. Язык, на котором модель пишет текст для человека, задаётся в настройках
+(`generationLanguage`) и подставляется в промпт отдельной строкой.
 
-1. `extractJsonObject()` finds the first balanced `{...}`, tolerating code fences
-   and stray prose (brace matching is string-aware).
-2. `parseAIJson()` runs `JSON.parse`, then the task's Zod schema.
-3. A schema failure raises `AI_INVALID_RESPONSE` with the first few issues and a
-   hint. Callers that can degrade (job analysis) fall back to deterministic
-   scoring instead of failing.
+## Обработка ответа
 
-Model output is never executed, never inserted as HTML and never used to build a
-selector.
+1. `extractJsonObject()` находит первый сбалансированный `{...}`, переживая блоки
+   кода и лишний текст (учитываются скобки внутри строк).
+2. `parseAIJson()` вызывает `JSON.parse`, затем Zod-схему задачи.
+3. Несовпадение со схемой поднимает `AI_INVALID_RESPONSE` с первыми ошибками и
+   подсказкой. Там, где можно деградировать (анализ вакансии), приложение
+   откатывается к детерминированному скорингу вместо падения.
 
-## Truthfulness
+Вывод модели никогда не выполняется, не вставляется как HTML и не используется
+для построения селектора.
 
-- Cover letters and answers may only use facts from the profile projection.
-- Anything the model cannot ground is returned in `unverifiedClaims` /
-  `missingInformation` with `status: "needs_user_confirmation"`, and the review
-  screen renders it as a warning block.
-- In scoring, `mergeSkillFindings()` drops any "matched" skill that is not in the
-  profile, so an over-eager model cannot inflate the score.
+## Достоверность
 
-## Cost control
+- В письмах и ответах можно использовать только факты из проекции профиля.
+- Всё, что модель не может подтвердить, возвращается в `unverifiedClaims` и
+  `missingInformation` со статусом `needs_user_confirmation`, а экран проверки
+  показывает это отдельным предупреждением.
+- В скоринге `mergeSkillFindings()` отбрасывает «совпавший» навык, которого нет в
+  профиле, поэтому чрезмерно услужливая модель не может завысить балл.
 
-- Deterministic extraction runs first; the AI only sees a compact JSON job object.
-- `maxDescriptionChars` (default 6000) truncates the description before sending.
-- Analyses are cached on `(fingerprint, profileVersion, analysisVersion)`.
-- `dailyRequestLimit` is enforced before every call.
-- Every call — success or failure — is written to the `aiUsage` store with token
-  counts and an optional cost estimate from user-supplied per-1K prices.
+## Контроль расходов
 
-## Local and cloud modes
+- Сначала работает детерминированное извлечение; AI получает компактный JSON.
+- `maxDescriptionChars` (по умолчанию 6000) обрезает описание перед отправкой.
+- Анализы кешируются по `(fingerprint, profileVersion, analysisVersion)`.
+- `dailyRequestLimit` проверяется перед каждым вызовом.
+- Каждый вызов — успешный или нет — попадает в хранилище `aiUsage` с числом
+  токенов и оценкой стоимости по ценам, которые задал пользователь.
 
-**LOCAL** stores your key in `chrome.storage` (persistent or session-only) and calls
-the provider directly from the service worker.
+## Локальный и облачный режимы
 
-**CLOUD** posts to `POST {endpoint}/v1/chat` on a gateway you operate:
+**LOCAL** хранит ваш ключ в `chrome.storage` (постоянно или только на сессию) и
+обращается к провайдеру напрямую из service worker.
+
+**CLOUD** шлёт `POST {endpoint}/v1/chat` на ваш шлюз:
 
 ```jsonc
-// request
+// запрос
 { "model": "…", "messages": [...], "temperature": 0.2, "maxTokens": 2048, "json": true }
-// response
+// ответ
 { "text": "{…}", "model": "…", "usage": { "promptTokens": 0, "completionTokens": 0 } }
 ```
 
-In cloud mode the extension holds no provider key at all.
+В облачном режиме расширение не хранит ключей провайдера вовсе.

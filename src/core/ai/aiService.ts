@@ -18,7 +18,7 @@ export interface ResolvedProvider {
   providerId: AIProviderId;
 }
 
-/** Approximate token count used only for the local cost estimate. */
+/** Приблизительное число токенов — только для локальной оценки расходов. */
 export function estimateTokens(chars: number): number {
   return Math.ceil(chars / 4);
 }
@@ -37,16 +37,16 @@ export function estimateCost(
 }
 
 /**
- * Resolves the active provider plus its credentials. This is the only place an
- * API key is read, and it happens exclusively in the service worker.
+ * Определяет активного провайдера и его учётные данные. Это единственное место,
+ * где читается API-ключ, и происходит это только в service worker.
  */
 export async function resolveProvider(
   settings: Settings,
   signal?: AbortSignal,
 ): Promise<ResolvedProvider> {
   if (!settings.privacy.allowAIRequests) {
-    throw new JobPilotError(ERROR_CODES.AI_DISABLED, 'AI requests are disabled.', {
-      hint: 'Enable "Allow AI requests" in Settings → Privacy.',
+    throw new JobPilotError(ERROR_CODES.AI_DISABLED, 'Запросы к AI выключены.', {
+      hint: 'Включите «Разрешить запросы к AI» в разделе «Настройки → Приватность».',
     });
   }
   const providerId: AIProviderId = settings.aiMode === 'cloud' ? 'cloud' : settings.activeProvider;
@@ -57,14 +57,14 @@ export async function resolveProvider(
   if (providerId !== 'cloud' && !apiKey) {
     throw new JobPilotError(
       ERROR_CODES.AI_NOT_CONFIGURED,
-      `No API key stored for ${provider.label}.`,
-      { hint: 'Add your key in Settings → AI provider.' },
+      `Для провайдера «${provider.label}» не сохранён API-ключ.`,
+      { hint: 'Добавьте ключ в разделе «Настройки → AI-провайдер».' },
     );
   }
   const model = config.model || provider.suggestedModels[0] || '';
   if (!model) {
-    throw new JobPilotError(ERROR_CODES.AI_NOT_CONFIGURED, 'No model selected.', {
-      hint: 'Choose a model in Settings → AI provider.',
+    throw new JobPilotError(ERROR_CODES.AI_NOT_CONFIGURED, 'Модель не выбрана.', {
+      hint: 'Выберите модель в разделе «Настройки → AI-провайдер».',
     });
   }
   const baseUrl =
@@ -87,15 +87,15 @@ async function assertWithinBudget(settings: Settings): Promise<void> {
   if (used >= limit) {
     throw new JobPilotError(
       ERROR_CODES.AI_BUDGET_EXCEEDED,
-      `Daily AI request limit reached (${used}/${limit}).`,
-      { hint: 'Raise the limit in Settings → Cost control.' },
+      `Достигнут дневной лимит запросов к AI (${used}/${limit}).`,
+      { hint: 'Увеличьте лимит в разделе «Настройки → Контроль расходов».' },
     );
   }
 }
 
 /**
- * Runs one AI task with budget enforcement and usage accounting. Errors are
- * recorded too, so the usage screen shows failures instead of hiding them.
+ * Выполняет одну AI-задачу с учётом лимитов и записью расхода. Ошибки тоже
+ * фиксируются, чтобы экран статистики показывал сбои, а не скрывал их.
  */
 export async function runAITask<T>(
   task: AITask,
@@ -146,12 +146,12 @@ export async function runAITask<T>(
       ok: false,
       errorCode: code,
     });
-    log.warn(`AI task ${task} failed`, { code });
+    log.warn(`AI-задача ${task} завершилась ошибкой`, { code });
     throw error;
   }
 }
 
-/** Settings → "is AI usable right now" check used across the UI. */
+/** Проверка «доступен ли AI прямо сейчас» — используется по всему интерфейсу. */
 export async function isAIAvailable(settings?: Settings): Promise<boolean> {
   try {
     await resolveProvider(settings ?? (await getSettings()));
@@ -168,7 +168,10 @@ export async function testProviderConnection(): Promise<{ ok: boolean; message: 
   const response = await resolved.provider.chat(
     {
       messages: [
-        { role: 'system', content: 'Reply with the JSON object {"ok":true} and nothing else.' },
+        {
+          role: 'system',
+          content: 'Ответь JSON-объектом {"ok":true} и больше ничем.',
+        },
         { role: 'user', content: 'ping' },
       ],
       json: true,
@@ -182,7 +185,7 @@ export async function testProviderConnection(): Promise<{ ok: boolean; message: 
   return {
     ok,
     message: ok
-      ? `${resolved.provider.label} responded in ${Date.now() - started}ms using ${response.model}.`
-      : `${resolved.provider.label} returned an empty response.`,
+      ? `${resolved.provider.label} ответил за ${Date.now() - started} мс, модель ${response.model}.`
+      : `${resolved.provider.label} вернул пустой ответ.`,
   };
 }

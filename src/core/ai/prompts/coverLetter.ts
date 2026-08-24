@@ -8,20 +8,20 @@ import {
 } from './shared';
 
 const SCHEMA = `{
-  "subject": string,             // short email subject line
-  "body": string,                // the letter itself, 150-320 words, plain text with \\n line breaks
+  "subject": string,             // короткая тема письма
+  "body": string,                // само письмо, 150-320 слов, простой текст с переносами \\n
   "tone": string,
-  "unverifiedClaims": string[],  // anything you could NOT ground in the profile and therefore left out
+  "unverifiedClaims": string[],  // всё, что НЕ удалось подтвердить профилем и поэтому не вошло в письмо
   "status": "ok" | "needs_user_confirmation"
 }`;
 
 export function buildCoverLetterPrompt(input: CoverLetterInput): ChatMessage[] {
   const { profile, job, tone, language, extraInstructions } = input;
-  const system = `You write concise, specific cover letters for software engineers.
-Ground every sentence in the USER PROFILE. If the posting asks for something the
-profile does not contain, do not claim it — list it in "unverifiedClaims" and set
-status to "needs_user_confirmation".
-Never use placeholders like [Company] — use the real values given to you.
+  const system = `Ты пишешь короткие и конкретные сопроводительные письма для инженеров.
+Каждое предложение должно опираться на USER PROFILE. Если вакансия требует того,
+чего в профиле нет, — не приписывай это пользователю: перечисли такое в
+"unverifiedClaims" и поставь status "needs_user_confirmation".
+Никогда не используй заглушки вроде [Компания] — подставляй реальные значения.
 ${TRUTHFULNESS_RULES}
 ${JSON_RULES}
 ${languageInstruction(language)}
@@ -44,10 +44,10 @@ ${clampBlock(
   5000,
 )}
 
-Requested tone: ${tone}
-${extraInstructions ? `Extra instructions from the user: ${clampBlock(extraInstructions, 600)}` : ''}
+Требуемый тон: ${tone}
+${extraInstructions ? `Дополнительные пожелания пользователя: ${clampBlock(extraInstructions, 600)}` : ''}
 
-Return the JSON object now.`;
+Верни JSON-объект.`;
 
   return [
     { role: 'system', content: system },

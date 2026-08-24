@@ -40,9 +40,9 @@ function classifyHeading(line: string): SectionKey | null {
 }
 
 /**
- * Layer that turns a flat description into requirement / responsibility /
- * benefit buckets by following headings, with a bullet-content fallback for
- * ads that have no headings at all.
+ * Слой, который превращает сплошное описание в блоки «требования»,
+ * «обязанности» и «условия», ориентируясь на заголовки. Если заголовков нет
+ * вовсе, используется запасной вариант по маркированным спискам.
  */
 export function splitSections(description: string): JobSections {
   const sections: JobSections = { requirements: [], responsibilities: [], benefits: [], about: [] };
@@ -66,8 +66,8 @@ export function splitSections(description: string): JobSections {
   }
 
   if (!sawHeading) {
-    // No headings: treat bullet points as requirements, which is what most
-    // short ads actually list, and keep them capped.
+    // Заголовков нет: считаем пункты списка требованиями — именно их обычно
+    // перечисляют короткие объявления. Количество ограничиваем.
     const bullets = rawLines
       .map((line) => line.trim())
       .filter((line) => BULLET_RE.test(line))

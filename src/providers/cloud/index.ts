@@ -11,8 +11,8 @@ interface CloudResponse {
 }
 
 /**
- * CLOUD mode: requests go to a gateway you operate, which holds the provider
- * keys server-side. The extension then stores no API key at all.
+ * Режим CLOUD: запросы идут на ваш собственный шлюз, который хранит ключи
+ * провайдеров на сервере. В этом режиме расширение не хранит ключей вовсе.
  */
 export class CloudGatewayProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'cloud';
@@ -25,8 +25,8 @@ export class CloudGatewayProvider extends BaseAIProvider {
     if (!baseUrl) {
       throw new JobPilotError(
         ERROR_CODES.AI_NOT_CONFIGURED,
-        'Cloud mode is selected but no gateway endpoint is configured.',
-        { hint: 'Add the endpoint in Settings → AI provider, or switch to Local mode.' },
+        'Выбран облачный режим, но адрес шлюза не задан.',
+        { hint: 'Укажите адрес в «Настройки → AI-провайдер» или переключитесь в локальный режим.' },
       );
     }
     const data = await postJson<CloudResponse>({
