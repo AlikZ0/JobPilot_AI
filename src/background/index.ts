@@ -6,6 +6,7 @@ import { getProfile } from '@/database/repositories/profileRepository';
 import { registerBackgroundHandlers } from './messageRouter';
 import { registerCommands } from './commands';
 import { jobIdFromNotification } from './notifications';
+import { syncPassiveContentScripts } from './contentScripts';
 import { getJob } from '@/database/repositories/jobRepository';
 
 const log = createLogger('background');
@@ -22,6 +23,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
   // Создаём значения по умолчанию, чтобы интерфейс не стартовал на пустой базе.
   await getSettings();
+  await syncPassiveContentScripts();
   const profile = await getProfile();
   if (details.reason === 'install' && !profile.onboardingCompleted) {
     await chrome.tabs.create({
@@ -42,9 +44,17 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 
 chrome.permissions.onAdded.addListener(() => {
   broadcast(MESSAGE_TYPES.EVENT_DATA_CHANGED, { entity: 'settings' });
+  void syncPassiveContentScripts();
 });
 chrome.permissions.onRemoved.addListener(() => {
   broadcast(MESSAGE_TYPES.EVENT_DATA_CHANGED, { entity: 'settings' });
+  void syncPassiveContentScripts();
 });
+
+// Воркер засыпает: при каждом пробуждении проверяем, что набор сайтов актуален.
+chrome.runtime.onStartup.addListener(() => {
+  void syncPassiveContentScripts();
+});
+void syncPassiveContentScripts();
 
 log.info('service worker запущен');

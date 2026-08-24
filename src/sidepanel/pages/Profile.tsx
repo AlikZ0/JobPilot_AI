@@ -6,6 +6,7 @@ import { canonicalizeTech, categoryOf } from '@/core/extraction/techDictionary';
 import { useStore, withBusy } from '../state/store';
 import { ProfileForm } from '../components/ProfileForm';
 import { AttachmentManager } from '../components/AttachmentManager';
+import { Icon } from '../components/Icon';
 
 export function Profile() {
   const profile = useStore((state) => state.profile);
@@ -57,23 +58,32 @@ export function Profile() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="text-[14px] font-semibold">Ваш профиль</h2>
-          <p className="text-[11px] text-muted">
+      <header className="sticky top-0 z-10 -mx-3 -mt-3 flex items-start justify-between gap-2 border-b border-border bg-surface px-3 pb-2.5 pt-3">
+        <div className="min-w-0">
+          <h2 className="jp-heading">Ваш профиль</h2>
+          <p className="jp-hint mt-0.5">
             Версия {profile.version} · каждое сохранение сбрасывает кеш анализов.
           </p>
         </div>
-        <button type="button" className="jp-button-primary" onClick={save} disabled={!dirty}>
+        <button
+          type="button"
+          className={dirty ? 'jp-button-primary' : 'jp-button'}
+          onClick={save}
+          disabled={!dirty}
+        >
+          <Icon name={dirty ? 'download' : 'check'} size={13} />
           {dirty ? 'Сохранить изменения' : 'Сохранено'}
         </button>
       </header>
 
       <ProfileForm profile={current} onChange={patch} />
 
-      <section className="flex flex-col gap-2">
-        <h3 className="jp-section-title">Импорт из резюме</h3>
-        <p className="text-[11px] text-muted">
+      <section className="jp-card flex flex-col gap-2">
+        <h3 className="jp-section-title">
+          <Icon name="file" size={12} />
+          Импорт из резюме
+        </h3>
+        <p className="text-[11px] leading-snug text-muted">
           Вставьте текст резюме. JobPilot предложит навыки, которые смог прочитать в документе, —
           сам он никогда не добавляет в профиль неподтверждённые факты.
         </p>
@@ -88,7 +98,13 @@ export function Profile() {
           className="jp-button self-start"
           onClick={importResume}
           disabled={resumeText.trim().length < 80}
+          title={
+            resumeText.trim().length < 80
+              ? 'Вставьте хотя бы 80 символов текста резюме'
+              : 'Найти в тексте навыки и предложить их'
+          }
         >
+          <Icon name="sparkles" size={13} />
           Разобрать резюме
         </button>
       </section>

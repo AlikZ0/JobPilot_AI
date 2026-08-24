@@ -6,6 +6,7 @@ import {
   listAssistantMessages,
 } from '@/database/repositories/assistantRepository';
 import { useStore, withBusy } from '../state/store';
+import { Icon } from '../components/Icon';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -56,8 +57,12 @@ export function Assistant() {
   return (
     <div className="flex h-full flex-col gap-2">
       <div className="flex items-center gap-1.5">
-        <label className="jp-label mb-0 flex-shrink-0">Контекст</label>
+        <label className="jp-label mb-0 flex flex-shrink-0 items-center gap-1" htmlFor="jp-context">
+          <Icon name="target" size={12} />
+          Контекст
+        </label>
         <select
+          id="jp-context"
           className="jp-input py-1"
           value={jobContext}
           onChange={(event) => setJobContext(event.target.value)}
@@ -71,35 +76,49 @@ export function Assistant() {
         </select>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-md border border-border bg-surface-2 p-2">
+      <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-2 p-2">
         {turns.length === 0 ? (
           <div className="flex flex-col gap-1.5">
-            <p className="text-[12px] text-muted">
-              Ассистент видит только тот срез ваших локальных данных, который нужен для вопроса.
+            <div className="flex flex-col items-center gap-1.5 px-2 py-3 text-center">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-brand">
+                <Icon name="sparkles" size={18} />
+              </span>
+              <p className="text-[12px] leading-snug text-muted">
+                Ассистент видит только тот срез ваших локальных данных, который нужен для вопроса.
+              </p>
+            </div>
+            <p className="jp-section-title px-1">
+              <Icon name="message" size={12} />С чего начать
             </p>
             {SUGGESTIONS.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
-                className="jp-button justify-start text-left"
+                className="jp-button h-auto justify-start gap-2 py-2 text-left leading-snug"
                 onClick={() => ask(suggestion)}
               >
-                {suggestion}
+                <Icon name="chevronRight" size={12} />
+                <span className="flex-1">{suggestion}</span>
               </button>
             ))}
           </div>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2.5">
             {turns.map((turn, index) => (
               <li
                 key={index}
-                className={`rounded-md px-2 py-1.5 text-[12px] ${
+                className={`jp-animate-in max-w-[92%] rounded-xl px-2.5 py-2 text-[12px] ${
                   turn.role === 'user'
-                    ? 'ml-6 bg-brand/10 text-content'
-                    : 'mr-2 border border-border bg-surface'
+                    ? 'ml-auto bg-brand text-brand-fg'
+                    : 'mr-auto border border-border bg-surface'
                 }`}
               >
-                <p className="mb-0.5 text-[10px] font-semibold uppercase text-muted">
+                <p
+                  className={`mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide ${
+                    turn.role === 'user' ? 'opacity-70' : 'text-muted'
+                  }`}
+                >
+                  <Icon name={turn.role === 'user' ? 'user' : 'sparkles'} size={10} />
                   {turn.role === 'user' ? 'Вы' : 'JobPilot'}
                 </p>
                 <p className="whitespace-pre-wrap leading-relaxed">{turn.content}</p>
@@ -113,7 +132,8 @@ export function Assistant() {
       {followUps.length > 0 ? (
         <div className="flex flex-wrap gap-1">
           {followUps.map((followUp) => (
-            <button key={followUp} type="button" className="jp-badge" onClick={() => ask(followUp)}>
+            <button key={followUp} type="button" className="jp-chip" onClick={() => ask(followUp)}>
+              <Icon name="chevronRight" size={11} />
               {followUp}
             </button>
           ))}
@@ -124,6 +144,7 @@ export function Assistant() {
         <input
           className="jp-input"
           placeholder="Спросите про вакансии, пробелы в навыках или конкретную позицию…"
+          aria-label="Вопрос ассистенту"
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => {
@@ -133,12 +154,18 @@ export function Assistant() {
             }
           }}
         />
-        <button type="button" className="jp-button-primary" onClick={() => ask(input)}>
+        <button
+          type="button"
+          className="jp-button-primary flex-shrink-0"
+          onClick={() => ask(input)}
+          title="Отправить вопрос (Enter)"
+        >
+          <Icon name="send" size={13} />
           Спросить
         </button>
         <button
           type="button"
-          className="jp-button"
+          className="jp-button flex-shrink-0 px-2"
           onClick={() =>
             void clearAssistantMessages().then(() => {
               setTurns([]);
@@ -146,8 +173,9 @@ export function Assistant() {
             })
           }
           title="Очистить переписку"
+          aria-label="Очистить переписку"
         >
-          Очистить
+          <Icon name="eraser" size={14} />
         </button>
       </div>
     </div>

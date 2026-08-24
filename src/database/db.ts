@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { Application, ApplicationEvent } from '@/types/application';
+import type { SubmissionRecord } from '@/types/submission';
 import type { AIUsageRecord, JobAnalysis } from '@/types/ai';
 import type { Job } from '@/types/job';
 import type { UserProfile } from '@/types/profile';
@@ -37,6 +38,7 @@ export class JobPilotDatabase extends Dexie {
   analyses!: Table<JobAnalysis, string>;
   applications!: Table<Application, string>;
   applicationEvents!: Table<ApplicationEvent, string>;
+  submissions!: Table<SubmissionRecord, string>;
   aiUsage!: Table<AIUsageRecord, string>;
   assistantMessages!: Table<AssistantMessageRecord, string>;
   scanSessions!: Table<ScanSessionRecord, string>;
@@ -53,6 +55,11 @@ export class JobPilotDatabase extends Dexie {
       aiUsage: 'id, at, task, providerId, ok',
       assistantMessages: 'id, at, jobId',
       scanSessions: 'id, startedAt, state',
+    });
+    // v2 — журнал откликов. Dexie достраивает схему поверх предыдущей версии,
+    // поэтому перечисляем только новое хранилище.
+    this.version(2).stores({
+      submissions: 'id, jobId, applicationId, at, source, hostname',
     });
   }
 }
@@ -80,6 +87,7 @@ export async function clearAllData(): Promise<void> {
       db.analyses,
       db.applications,
       db.applicationEvents,
+      db.submissions,
       db.aiUsage,
       db.assistantMessages,
       db.scanSessions,
@@ -92,6 +100,7 @@ export async function clearAllData(): Promise<void> {
         db.analyses.clear(),
         db.applications.clear(),
         db.applicationEvents.clear(),
+        db.submissions.clear(),
         db.aiUsage.clear(),
         db.assistantMessages.clear(),
         db.scanSessions.clear(),

@@ -5,12 +5,15 @@ import { describeError, toSerializedError } from '@/utils/errors';
 import { requestHostPermission } from '@/utils/permissions';
 import { getSettings } from '@/database/repositories/settingsRepository';
 import { listJobs } from '@/database/repositories/jobRepository';
+import { Icon, Logo } from '@/sidepanel/components/Icon';
 
 interface State {
   loading: boolean;
   pageInfo: PageInfo | null;
   tabId: number | null;
   hasPermission: boolean;
+  restricted: boolean;
+  hostname: string;
   jobsToday: number;
   message: string;
   error: string;
@@ -23,6 +26,8 @@ export function Popup() {
     pageInfo: null,
     tabId: null,
     hasPermission: false,
+    restricted: false,
+    hostname: '',
     jobsToday: 0,
     message: '',
     error: '',
@@ -50,6 +55,8 @@ export function Popup() {
         pageInfo: context.pageInfo,
         tabId: context.tabId,
         hasPermission: context.hasPermission,
+        restricted: Boolean(context.restricted),
+        hostname: context.hostname ?? '',
         jobsToday: jobs.filter((job) => (job.analyzedAt ?? 0) >= since).length,
       }));
     } catch (error) {
@@ -71,6 +78,12 @@ export function Popup() {
     window.close();
   };
 
+  /** Выбор сайтов живёт в настройках — это та же страница панели. */
+  const openSites = async () => {
+    await chrome.tabs.create({ url: chrome.runtime.getURL('src/sidepanel/index.html#settings') });
+    window.close();
+  };
+
   const run = async (label: string, action: () => Promise<string>) => {
     setState((current) => ({ ...current, message: `${label}…`, error: '' }));
     try {
@@ -85,25 +98,47 @@ export function Popup() {
     }
   };
 
+  const pageSummary = state.pageInfo
+    ? state.pageInfo.looksLikeJobPage
+      ? 'вакансия найдена'
+      : state.pageInfo.looksLikeListingPage
+        ? `список вакансий: ${state.pageInfo.listingCount}`
+        : 'вакансия на странице не распознана'
+    : 'страницу не удалось прочитать';
+
   return (
-    <div className="flex w-[320px] flex-col gap-2 p-3">
+    <div className="flex w-[320px] flex-col gap-2.5 p-3">
       <header className="flex items-center gap-2">
-        <span aria-hidden="true" className="text-brand">
-          ▲
-        </span>
+        <Logo />
         <h1 className="text-[13px] font-semibold">JobPilot AI</h1>
-        <span className="ml-auto text-[11px] text-muted">
-          сегодня проанализировано: {state.jobsToday}
+        <span className="jp-badge ml-auto text-muted" title="Проанализировано сегодня">
+          <Icon name="target" size={11} />
+          {state.jobsToday}
         </span>
       </header>
 
       {state.loading ? (
-        <p className="text-[12px] text-muted">Загрузка…</p>
+        <p className="flex items-center gap-1.5 text-[12px] text-muted">
+          <span className="jp-spinner h-3 w-3" />
+          Загрузка…
+        </p>
+      ) : state.restricted ? (
+        <>
+          <p className="text-[12px] leading-snug text-muted">
+            Chrome не разрешает расширениям работать на служебных страницах. Откройте сайт с
+            вакансиями или выберите площадки заранее.
+          </p>
+          <button type="button" className="jp-button-primary" onClick={() => void openSites()}>
+            <Icon name="link" size={13} />
+            Выбрать сайты
+          </button>
+        </>
       ) : !state.hasPermission ? (
         <>
-          <p className="text-[12px] text-muted">
-            У JobPilot пока нет доступа к этому сайту. Доступ выдаётся отдельно для каждого сайта и
-            отзывается в настройках.
+          <p className="text-[12px] leading-snug text-muted">
+            У JobPilot пока нет доступа к{' '}
+            <span className="font-medium text-content">{state.hostname || 'этому сайту'}</span>.
+            Доступ выдаётся отдельно для каждого сайта и отзывается в настройках.
           </p>
           <button
             type="button"
@@ -118,21 +153,19 @@ export function Popup() {
               })
             }
           >
+            <Icon name="key" size={13} />
             Выдать доступ к этому сайту
+          </button>
+          <button type="button" className="jp-button" onClick={() => void openSites()}>
+            <Icon name="link" size={13} />
+            Выбрать сайты
           </button>
         </>
       ) : (
         <>
-          <p className="truncate text-[11px] text-muted">
-            {state.pageInfo
-              ? `${state.pageInfo.adapterId} · ${
-                  state.pageInfo.looksLikeJobPage
-                    ? 'вакансия'
-                    : state.pageInfo.looksLikeListingPage
-                      ? `список (${state.pageInfo.listingCount})`
-                      : 'вакансия не найдена'
-                }`
-              : 'Страницу не удалось прочитать.'}
+          <p className="flex items-center gap-1.5 truncate text-[11px] text-muted">
+            <Icon name="link" size={12} />
+            {state.pageInfo?.adapterId ?? state.hostname} · {pageSummary}
           </p>
           <button
             type="button"
@@ -146,6 +179,7 @@ export function Popup() {
               })
             }
           >
+            <Icon name="target" size={13} />
             Анализировать эту вакансию
           </button>
           <button
@@ -160,20 +194,32 @@ export function Popup() {
               })
             }
           >
+            <Icon name="bookmark" size={13} />
             Сохранить вакансию
           </button>
         </>
       )}
 
       <button type="button" className="jp-button" onClick={() => void openPanel()}>
+        <Icon name="dashboard" size={13} />
         Открыть боковую панель
       </button>
 
-      {state.message ? <p className="text-[11px] text-excellent">{state.message}</p> : null}
-      {state.error ? <p className="text-[11px] text-poor">{state.error}</p> : null}
+      {state.message ? (
+        <p className="flex items-start gap-1.5 text-[11px] text-excellent">
+          <Icon name="check" size={12} strokeWidth={2.4} />
+          {state.message}
+        </p>
+      ) : null}
+      {state.error ? (
+        <p className="flex items-start gap-1.5 text-[11px] text-poor">
+          <Icon name="alert" size={12} />
+          {state.error}
+        </p>
+      ) : null}
 
-      <p className="text-[10px] text-muted">
-        Горячие клавиши: Alt+Shift+A — анализ · Alt+Shift+S — сохранить · Alt+Shift+P — панель
+      <p className="border-t border-border pt-2 text-[10px] leading-relaxed text-muted">
+        Alt+Shift+A — анализ · Alt+Shift+S — сохранить · Alt+Shift+P — панель
       </p>
     </div>
   );

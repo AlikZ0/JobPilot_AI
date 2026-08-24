@@ -3,7 +3,7 @@ import { registerMessageHandlers, sendToTab, broadcast } from '@/utils/messaging
 import { JobPilotError, ERROR_CODES } from '@/utils/errors';
 import { createLogger } from '@/utils/logger';
 import { hasHostPermission } from '@/utils/permissions';
-import { isRestrictedUrl } from '@/utils/url';
+import { hostnameOf, isRestrictedUrl } from '@/utils/url';
 import { getProfile } from '@/database/repositories/profileRepository';
 import { getSettings } from '@/database/repositories/settingsRepository';
 import {
@@ -23,6 +23,8 @@ import { buildDeterministicPlan, mergeAIMappings } from '@/core/application/fiel
 import { runAITask, testProviderConnection } from '@/core/ai/aiService';
 import { answerAssistantQuestion } from '@/core/assistant/assistantService';
 import { ensureContentScript, getActiveTab } from './tabManager';
+import { getPageMarks, getTrackerConfig, handleSubmissionDetected } from './submissionTracker';
+import { syncPassiveContentScripts } from './contentScripts';
 import {
   discoverJobs,
   getScanProgress,
@@ -65,11 +67,20 @@ export function registerBackgroundHandlers(): void {
       try {
         tab = await getActiveTab();
       } catch {
-        return { tabId: null, pageInfo: null, hasPermission: false };
+        return {
+          tabId: null,
+          pageInfo: null,
+          hasPermission: false,
+          restricted: true,
+          hostname: '',
+        };
       }
       const url = tab.url ?? '';
       const tabId = tab.id as number;
-      if (isRestrictedUrl(url)) return { tabId, pageInfo: null, hasPermission: false };
+      const hostname = hostnameOf(url);
+      if (isRestrictedUrl(url)) {
+        return { tabId, pageInfo: null, hasPermission: false, restricted: true, hostname };
+      }
       const permitted = await hasHostPermission(url);
       let pageInfo: PageInfo | null = null;
       if (permitted) {
@@ -80,8 +91,17 @@ export function registerBackgroundHandlers(): void {
           log.debug('информация о странице недоступна', error);
         }
       }
-      return { tabId, pageInfo, hasPermission: permitted };
+      return { tabId, pageInfo, hasPermission: permitted, restricted: false, hostname };
     },
+
+    [MESSAGE_TYPES.TRACKER_CONFIG]: () => getTrackerConfig(),
+
+    [MESSAGE_TYPES.SYNC_TRACKING]: async () => ({ active: await syncPassiveContentScripts() }),
+
+    [MESSAGE_TYPES.SUBMISSION_DETECTED]: (payload, sender) =>
+      handleSubmissionDetected(payload, sender),
+
+    [MESSAGE_TYPES.GET_PAGE_MARKS]: async ({ urls }) => ({ marks: await getPageMarks(urls) }),
 
     [MESSAGE_TYPES.REQUEST_HOST_PERMISSION]: async ({ url }) => ({
       // Само окно запроса должно вызываться из пользовательского жеста в панели;
