@@ -11,11 +11,7 @@ import {
   setKeyStorageMode,
   type KeyStorageMode,
 } from '@/core/ai/keyStore';
-import {
-  PERMISSION_EXPLANATIONS,
-  listGrantedOrigins,
-  removeHostPermission,
-} from '@/utils/permissions';
+import { PERMISSION_EXPLANATIONS } from '@/utils/permissions';
 import { clearAllData } from '@/database/db';
 import {
   bundleToBlob,
@@ -26,6 +22,8 @@ import {
 import { summarizeUsage } from '@/database/repositories/usageRepository';
 import { DAY_MS } from '@/utils/time';
 import { useStore, withBusy } from '../state/store';
+import { Icon } from '../components/Icon';
+import { SiteAccess } from '../components/SiteAccess';
 
 function Row({
   label,
@@ -37,10 +35,10 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-1.5">
+    <div className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0">
       <div className="min-w-0">
         <p className="text-[12px] font-medium">{label}</p>
-        {hint ? <p className="text-[11px] text-muted">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-[11px] leading-snug text-muted">{hint}</p> : null}
       </div>
       <div className="flex-shrink-0">{children}</div>
     </div>
@@ -56,13 +54,11 @@ export function SettingsPage() {
   const [keyDraft, setKeyDraft] = useState('');
   const [configured, setConfigured] = useState<AIProviderId[]>([]);
   const [keyMode, setKeyMode] = useState<KeyStorageMode>('local');
-  const [origins, setOrigins] = useState<string[]>([]);
   const [usage, setUsage] = useState<{ requests: number; cost: number } | null>(null);
 
   useEffect(() => {
     void listConfiguredProviders().then(setConfigured);
     void getKeyStorageMode().then(setKeyMode);
-    void listGrantedOrigins().then(setOrigins);
     void summarizeUsage(Date.now() - 30 * DAY_MS).then((summary) =>
       setUsage({ requests: summary.requests, cost: summary.estimatedCostUsd }),
     );
@@ -90,6 +86,16 @@ export function SettingsPage() {
       setKeyDraft('');
       setConfigured(await listConfiguredProviders());
       pushToast({ level: 'success', message: `Ключ сохранён для «${provider.label}».` });
+    });
+
+  /**
+   * Пассивные функции живут в content-скрипте, который регистрируется
+   * динамически, — после переключения просим воркер пересобрать регистрацию.
+   */
+  const toggleTracking = (key: 'trackSubmissions' | 'showPageBadges', value: boolean) =>
+    void withBusy('Сохраняем настройку', async () => {
+      await updateSettings({ automation: { ...settings.automation, [key]: value } });
+      await sendToBackground(MESSAGE_TYPES.SYNC_TRACKING, undefined);
     });
 
   const testConnection = () =>
@@ -125,8 +131,11 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Внешний вид</h2>
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="palette" size={12} />
+          Внешний вид
+        </h2>
         <Row label="Тема">
           <select
             className="jp-input w-auto py-1"
@@ -147,8 +156,11 @@ export function SettingsPage() {
         </Row>
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">AI-провайдер</h2>
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="sparkles" size={12} />
+          AI-провайдер
+        </h2>
         <Row label="Режим" hint="Локальный использует ваш ключ, облачный — ваш собственный шлюз.">
           <select
             className="jp-input w-auto py-1"
@@ -291,8 +303,11 @@ export function SettingsPage() {
         </button>
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Автоматизация</h2>
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="bolt" size={12} />
+          Автоматизация
+        </h2>
         {(
           [
             [
@@ -339,6 +354,41 @@ export function SettingsPage() {
           hint="Всегда включено. JobPilot никогда не отправляет заявку сам."
         >
           <input type="checkbox" checked readOnly disabled aria-label="Всегда обязательно" />
+        </Row>
+        <Row
+          label="Вести журнал откликов"
+          hint="Замечать, что вы отправили отклик на сайте, и записывать его в историю. Работает только на сайтах с выданным доступом."
+        >
+          <input
+            type="checkbox"
+            checked={settings.automation.trackSubmissions}
+            onChange={(event) => void toggleTracking('trackSubmissions', event.target.checked)}
+          />
+        </Row>
+        <Row
+          label="Сам отмечать заявку отправленной"
+          hint="Заметив отправку на сайте, переводить заявку в «Отправлена». Отметку видно как автоматическую, её можно откатить."
+        >
+          <input
+            type="checkbox"
+            checked={settings.automation.autoMarkSubmitted}
+            disabled={!settings.automation.trackSubmissions}
+            onChange={(event) =>
+              void updateSettings({
+                automation: { ...settings.automation, autoMarkSubmitted: event.target.checked },
+              })
+            }
+          />
+        </Row>
+        <Row
+          label="Метки прямо на сайте"
+          hint="Показывать на страницах вакансий, куда вы уже откликались и какой у вакансии балл."
+        >
+          <input
+            type="checkbox"
+            checked={settings.automation.showPageBadges}
+            onChange={(event) => void toggleTracking('showPageBadges', event.target.checked)}
+          />
         </Row>
         <Row label="Максимум вакансий за проход">
           <input
@@ -394,8 +444,11 @@ export function SettingsPage() {
         </Row>
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Уведомления</h2>
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="bell" size={12} />
+          Уведомления
+        </h2>
         <Row label="Включены">
           <input
             type="checkbox"
@@ -423,8 +476,11 @@ export function SettingsPage() {
         </Row>
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Приватность</h2>
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="lock" size={12} />
+          Приватность
+        </h2>
         <Row
           label="Разрешить запросы к AI"
           hint="По умолчанию выключено. Без AI всё продолжает работать детерминированно."
@@ -472,8 +528,11 @@ export function SettingsPage() {
         </Row>
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Контроль расходов</h2>
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="wallet" size={12} />
+          Контроль расходов
+        </h2>
         <Row
           label="Максимум символов описания"
           hint="Более длинные описания обрезаются перед отправкой."
@@ -567,49 +626,41 @@ export function SettingsPage() {
         ) : null}
       </section>
 
-      <section className="flex flex-col gap-1">
-        <h2 className="jp-section-title">Разрешения</h2>
-        <ul className="flex flex-col gap-1">
+      <section id="sites" className="jp-card flex flex-col gap-2">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="link" size={12} />
+          Сайты с вакансиями
+        </h2>
+        <SiteAccess />
+      </section>
+
+      <section className="jp-card flex flex-col gap-1">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="shield" size={12} />
+          Разрешения
+        </h2>
+        <ul className="flex flex-col gap-1.5">
           {PERMISSION_EXPLANATIONS.map((permission) => (
-            <li key={permission.id} className="text-[11px]">
+            <li key={permission.id} className="text-[11px] leading-snug">
               <span className="font-medium">{permission.title}</span>
               <span className="text-muted"> — {permission.why}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-1 text-[11px] font-medium">Сайты, которым выдан доступ</p>
-        {origins.length === 0 ? (
-          <p className="text-[11px] text-muted">Пока ни одного.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-1">
-            {origins.map((origin) => (
-              <li key={origin} className="jp-badge gap-1.5">
-                {origin}
-                <button
-                  type="button"
-                  aria-label={`Отозвать доступ к ${origin}`}
-                  className="text-muted hover:text-poor"
-                  onClick={() =>
-                    void removeHostPermission(origin.replace('/*', '')).then(async () =>
-                      setOrigins(await listGrantedOrigins()),
-                    )
-                  }
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="jp-section-title">Ваши данные</h2>
+      <section className="jp-card flex flex-col gap-2">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="database" size={12} />
+          Ваши данные
+        </h2>
         <div className="flex flex-wrap gap-1.5">
           <button type="button" className="jp-button" onClick={exportData}>
+            <Icon name="download" size={13} />
             Экспорт в JSON
           </button>
           <label className="jp-button cursor-pointer">
+            <Icon name="upload" size={13} />
             Импорт из JSON
             <input
               type="file"
@@ -624,7 +675,7 @@ export function SettingsPage() {
           </label>
           <button
             type="button"
-            className="jp-button border-poor/40 text-poor"
+            className="jp-button-danger"
             onClick={() => {
               const confirmed = window.confirm(
                 'Удалить все вакансии, анализы, заявки, настройки и API-ключи, сохранённые JobPilot? Отменить это будет нельзя.',
@@ -639,10 +690,11 @@ export function SettingsPage() {
               });
             }}
           >
+            <Icon name="trash" size={13} />
             Удалить все данные
           </button>
         </div>
-        <p className="text-[11px] text-muted">
+        <p className="text-[11px] leading-snug text-muted">
           В экспорт попадают профиль, вакансии, анализы и заявки — API-ключи туда не входят.
         </p>
       </section>

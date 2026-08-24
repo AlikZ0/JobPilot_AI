@@ -5,35 +5,49 @@
 @layer base {
   :root {
     --jp-surface: 255 255 255;
-    --jp-surface-2: 246 247 251;
-    --jp-surface-3: 237 239 246;
-    --jp-border: 214 218 230;
-    --jp-text: 20 23 32;
-    --jp-text-muted: 96 103 122;
+    --jp-surface-2: 250 250 252;
+    --jp-surface-3: 240 242 247;
+    --jp-border: 226 230 238;
+    --jp-border-strong: 205 211 224;
+    --jp-text: 16 19 28;
+    --jp-text-muted: 100 108 128;
     --jp-brand: 79 70 229;
+    --jp-brand-soft: 238 238 255;
     --jp-brand-fg: 255 255 255;
     --jp-excellent: 21 128 61;
     --jp-good: 22 101 152;
     --jp-potential: 161 98 7;
     --jp-weak: 180 83 9;
     --jp-poor: 185 28 28;
+
+    --jp-shadow-sm: 0 1px 2px rgb(16 19 28 / 0.05);
+    --jp-shadow-md: 0 4px 12px -2px rgb(16 19 28 / 0.1), 0 2px 4px -2px rgb(16 19 28 / 0.06);
+    --jp-shadow-lg: 0 12px 28px -6px rgb(16 19 28 / 0.18), 0 4px 10px -4px rgb(16 19 28 / 0.1);
+
     color-scheme: light;
   }
 
   [data-theme='dark'] {
-    --jp-surface: 17 19 26;
-    --jp-surface-2: 24 27 36;
-    --jp-surface-3: 33 37 49;
-    --jp-border: 51 57 74;
-    --jp-text: 233 236 243;
-    --jp-text-muted: 152 160 180;
-    --jp-brand: 129 122 255;
-    --jp-brand-fg: 12 13 18;
+    --jp-surface: 15 17 23;
+    --jp-surface-2: 21 24 33;
+    --jp-surface-3: 31 35 47;
+    --jp-border: 43 49 64;
+    --jp-border-strong: 62 70 90;
+    --jp-text: 232 236 244;
+    --jp-text-muted: 147 157 178;
+    --jp-brand: 139 132 255;
+    --jp-brand-soft: 33 33 62;
+    --jp-brand-fg: 12 13 20;
     --jp-excellent: 74 222 128;
     --jp-good: 96 165 250;
     --jp-potential: 250 204 21;
     --jp-weak: 251 146 60;
     --jp-poor: 248 113 113;
+
+    --jp-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --jp-shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.45);
+    --jp-shadow-lg: 0 12px 28px -6px rgb(0 0 0 / 0.6);
+
     color-scheme: dark;
   }
 
@@ -46,51 +60,223 @@
   body {
     @apply bg-surface text-content font-sans text-[13px] antialiased;
     margin: 0;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.01em;
   }
 
   * {
     scrollbar-width: thin;
+    scrollbar-color: rgb(var(--jp-border-strong)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--jp-border-strong));
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-brand;
   }
+
+  /* Ползунки диапазона в Chrome по умолчанию выбиваются из палитры. */
+  input[type='range'] {
+    @apply h-1.5 cursor-pointer appearance-none rounded-full bg-surface-3;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    @apply h-3.5 w-3.5 appearance-none rounded-full border-2 border-surface bg-brand;
+    box-shadow: var(--jp-shadow-sm);
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply h-3.5 w-3.5 cursor-pointer accent-brand;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
+  .jp-icon {
+    @apply flex-shrink-0;
+  }
+
+  .jp-logo {
+    background-image: linear-gradient(
+      135deg,
+      rgb(var(--jp-brand)) 0%,
+      rgb(var(--jp-brand) / 0.72) 100%
+    );
+    box-shadow: var(--jp-shadow-sm);
+  }
+
   .jp-card {
-    @apply rounded-lg border border-border bg-surface-2 p-3;
+    @apply rounded-xl border border-border bg-surface-2 p-3;
+    box-shadow: var(--jp-shadow-sm);
+  }
+
+  /* Карточка-кнопка: реагирует на курсор, поэтому читается как кликабельная. */
+  .jp-card-interactive {
+    @apply jp-card cursor-pointer transition duration-150 hover:border-brand/50 hover:bg-surface-3;
   }
 
   .jp-button {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-border
-           bg-surface px-2.5 py-1.5 text-[12px] font-medium text-content transition
-           hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-[30px] items-center justify-center gap-1.5 rounded-lg border
+           border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium leading-none text-content
+           transition duration-150 hover:border-border-strong hover:bg-surface-3
+           active:translate-y-px disabled:pointer-events-none disabled:opacity-45;
   }
 
   .jp-button-primary {
-    @apply jp-button border-transparent bg-brand text-brand-fg hover:opacity-90;
+    @apply jp-button border-transparent bg-brand text-brand-fg hover:bg-brand hover:opacity-90;
+    box-shadow: var(--jp-shadow-sm);
   }
 
   .jp-button-ghost {
-    @apply jp-button border-transparent bg-transparent hover:bg-surface-3;
+    @apply jp-button border-transparent bg-transparent text-muted hover:bg-surface-3 hover:text-content;
+  }
+
+  .jp-button-danger {
+    @apply jp-button border-poor/40 text-poor hover:bg-poor/10;
+  }
+
+  .jp-button-sm {
+    @apply min-h-[26px] px-2 py-1 text-[11px];
   }
 
   .jp-input {
-    @apply w-full rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px]
-           text-content placeholder:text-muted focus:border-brand focus:outline-none;
+    @apply w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[13px]
+           text-content transition placeholder:text-muted hover:border-border-strong
+           focus:border-brand focus:outline-none;
+  }
+
+  .jp-input:focus {
+    box-shadow: 0 0 0 3px rgb(var(--jp-brand) / 0.18);
+  }
+
+  select.jp-input {
+    @apply cursor-pointer pr-6;
   }
 
   .jp-label {
-    @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted;
+    @apply mb-1 block text-[11px] font-medium text-muted;
   }
 
   .jp-badge {
     @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-3
-           px-2 py-0.5 text-[11px] font-medium;
+           px-2 py-0.5 text-[11px] font-medium leading-[18px];
+  }
+
+  /* Фильтр-чип: та же форма, но с явными состояниями нажатия. */
+  .jp-chip {
+    @apply jp-badge cursor-pointer transition duration-150 hover:border-border-strong hover:bg-surface;
+  }
+
+  .jp-chip-active {
+    @apply border-brand/60 bg-brand/10 text-brand;
   }
 
   .jp-section-title {
-    @apply text-[11px] font-semibold uppercase tracking-wide text-muted;
+    @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted;
+  }
+
+  .jp-heading {
+    @apply text-[14px] font-semibold leading-tight text-content;
+  }
+
+  .jp-hint {
+    @apply text-[11px] leading-snug text-muted;
+  }
+
+  .jp-divider {
+    @apply my-1 h-px w-full bg-border;
+  }
+
+  .jp-track {
+    @apply h-1.5 w-full overflow-hidden rounded-full bg-surface-3;
+  }
+
+  .jp-track > * {
+    @apply h-full rounded-full transition-all duration-300;
+  }
+
+  .jp-spinner {
+    @apply inline-block rounded-full border-2 border-border border-t-brand;
+    animation: jp-spin 0.7s linear infinite;
+  }
+
+  .jp-skeleton {
+    @apply rounded-md bg-surface-3;
+    animation: jp-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  .jp-animate-in {
+    animation: jp-slide-up 0.18s ease-out both;
+  }
+
+  .jp-fade-in {
+    animation: jp-fade 0.18s ease-out both;
+  }
+}
+
+@keyframes jp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes jp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes jp-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes jp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

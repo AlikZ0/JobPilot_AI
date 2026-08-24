@@ -1,3 +1,5 @@
+import { Icon, type IconName } from './Icon';
+
 interface Props {
   name: string;
   kind: 'matched' | 'missing' | 'bonus' | 'neutral';
@@ -11,11 +13,11 @@ const STYLES: Record<Props['kind'], string> = {
   neutral: '',
 };
 
-const PREFIX: Record<Props['kind'], string> = {
-  matched: '✓',
-  missing: '⚠',
-  bonus: '+',
-  neutral: '',
+const ICONS: Record<Props['kind'], IconName | null> = {
+  matched: 'check',
+  missing: 'alert',
+  bonus: 'plus',
+  neutral: null,
 };
 
 /** Подпись для title и скринридера — цвет и значок сами по себе смысла не дают. */
@@ -28,17 +30,14 @@ const KIND_LABEL: Record<Props['kind'], string> = {
 
 /** Чип навыка. Смысл несёт значок, цвет — только оформление. */
 export function SkillBadge({ name, kind, onClick }: Props) {
+  const icon = ICONS[kind];
   const content = (
     <>
-      {PREFIX[kind] ? (
-        <span aria-hidden="true" className="font-bold">
-          {PREFIX[kind]}
-        </span>
-      ) : null}
+      {icon ? <Icon name={icon} size={11} strokeWidth={2.4} /> : null}
       <span>{name}</span>
     </>
   );
-  const className = `jp-badge ${STYLES[kind]}`;
+  const className = `jp-badge ${STYLES[kind]}${onClick ? ' jp-chip' : ''}`;
   const title = `${KIND_LABEL[kind]}: ${name}`;
   if (!onClick) {
     return (

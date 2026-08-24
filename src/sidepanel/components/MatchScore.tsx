@@ -1,12 +1,12 @@
 import type { RecommendationBand, ScoreBreakdown } from '@/types/ai';
 import { BAND_GLYPH, labelForBand } from '@/core/scoring/weights';
 
-const BAND_CLASS: Record<RecommendationBand, string> = {
-  strong_match: 'text-excellent border-excellent/40 bg-excellent/10',
-  good_match: 'text-good border-good/40 bg-good/10',
-  potential_match: 'text-potential border-potential/40 bg-potential/10',
-  weak_match: 'text-weak border-weak/40 bg-weak/10',
-  not_suitable: 'text-poor border-poor/40 bg-poor/10',
+const BAND_TEXT: Record<RecommendationBand, string> = {
+  strong_match: 'text-excellent',
+  good_match: 'text-good',
+  potential_match: 'text-potential',
+  weak_match: 'text-weak',
+  not_suitable: 'text-poor',
 };
 
 interface Props {
@@ -16,27 +16,78 @@ interface Props {
 }
 
 /**
- * Цвет никогда не единственный сигнал: рядом с процентом всегда есть подпись
- * уровня и значок (WCAG 1.4.1).
+ * Балл в виде кольца: заполнение сразу показывает, насколько вакансия близка
+ * к 100 %. Цвет никогда не единственный сигнал — рядом всегда есть число,
+ * подпись уровня и значок (WCAG 1.4.1).
  */
 export function MatchScore({ score, band, size = 'sm' }: Props) {
   const isLarge = size === 'lg';
+  const dimension = isLarge ? 68 : 46;
+  const thickness = isLarge ? 6 : 4.5;
+  const radius = (dimension - thickness) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const filled = Math.max(0, Math.min(100, score)) / 100;
+
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 ${BAND_CLASS[band]}`}
+      className={`inline-flex flex-shrink-0 ${
+        // В карточке подпись уходит под кольцо: так заголовку вакансии
+        // остаётся вся ширина строки.
+        isLarge ? 'items-center gap-2' : 'w-[76px] flex-col items-center gap-1 text-center'
+      }`}
       role="img"
       aria-label={`Совпадение ${score} процентов, ${labelForBand(band)}`}
     >
-      <span
-        className={isLarge ? 'text-2xl font-bold leading-none' : 'text-sm font-bold leading-none'}
+      <div
+        className={`relative flex-shrink-0 ${BAND_TEXT[band]}`}
+        style={{ width: dimension, height: dimension }}
       >
-        {score}%
-      </span>
-      <span className="flex flex-col leading-tight">
-        <span className={isLarge ? 'text-[12px] font-semibold' : 'text-[10px] font-semibold'}>
+        <svg
+          aria-hidden="true"
+          width={dimension}
+          height={dimension}
+          viewBox={`0 0 ${dimension} ${dimension}`}
+          className="-rotate-90"
+        >
+          <circle
+            cx={dimension / 2}
+            cy={dimension / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={thickness}
+            className="opacity-[0.18]"
+          />
+          <circle
+            cx={dimension / 2}
+            cy={dimension / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={thickness}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - filled)}
+            className="transition-[stroke-dashoffset] duration-500 ease-out"
+          />
+        </svg>
+        <span
+          className={`absolute inset-0 flex items-center justify-center font-bold tabular-nums ${
+            isLarge ? 'text-[18px]' : 'text-[13px]'
+          }`}
+        >
+          {score}%
+        </span>
+      </div>
+      <span
+        className={`flex flex-col leading-tight ${BAND_TEXT[band]} ${
+          isLarge ? '' : 'items-center'
+        }`}
+      >
+        <span className={isLarge ? 'text-[13px] font-semibold' : 'text-[10px] font-semibold'}>
           {labelForBand(band)}
         </span>
-        <span aria-hidden="true" className="text-[10px] tracking-widest">
+        <span aria-hidden="true" className="text-[9px] tracking-widest opacity-80">
           {BAND_GLYPH[band]}
         </span>
       </span>
@@ -55,9 +106,18 @@ const COMPONENT_LABELS: Record<keyof ScoreBreakdown, string> = {
   other: 'Прочее',
 };
 
+/** Цвет полоски повторяет шкалу балла: видно, где именно просело совпадение. */
+function barColor(ratio: number): string {
+  if (ratio >= 0.9) return 'bg-excellent';
+  if (ratio >= 0.7) return 'bg-good';
+  if (ratio >= 0.5) return 'bg-potential';
+  if (ratio > 0) return 'bg-weak';
+  return 'bg-poor';
+}
+
 export function ScoreBreakdownList({ breakdown }: { breakdown: ScoreBreakdown }) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-2.5">
       {(Object.keys(COMPONENT_LABELS) as (keyof ScoreBreakdown)[]).map((key) => {
         const part = breakdown[key];
         const ratio = part.earned / part.max;
@@ -65,22 +125,19 @@ export function ScoreBreakdownList({ breakdown }: { breakdown: ScoreBreakdown })
           <li key={key}>
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[12px] font-medium">{COMPONENT_LABELS[key]}</span>
-              <span className="font-mono text-[12px] tabular-nums">
+              <span className="font-mono text-[11px] tabular-nums text-muted">
                 {part.earned}/{part.max}
               </span>
             </div>
             <div
-              className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
+              className="jp-track mt-1"
               role="meter"
               aria-valuenow={part.earned}
               aria-valuemin={0}
               aria-valuemax={part.max}
               aria-label={COMPONENT_LABELS[key]}
             >
-              <div
-                className="h-full rounded-full bg-brand"
-                style={{ width: `${Math.round(ratio * 100)}%` }}
-              />
+              <div className={barColor(ratio)} style={{ width: `${Math.round(ratio * 100)}%` }} />
             </div>
             {part.detail ? <p className="mt-1 text-[11px] text-muted">{part.detail}</p> : null}
           </li>

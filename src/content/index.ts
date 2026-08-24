@@ -1,11 +1,13 @@
 import { MESSAGE_TYPES, type PageInfo } from '@/types/messages';
-import { registerMessageHandlers } from '@/utils/messaging';
+import { registerMessageHandlers, sendToBackground } from '@/utils/messaging';
 import { createLogger } from '@/utils/logger';
 import { JobPilotError, ERROR_CODES } from '@/utils/errors';
 import { resolveAdapter } from './adapters/registry';
 import type { AdapterContext } from './adapters/types';
 import { analyzeForms, hasApplicationForm } from './forms/analyzer';
 import { fillFields, highlightField } from './forms/filler';
+import { resetSubmissionTracking, startSubmissionTracking } from './tracking';
+import { refreshPageBadges, startPageBadges } from './badges';
 
 const log = createLogger('content');
 
@@ -111,5 +113,44 @@ function bootstrap(): void {
     }),
   });
 
+  void startPassiveFeatures();
+
   log.debug('content-скрипт готов', { url: location.href });
+}
+
+/**
+ * Журнал откликов и метки на странице. Обе функции пассивные: они ничего не
+ * отправляют за пользователя, только замечают то, что он сделал сам. Каждую
+ * можно выключить в настройках расширения.
+ */
+async function startPassiveFeatures(): Promise<void> {
+  let config: { trackSubmissions: boolean; showPageBadges: boolean };
+  try {
+    config = await sendToBackground(MESSAGE_TYPES.TRACKER_CONFIG, undefined);
+  } catch (error) {
+    log.debug('настройки трекинга недоступны', error);
+    return;
+  }
+  if (!config.trackSubmissions && !config.showPageBadges) return;
+
+  if (config.trackSubmissions) startSubmissionTracking(safeHasForm());
+  if (config.showPageBadges) startPageBadges();
+
+  watchUrlChanges(() => {
+    if (config.trackSubmissions) resetSubmissionTracking(safeHasForm());
+    if (config.showPageBadges) refreshPageBadges();
+  });
+}
+
+/** Сайты вакансий — одностраничные приложения: смена URL не перезагружает скрипт. */
+function watchUrlChanges(onChange: () => void): void {
+  let previous = location.href;
+  const check = () => {
+    if (location.href === previous) return;
+    previous = location.href;
+    onChange();
+  };
+  window.addEventListener('popstate', check);
+  window.addEventListener('hashchange', check);
+  setInterval(check, 1000);
 }

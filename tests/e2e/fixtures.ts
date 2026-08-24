@@ -138,7 +138,13 @@ const CHROME_STUB = () => {
       case 'ping':
         return { ok: true, version: '0.1.0' };
       case 'get_active_tab_context':
-        return { tabId: 1, pageInfo: null, hasPermission: false };
+        return {
+          tabId: 1,
+          pageInfo: null,
+          hasPermission: false,
+          restricted: false,
+          hostname: 'jobs.example.com',
+        };
       case 'get_scan_progress':
         return {
           sessionId: '',

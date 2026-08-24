@@ -8,6 +8,8 @@ import {
 } from '@/types/application';
 import { assertApplicationTransition } from '@/core/state/applicationState';
 import { createId } from '@/utils/id';
+import { getJob } from './jobRepository';
+import { recordSubmission } from './submissionRepository';
 
 export async function createApplication(jobId: string): Promise<Application> {
   const existing = await getApplicationByJob(jobId);
@@ -66,8 +68,8 @@ export async function updateApplication(
 }
 
 /**
- * Единственный путь в `submitted`. `confirmedByUser` должен приходить от
- * реального клика на экране проверки — программно его выставлять нельзя.
+ * Отметка отправки по клику на экране проверки. `confirmedByUser` должен
+ * приходить от реального клика — программно его выставлять нельзя.
  */
 export async function markSubmitted(id: string, confirmedByUser: boolean): Promise<Application> {
   if (!confirmedByUser) {
@@ -79,12 +81,82 @@ export async function markSubmitted(id: string, confirmedByUser: boolean): Promi
     state: 'submitted',
     submittedAt: Date.now(),
     submittedByUser: true,
+    submissionSource: 'manual',
   });
   await logApplicationEvent(
     id,
     application.jobId,
     'submit_confirmed',
     'Пользователь подтвердил отправку',
+  );
+  // Подтверждённая отправка сразу попадает в журнал откликов — он единая лента
+  // и для ручных подтверждений, и для того, что заметила автоматика.
+  const job = await getJob(application.jobId);
+  await recordSubmission({
+    jobId: application.jobId,
+    applicationId: application.id,
+    at: application.submittedAt ?? Date.now(),
+    source: 'manual',
+    signal: 'user_confirmed',
+    ...(job ? { url: job.url, title: job.title, company: job.company, score: job.score } : {}),
+  });
+  return application;
+}
+
+/**
+ * Отметка отправки по наблюдению: пользователь сам нажал «Откликнуться» на
+ * сайте, а content-скрипт это заметил. JobPilot по-прежнему ничего не
+ * отправляет — он фиксирует уже случившееся действие человека.
+ *
+ * Отличается от `markSubmitted` только источником: `submissionSource: 'auto'`.
+ * Именно по этому полю интерфейс показывает, что отметку можно откатить, если
+ * автоматика ошиблась.
+ */
+export async function markSubmittedAutomatically(
+  id: string,
+  evidence: { signal: string; url: string; at?: number },
+): Promise<Application> {
+  const current = await getApplication(id);
+  if (!current) throw new Error(`Заявка не найдена: ${id}`);
+  if (current.state === 'submitted') return current;
+
+  const application = await updateApplication(id, {
+    state: 'submitted',
+    submittedAt: evidence.at ?? Date.now(),
+    submittedByUser: true,
+    submissionSource: 'auto',
+  });
+  await logApplicationEvent(
+    id,
+    application.jobId,
+    'submit_confirmed',
+    'Автоматика заметила отправку на сайте',
+    { signal: evidence.signal, url: evidence.url },
+  );
+  return application;
+}
+
+/**
+ * Откат ошибочной автоматической отметки. Подтверждённую человеком отправку
+ * отменить нельзя: это его слово, а не догадка программы.
+ */
+export async function revertAutoSubmission(id: string): Promise<Application> {
+  const current = await getApplication(id);
+  if (!current) throw new Error(`Заявка не найдена: ${id}`);
+  if (current.state !== 'submitted' || current.submissionSource !== 'auto') {
+    throw new Error('Откатить можно только автоматическую отметку об отправке.');
+  }
+  const application = await updateApplication(id, {
+    state: 'ready',
+    submittedAt: null,
+    submittedByUser: false,
+    submissionSource: 'manual',
+  });
+  await logApplicationEvent(
+    id,
+    application.jobId,
+    'user_edited',
+    'Пользователь отменил автоматическую отметку об отправке',
   );
   return application;
 }
