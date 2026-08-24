@@ -8,6 +8,8 @@ import {
 } from '@/types/application';
 import { assertApplicationTransition } from '@/core/state/applicationState';
 import { createId } from '@/utils/id';
+import { getJob } from './jobRepository';
+import { recordSubmission } from './submissionRepository';
 
 export async function createApplication(jobId: string): Promise<Application> {
   const existing = await getApplicationByJob(jobId);
@@ -86,6 +88,17 @@ export async function markSubmitted(id: string, confirmedByUser: boolean): Promi
     'submit_confirmed',
     'Пользователь подтвердил отправку',
   );
+  // Подтверждённая отправка сразу попадает в журнал откликов — он единая лента
+  // и для ручных подтверждений, и для того, что заметила автоматика.
+  const job = await getJob(application.jobId);
+  await recordSubmission({
+    jobId: application.jobId,
+    applicationId: application.id,
+    at: application.submittedAt ?? Date.now(),
+    source: 'manual',
+    signal: 'user_confirmed',
+    ...(job ? { url: job.url, title: job.title, company: job.company, score: job.score } : {}),
+  });
   return application;
 }
 

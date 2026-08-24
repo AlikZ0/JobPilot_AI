@@ -2,19 +2,21 @@ import { create } from 'zustand';
 import type { Job } from '@/types/job';
 import type { JobAnalysis } from '@/types/ai';
 import type { Application } from '@/types/application';
+import type { SubmissionRecord } from '@/types/submission';
 import type { UserProfile } from '@/types/profile';
 import type { Settings } from '@/types/settings';
 import type { PageInfo, ToastPayload } from '@/types/messages';
 import { EMPTY_PROGRESS, type ScanProgress } from '@/types/scan';
 import { MESSAGE_TYPES } from '@/types/messages';
 import { sendToBackground } from '@/utils/messaging';
-import { describeError, toSerializedError } from '@/utils/errors';
+import { ERROR_CODES, describeError, toSerializedError } from '@/utils/errors';
 import { createId } from '@/utils/id';
 import { getProfile, saveProfile } from '@/database/repositories/profileRepository';
 import { getSettings, saveSettings } from '@/database/repositories/settingsRepository';
 import { listJobs } from '@/database/repositories/jobRepository';
 import { listAnalyses } from '@/database/repositories/analysisRepository';
 import { listApplications } from '@/database/repositories/applicationRepository';
+import { listSubmissions } from '@/database/repositories/submissionRepository';
 
 export type Route =
   | 'dashboard'
@@ -36,20 +38,27 @@ interface JobPilotState {
   route: Route;
   selectedJobId: string | null;
   selectedApplicationId: string | null;
+  /** Какая вкладка открыта на экране «Заявки»: черновики или журнал откликов. */
+  applicationsTab: 'drafts' | 'history';
   profile: UserProfile | null;
   settings: Settings | null;
   jobs: Job[];
   analyses: Record<string, JobAnalysis>;
   applications: Application[];
+  submissions: SubmissionRecord[];
   pageInfo: PageInfo | null;
   activeTabId: number | null;
   hasHostPermission: boolean;
+  /** Служебная страница Chrome: расширение туда не пускают, доступ выдать нельзя. */
+  tabRestricted: boolean;
+  tabHostname: string;
   scan: ScanProgress;
   busy: string | null;
   toasts: Toast[];
 
   init(): Promise<void>;
   navigate(route: Route, id?: string): void;
+  openSubmissionHistory(): void;
   refreshData(): Promise<void>;
   refreshTabContext(): Promise<void>;
   updateProfile(patch: Partial<UserProfile>, bumpVersion?: boolean): Promise<void>;
@@ -67,14 +76,18 @@ export const useStore = create<JobPilotState>((set, get) => ({
   route: 'dashboard',
   selectedJobId: null,
   selectedApplicationId: null,
+  applicationsTab: 'drafts',
   profile: null,
   settings: null,
   jobs: [],
   analyses: {},
   applications: [],
+  submissions: [],
   pageInfo: null,
   activeTabId: null,
   hasHostPermission: false,
+  tabRestricted: false,
+  tabHostname: '',
   scan: EMPTY_PROGRESS,
   busy: null,
   toasts: [],
@@ -102,18 +115,23 @@ export const useStore = create<JobPilotState>((set, get) => ({
     else set({ route });
   },
 
+  openSubmissionHistory() {
+    set({ route: 'applications', applicationsTab: 'history' });
+  },
+
   async refreshData() {
-    const [jobs, analyses, applications] = await Promise.all([
+    const [jobs, analyses, applications, submissions] = await Promise.all([
       listJobs({ limit: 500, sortBy: 'discoveredAt' }),
       listAnalyses(500),
       listApplications(),
+      listSubmissions(500),
     ]);
     const byJob: Record<string, JobAnalysis> = {};
     for (const analysis of analyses) {
       const current = byJob[analysis.jobId];
       if (!current || current.createdAt < analysis.createdAt) byJob[analysis.jobId] = analysis;
     }
-    set({ jobs, analyses: byJob, applications });
+    set({ jobs, analyses: byJob, applications, submissions });
   },
 
   async refreshTabContext() {
@@ -123,9 +141,11 @@ export const useStore = create<JobPilotState>((set, get) => ({
         pageInfo: context.pageInfo,
         activeTabId: context.tabId,
         hasHostPermission: context.hasPermission,
+        tabRestricted: context.restricted,
+        tabHostname: context.hostname,
       });
     } catch {
-      set({ pageInfo: null, hasHostPermission: false });
+      set({ pageInfo: null, hasHostPermission: false, tabRestricted: false, tabHostname: '' });
     }
   },
 
@@ -144,6 +164,9 @@ export const useStore = create<JobPilotState>((set, get) => ({
   },
 
   pushToast(toast) {
+    // Одинаковые сообщения не дублируются: две копии одной ошибки выглядят
+    // как две разные проблемы.
+    if (get().toasts.some((current) => current.message === toast.message)) return;
     const entry = { ...toast, id: createId('toast') };
     set({ toasts: [...get().toasts, entry] });
     setTimeout(() => get().dismissToast(entry.id), toast.level === 'error' ? 8000 : 4000);
@@ -155,7 +178,15 @@ export const useStore = create<JobPilotState>((set, get) => ({
 
   reportError(error) {
     const serialized = toSerializedError(error);
-    get().pushToast({ level: 'error', message: describeError(serialized) });
+    // Запрет Chrome и не выданный доступ — это не поломка, а ожидаемое
+    // состояние: красный тост тут только пугает.
+    const expected =
+      serialized.code === ERROR_CODES.RESTRICTED_PAGE ||
+      serialized.code === ERROR_CODES.PERMISSION_DENIED;
+    get().pushToast({
+      level: expected ? 'warning' : 'error',
+      message: describeError(serialized),
+    });
   },
 
   setScan(progress) {

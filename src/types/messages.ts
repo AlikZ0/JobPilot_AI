@@ -1,5 +1,6 @@
 import type { DetectedFormField, FieldMapping, FillPlan, FillResult } from './application';
-import type { ExtractedJob, Job, JobSummary } from './job';
+import type { ExtractedJob, Job, JobState, JobSummary } from './job';
+import type { SubmissionSignal } from './submission';
 import type { JobAnalysis, ResumeAnalysis } from './ai';
 import type { ScanProgress } from './scan';
 import type { UserProfile } from './profile';
@@ -35,6 +36,12 @@ export const MESSAGE_TYPES = {
   GET_ACTIVE_TAB_CONTEXT: 'get_active_tab_context',
   OPEN_SIDE_PANEL: 'open_side_panel',
 
+  // content-скрипт -> фоновый воркер (журнал откликов и метки на странице)
+  TRACKER_CONFIG: 'tracker_config',
+  SYNC_TRACKING: 'sync_tracking',
+  SUBMISSION_DETECTED: 'submission_detected',
+  GET_PAGE_MARKS: 'get_page_marks',
+
   // фоновый воркер -> content-скрипт
   CONTENT_PING: 'content_ping',
   CONTENT_EXTRACT_JOB: 'content_extract_job',
@@ -56,6 +63,21 @@ export type MessageType = (typeof MESSAGE_TYPES)[keyof typeof MESSAGE_TYPES];
 
 export interface TabTarget {
   tabId?: number;
+}
+
+/** Что содержимому страницы разрешено делать: настраивается пользователем. */
+export interface TrackerConfig {
+  trackSubmissions: boolean;
+  showPageBadges: boolean;
+}
+
+/** Что JobPilot уже знает про ссылку на вакансию — для меток прямо на сайте. */
+export interface PageMark {
+  url: string;
+  jobId: string;
+  score: number | null;
+  state: JobState;
+  submittedAt: number | null;
 }
 
 export interface PageInfo {
@@ -153,9 +175,24 @@ export type MessageDefs =
   | Def<
       typeof MESSAGE_TYPES.GET_ACTIVE_TAB_CONTEXT,
       undefined,
-      { tabId: number | null; pageInfo: PageInfo | null; hasPermission: boolean }
+      {
+        tabId: number | null;
+        pageInfo: PageInfo | null;
+        hasPermission: boolean;
+        /** Служебная страница Chrome: доступ к ней выдать нельзя в принципе. */
+        restricted: boolean;
+        hostname: string;
+      }
     >
   | Def<typeof MESSAGE_TYPES.OPEN_SIDE_PANEL, TabTarget, { ok: boolean }>
+  | Def<typeof MESSAGE_TYPES.TRACKER_CONFIG, undefined, TrackerConfig>
+  | Def<typeof MESSAGE_TYPES.SYNC_TRACKING, undefined, { active: boolean }>
+  | Def<
+      typeof MESSAGE_TYPES.SUBMISSION_DETECTED,
+      { url: string; signal: SubmissionSignal; title?: string },
+      { recorded: boolean; reason: string }
+    >
+  | Def<typeof MESSAGE_TYPES.GET_PAGE_MARKS, { urls: string[] }, { marks: PageMark[] }>
   | Def<typeof MESSAGE_TYPES.CONTENT_PING, undefined, { ok: true }>
   | Def<typeof MESSAGE_TYPES.CONTENT_EXTRACT_JOB, { maxDescriptionChars: number }, ExtractedJob>
   | Def<typeof MESSAGE_TYPES.CONTENT_EXTRACT_LISTING, undefined, { jobs: JobSummary[] }>

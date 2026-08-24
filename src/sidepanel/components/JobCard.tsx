@@ -1,7 +1,8 @@
-import type { Job } from '@/types/job';
+import type { Job, JobState } from '@/types/job';
 import type { JobAnalysis } from '@/types/ai';
 import { MatchScore } from './MatchScore';
 import { SkillBadge } from './SkillBadge';
+import { Icon } from './Icon';
 import { formatRelative } from '@/utils/time';
 import { JOB_PRIORITY_LABEL, JOB_STATE_LABEL, WORK_MODE_LABEL } from '../labels';
 
@@ -27,6 +28,20 @@ function salaryLabel(job: Job): string {
   return `${currency}${range}${period}`;
 }
 
+/** Цвет статуса подсказывает, на каком шаге вакансия, без чтения подписи. */
+const STATE_STYLE: Record<JobState, string> = {
+  discovered: '',
+  queued: '',
+  analyzing: 'border-good/40 bg-good/10 text-good',
+  analyzed: 'border-good/40 bg-good/10 text-good',
+  saved: 'border-brand/40 bg-brand/10 text-brand',
+  application_preparing: 'border-potential/40 bg-potential/10 text-potential',
+  application_ready: 'border-potential/40 bg-potential/10 text-potential',
+  submitted: 'border-excellent/40 bg-excellent/10 text-excellent',
+  rejected: 'border-poor/40 bg-poor/10 text-poor',
+  error: 'border-poor/40 bg-poor/10 text-poor',
+};
+
 export function JobCard({
   job,
   analysis,
@@ -39,28 +54,41 @@ export function JobCard({
 }: Props) {
   const matched = analysis?.matchedSkills.slice(0, 6) ?? [];
   const missing = analysis?.missingSkills.slice(0, 4) ?? [];
+  const saved = job.state === 'saved';
 
   return (
-    <article className="jp-card flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+    <article className="jp-card flex flex-col gap-2.5 transition duration-150 hover:border-border-strong">
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="min-w-0 flex-1">
           <button
             type="button"
             onClick={onSelect}
-            className="text-left text-[14px] font-semibold leading-tight hover:underline"
+            className="text-left text-[14px] font-semibold leading-snug hover:text-brand hover:underline"
           >
             {job.title || 'Вакансия без названия'}
           </button>
-          <p className="truncate text-[12px] text-muted">
-            {job.company || 'Компания не указана'}
-            {job.location ? ` · ${job.location}` : ''}
-            {job.workMode !== 'unknown' ? ` · ${WORK_MODE_LABEL[job.workMode]}` : ''}
+          <p className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-muted">
+            <Icon name="briefcase" size={12} />
+            <span className="truncate">{job.company || 'Компания не указана'}</span>
           </p>
+          {job.location || job.workMode !== 'unknown' ? (
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted">
+              <Icon name="pin" size={12} />
+              <span className="truncate">
+                {[job.location, job.workMode !== 'unknown' ? WORK_MODE_LABEL[job.workMode] : '']
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </p>
+          ) : null}
         </div>
         {analysis ? (
           <MatchScore score={analysis.score} band={analysis.band} />
         ) : (
-          <span className="jp-badge">Не проанализирована</span>
+          <span className="jp-badge flex-shrink-0 text-muted">
+            <Icon name="clock" size={11} />
+            Не проанализирована
+          </span>
         )}
       </div>
 
@@ -75,42 +103,67 @@ export function JobCard({
         </div>
       ) : null}
 
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted">
-        <div className="flex gap-1">
-          <dt className="font-medium">Зарплата:</dt>
+      <dl className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+        <div className="flex items-center gap-1">
+          <dt className="sr-only">Зарплата</dt>
+          <Icon name="money" size={12} />
           <dd>{salaryLabel(job)}</dd>
         </div>
-        <div className="flex gap-1">
-          <dt className="font-medium">Найдена:</dt>
+        <div className="flex items-center gap-1">
+          <dt className="sr-only">Найдена</dt>
+          <Icon name="clock" size={12} />
           <dd>{formatRelative(job.discoveredAt)}</dd>
         </div>
-        <div className="flex gap-1">
-          <dt className="font-medium">Статус:</dt>
-          <dd>{JOB_STATE_LABEL[job.state]}</dd>
-        </div>
-        <div className="flex gap-1">
-          <dt className="font-medium">Приоритет:</dt>
-          <dd>{JOB_PRIORITY_LABEL[job.priority]}</dd>
+        {job.priority !== 'normal' ? (
+          <div className="flex items-center gap-1">
+            <dt className="sr-only">Приоритет</dt>
+            <Icon name="flag" size={12} />
+            <dd>{JOB_PRIORITY_LABEL[job.priority]}</dd>
+          </div>
+        ) : null}
+        <div className="ml-auto">
+          <dt className="sr-only">Статус</dt>
+          <dd className={`jp-badge ${STATE_STYLE[job.state]}`}>{JOB_STATE_LABEL[job.state]}</dd>
         </div>
       </dl>
 
-      <div className="flex flex-wrap gap-1.5">
-        <button type="button" className="jp-button" onClick={onAnalyze} disabled={busy}>
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
+        <button
+          type="button"
+          className="jp-button-primary jp-button-sm"
+          onClick={onPrepare}
+          disabled={busy}
+        >
+          <Icon name="send" size={13} />
+          Подготовить заявку
+        </button>
+        <button
+          type="button"
+          className="jp-button jp-button-sm"
+          onClick={onAnalyze}
+          disabled={busy}
+        >
+          <Icon name={analysis ? 'refresh' : 'target'} size={13} />
           {analysis ? 'Проанализировать заново' : 'Анализировать'}
         </button>
         <button
           type="button"
-          className="jp-button"
+          className={`jp-button jp-button-sm ${saved ? 'text-brand' : ''}`}
           onClick={onSave}
-          disabled={busy || job.state === 'saved'}
+          disabled={busy || saved}
+          title={saved ? 'Вакансия уже сохранена' : 'Сохранить вакансию'}
         >
-          {job.state === 'saved' ? 'Сохранена' : 'Сохранить'}
+          <Icon name="bookmark" size={13} />
+          {saved ? 'Сохранена' : 'Сохранить'}
         </button>
-        <button type="button" className="jp-button" onClick={onOpen}>
+        <button
+          type="button"
+          className="jp-button-ghost jp-button-sm ml-auto"
+          onClick={onOpen}
+          title="Открыть вакансию на сайте"
+        >
+          <Icon name="external" size={13} />
           Открыть вакансию
-        </button>
-        <button type="button" className="jp-button-primary" onClick={onPrepare} disabled={busy}>
-          Подготовить заявку
         </button>
       </div>
     </article>

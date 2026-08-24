@@ -9,6 +9,7 @@ import {
 } from '@/database/repositories/applicationRepository';
 import { markApplicationReady } from '@/core/application/applicationService';
 import { createId } from '@/utils/id';
+import { formatDateTime } from '@/utils/time';
 import { useStore, withBusy } from '../state/store';
 import { Empty } from '../components/Empty';
 import { MatchScore } from '../components/MatchScore';
@@ -18,6 +19,7 @@ import {
   MAPPING_SOURCE_LABEL,
   fieldTypeLabel,
 } from '../labels';
+import { Icon } from '../components/Icon';
 
 /**
  * Экран проверки. JobPilot заполняет поля и готовит тексты, но саму отправку
@@ -28,6 +30,7 @@ export function ApplicationReview() {
   const applicationId = useStore((state) => state.selectedApplicationId);
   const applications = useStore((state) => state.applications);
   const jobs = useStore((state) => state.jobs);
+  const submissions = useStore((state) => state.submissions);
   const analyses = useStore((state) => state.analyses);
   const profile = useStore((state) => state.profile);
   const activeTabId = useStore((state) => state.activeTabId);
@@ -37,6 +40,10 @@ export function ApplicationReview() {
 
   const application = applications.find((entry) => entry.id === applicationId);
   const job = jobs.find((entry) => entry.id === application?.jobId);
+  // Автоматика могла заметить отправку раньше, чем пользователь дошёл до этого экрана.
+  const detected = submissions.find(
+    (row) => row.jobId === application?.jobId && row.source === 'auto',
+  );
   const analysis = job ? analyses[job.id] : undefined;
 
   const [mappings, setMappings] = useState<FieldMapping[]>([]);
@@ -187,10 +194,11 @@ export function ApplicationReview() {
     <div className="flex flex-col gap-3">
       <button
         type="button"
-        className="jp-button-ghost self-start"
+        className="jp-button-ghost jp-button-sm self-start"
         onClick={() => navigate('applications')}
       >
-        ← Заявки
+        <Icon name="chevronLeft" size={13} />
+        Заявки
       </button>
 
       <header className="flex items-start justify-between gap-2">
@@ -265,8 +273,9 @@ export function ApplicationReview() {
           <p className="text-[11px] text-muted">Форма ещё не прочитана.</p>
         )}
         {needsAttention.length > 0 ? (
-          <p className="text-[11px] text-potential">
-            ⚠ Полей, ждущих вашего подтверждения: {needsAttention.length}.
+          <p className="flex items-center gap-1.5 text-[11px] text-potential">
+            <Icon name="alert" size={12} />
+            Полей, ждущих вашего подтверждения: {needsAttention.length}.
           </p>
         ) : null}
       </section>
@@ -325,8 +334,9 @@ export function ApplicationReview() {
                 }
               />
               {question.status === 'needs_user_confirmation' ? (
-                <p className="mt-1 text-[11px] text-potential">
-                  ⚠ Требуется подтверждение: {question.missingInformation.join('; ')}
+                <p className="mt-1 flex items-start gap-1.5 text-[11px] text-potential">
+                  <Icon name="alert" size={12} />
+                  Требуется подтверждение: {question.missingInformation.join('; ')}
                 </p>
               ) : null}
             </li>
@@ -356,6 +366,19 @@ export function ApplicationReview() {
           <dt className="text-muted">Вложение</dt>
           <dd>{profile.attachments.find((a) => a.isDefault)?.name ?? 'не выбрано'}</dd>
         </dl>
+
+        {detected && application.state !== 'submitted' ? (
+          <div className="rounded-lg border border-potential/40 bg-potential/10 p-2 text-[11px]">
+            <p className="flex items-center gap-1.5 font-semibold text-potential">
+              <Icon name="bolt" size={12} />
+              JobPilot заметил отправку {formatDateTime(detected.at)}
+            </p>
+            <p className="mt-0.5 text-muted">
+              Отклик уже записан в историю. Отметьте галочку ниже, если это действительно была эта
+              заявка, — заявка перейдёт в состояние «Отправлена».
+            </p>
+          </div>
+        ) : null}
 
         <div className="rounded-md border border-border bg-surface-3 p-2 text-[11px]">
           <p className="font-semibold">JobPilot никогда не отправляет заявку за вас.</p>

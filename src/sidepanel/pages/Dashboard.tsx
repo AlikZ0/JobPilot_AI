@@ -3,15 +3,45 @@ import { useStore } from '../state/store';
 import { PageActions } from '../components/PageActions';
 import { JobCard } from '../components/JobCard';
 import { Empty } from '../components/Empty';
-import { isToday } from '@/utils/time';
+import { formatRelative, isToday } from '@/utils/time';
 import { useJobActions } from '../hooks/useJobActions';
+import { Icon, type IconName } from '../components/Icon';
 
-function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+type Accent = 'brand' | 'good' | 'excellent' | 'potential';
+
+const ACCENT: Record<Accent, string> = {
+  brand: 'bg-brand/10 text-brand',
+  good: 'bg-good/10 text-good',
+  excellent: 'bg-excellent/10 text-excellent',
+  potential: 'bg-potential/10 text-potential',
+};
+
+function Stat({
+  label,
+  value,
+  hint,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  icon: IconName;
+  accent: Accent;
+}) {
   return (
-    <div className="jp-card py-2">
-      <p className="text-[18px] font-bold leading-none tabular-nums">{value}</p>
-      <p className="mt-1 text-[11px] font-medium">{label}</p>
-      {hint ? <p className="text-[10px] text-muted">{hint}</p> : null}
+    <div className="jp-card flex flex-col gap-1.5 p-2.5">
+      <span
+        className={`flex h-6 w-6 items-center justify-center rounded-md ${ACCENT[accent]}`}
+        aria-hidden="true"
+      >
+        <Icon name={icon} size={13} />
+      </span>
+      <p className="text-[20px] font-bold leading-none tabular-nums">{value}</p>
+      <div>
+        <p className="text-[11px] font-medium leading-tight">{label}</p>
+        {hint ? <p className="text-[10px] text-muted">{hint}</p> : null}
+      </div>
     </div>
   );
 }
@@ -20,7 +50,9 @@ export function Dashboard() {
   const jobs = useStore((state) => state.jobs);
   const analyses = useStore((state) => state.analyses);
   const applications = useStore((state) => state.applications);
+  const submissions = useStore((state) => state.submissions);
   const navigate = useStore((state) => state.navigate);
+  const openSubmissionHistory = useStore((state) => state.openSubmissionHistory);
   const actions = useJobActions();
 
   const stats = useMemo(() => {
@@ -53,41 +85,98 @@ export function Dashboard() {
       average,
       prepared: applications.filter((app) => ['review', 'ready', 'filling'].includes(app.state))
         .length,
-      submitted: applications.filter((app) => app.state === 'submitted').length,
+      // «Отправлено» считается по журналу откликов: туда попадают и отклики,
+      // отправленные мимо JobPilot, прямо на сайте.
+      submitted: submissions.filter((row) => isToday(row.at)).length,
       topMissing,
       recommendedRoles: [...roleCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5),
     };
-  }, [jobs, analyses, applications]);
+  }, [jobs, analyses, applications, submissions]);
 
   const recent = jobs.slice(0, 5);
+  const recentSubmissions = submissions.slice(0, 3);
 
   return (
     <div className="flex flex-col gap-3">
       <PageActions />
 
       <section>
-        <h2 className="jp-section-title mb-1.5">Сегодня</h2>
+        <h2 className="jp-section-title mb-1.5">
+          <Icon name="dashboard" size={12} />
+          Сегодня
+        </h2>
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="Проанализировано" value={stats.analyzedToday} />
-          <Stat label="Хорошие" value={stats.good} hint="75–89%" />
-          <Stat label="Отличные" value={stats.excellent} hint="90%+" />
-          <Stat label="Заявок готово" value={stats.prepared} />
-          <Stat label="Отправлено" value={stats.submitted} />
-          <Stat label="Средний балл" value={`${stats.average}%`} />
+          <Stat label="Проанализировано" value={stats.analyzedToday} icon="target" accent="brand" />
+          <Stat label="Хорошие" value={stats.good} hint="75–89%" icon="check" accent="good" />
+          <Stat
+            label="Отличные"
+            value={stats.excellent}
+            hint="90%+"
+            icon="sparkles"
+            accent="excellent"
+          />
+          <Stat label="Заявок готово" value={stats.prepared} icon="file" accent="potential" />
+          <Stat label="Откликов" value={stats.submitted} icon="send" accent="excellent" />
+          <Stat label="Средний балл" value={`${stats.average}%`} icon="trending" accent="brand" />
         </div>
       </section>
 
-      {stats.topMissing.length > 0 ? (
+      {submissions.length > 0 ? (
         <section className="jp-card">
-          <h2 className="jp-section-title mb-1.5">Чего чаще всего не хватает</h2>
-          <ul className="flex flex-wrap gap-1">
-            {stats.topMissing.map(([skill, count]) => (
-              <li key={skill} className="jp-badge">
-                {skill} <span className="text-muted">×{count}</span>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <h2 className="jp-section-title">
+              <Icon name="send" size={12} />
+              Последние отклики
+            </h2>
+            <button
+              type="button"
+              className="jp-button-ghost jp-button-sm"
+              onClick={openSubmissionHistory}
+            >
+              Вся история
+              <Icon name="chevronRight" size={12} />
+            </button>
+          </div>
+          <ul className="flex flex-col">
+            {recentSubmissions.map((record) => (
+              <li
+                key={record.id}
+                className="flex items-center justify-between gap-2 border-b border-border py-1.5 text-[12px] last:border-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{record.title || 'Вакансия без названия'}</p>
+                  <p className="truncate text-[10px] text-muted">
+                    {record.company || record.hostname || 'источник неизвестен'}
+                  </p>
+                </div>
+                <span className="flex flex-shrink-0 items-center gap-1 text-[10px] text-muted">
+                  {record.source === 'auto' ? (
+                    <Icon name="bolt" size={10} />
+                  ) : (
+                    <Icon name="check" size={10} strokeWidth={2.4} />
+                  )}
+                  {formatRelative(record.at)}
+                </span>
               </li>
             ))}
           </ul>
-          <p className="mt-1.5 text-[11px] text-muted">
+        </section>
+      ) : null}
+
+      {stats.topMissing.length > 0 ? (
+        <section className="jp-card">
+          <h2 className="jp-section-title mb-1.5">
+            <Icon name="alert" size={12} />
+            Чего чаще всего не хватает
+          </h2>
+          <ul className="flex flex-wrap gap-1">
+            {stats.topMissing.map(([skill, count]) => (
+              <li key={skill} className="jp-badge border-weak/40 bg-weak/10 text-weak">
+                {skill} <span className="opacity-70">×{count}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] leading-snug text-muted">
             Освоив первый пункт, вы улучшите совпадение по {stats.topMissing[0]?.[1] ?? 0}{' '}
             проанализированным вакансиям.
           </p>
@@ -96,12 +185,18 @@ export function Dashboard() {
 
       {stats.recommendedRoles.length > 0 ? (
         <section className="jp-card">
-          <h2 className="jp-section-title mb-1.5">Какие роли подходят вам чаще всего</h2>
-          <ul className="flex flex-col gap-0.5 text-[12px]">
+          <h2 className="jp-section-title mb-1.5">
+            <Icon name="target" size={12} />
+            Какие роли подходят вам чаще всего
+          </h2>
+          <ul className="flex flex-col text-[12px]">
             {stats.recommendedRoles.map(([role, count]) => (
-              <li key={role} className="flex justify-between gap-2">
+              <li
+                key={role}
+                className="flex justify-between gap-2 border-b border-border py-1 last:border-0"
+              >
                 <span className="truncate">{role}</span>
-                <span className="text-muted">×{count}</span>
+                <span className="flex-shrink-0 tabular-nums text-muted">×{count}</span>
               </li>
             ))}
           </ul>
@@ -109,14 +204,23 @@ export function Dashboard() {
       ) : null}
 
       <section>
-        <div className="mb-1.5 flex items-center justify-between">
-          <h2 className="jp-section-title">Последние вакансии</h2>
-          <button type="button" className="jp-button-ghost" onClick={() => navigate('jobs')}>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <h2 className="jp-section-title">
+            <Icon name="briefcase" size={12} />
+            Последние вакансии
+          </h2>
+          <button
+            type="button"
+            className="jp-button-ghost jp-button-sm"
+            onClick={() => navigate('jobs')}
+          >
             Все вакансии
+            <Icon name="chevronRight" size={12} />
           </button>
         </div>
         {recent.length === 0 ? (
           <Empty
+            icon="briefcase"
             title="Вакансий пока нет"
             hint="Откройте вакансию и нажмите «Анализировать эту вакансию» или запустите массовый анализ на странице поиска."
           />

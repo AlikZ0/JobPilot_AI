@@ -11,6 +11,7 @@ import { getSettings, replaceSettings } from './repositories/settingsRepository'
 import { bulkPutJobs } from './repositories/jobRepository';
 import { bulkPutAnalyses } from './repositories/analysisRepository';
 import { bulkPutApplications } from './repositories/applicationRepository';
+import { bulkPutSubmissions } from './repositories/submissionRepository';
 
 const APP_VERSION = '0.1.0';
 
@@ -20,12 +21,13 @@ const APP_VERSION = '0.1.0';
  */
 export async function exportAllData(): Promise<ExportBundle> {
   const db = getDb();
-  const [profile, settings, jobs, analyses, applications] = await Promise.all([
+  const [profile, settings, jobs, analyses, applications, submissions] = await Promise.all([
     getProfileOrNull(),
     getSettings(),
     db.jobs.toArray(),
     db.analyses.toArray(),
     db.applications.toArray(),
+    db.submissions.toArray(),
   ]);
   return exportBundleSchema.parse({
     version: EXPORT_VERSION,
@@ -37,6 +39,7 @@ export async function exportAllData(): Promise<ExportBundle> {
     jobs,
     analyses,
     applications,
+    submissions,
   });
 }
 
@@ -46,6 +49,7 @@ export interface ImportSummary {
   jobs: number;
   analyses: number;
   applications: number;
+  submissions: number;
   warnings: string[];
 }
 
@@ -71,6 +75,7 @@ export async function importData(
     jobs: 0,
     analyses: 0,
     applications: 0,
+    submissions: 0,
     warnings: [],
   };
 
@@ -97,6 +102,10 @@ export async function importData(
     if (orphans > 0) summary.warnings.push(`Пропущено заявок: ${orphans} — нет исходной вакансии.`);
     await bulkPutApplications(importable);
     summary.applications = importable.length;
+
+    const importableSubmissions = bundle.submissions.filter((row) => jobIds.has(row.jobId));
+    await bulkPutSubmissions(importableSubmissions);
+    summary.submissions = importableSubmissions.length;
   }
   return summary;
 }

@@ -27,6 +27,10 @@ export const automationSettingsSchema = z.object({
   delayBetweenJobsMs: z.number().int().min(500).max(60_000).default(2500),
   minScoreToPrepareApplication: z.number().int().min(0).max(100).default(85),
   skipAlreadyAnalyzed: z.boolean().default(true),
+  /** Вести журнал откликов автоматически: замечать отправку формы на сайте. */
+  trackSubmissions: z.boolean().default(true),
+  /** Показывать метки JobPilot прямо на страницах сайтов с вакансиями. */
+  showPageBadges: z.boolean().default(true),
 });
 export type AutomationSettings = z.infer<typeof automationSettingsSchema>;
 

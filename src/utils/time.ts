@@ -32,13 +32,17 @@ export function isToday(timestamp: number, now = Date.now()): boolean {
 
 export function formatRelative(timestamp: number, now = Date.now()): string {
   const diff = now - timestamp;
-  if (diff < MINUTE_MS) return 'just now';
-  if (diff < HOUR_MS) return `${Math.floor(diff / MINUTE_MS)}m ago`;
-  if (diff < DAY_MS) return `${Math.floor(diff / HOUR_MS)}h ago`;
-  if (diff < 7 * DAY_MS) return `${Math.floor(diff / DAY_MS)}d ago`;
+  if (diff < MINUTE_MS) return 'только что';
+  if (diff < HOUR_MS) return `${Math.floor(diff / MINUTE_MS)} мин назад`;
+  if (diff < DAY_MS) return `${Math.floor(diff / HOUR_MS)} ч назад`;
+  if (diff < 7 * DAY_MS) return `${Math.floor(diff / DAY_MS)} дн назад`;
   return new Date(timestamp).toLocaleDateString();
 }
 
 export function formatDateTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
+  // Локаль берётся из браузера, но без секунд: в интерфейсе они только шумят.
+  return new Date(timestamp).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 }

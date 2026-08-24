@@ -20,6 +20,7 @@ import {
   SKILL_CATEGORY_LABEL,
   WORK_MODE_LABEL,
 } from '../labels';
+import { Icon } from './Icon';
 
 interface Props {
   profile: UserProfile;
@@ -388,9 +389,9 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                             skills: profile.skills.filter((entry) => entry.name !== skill.name),
                           })
                         }
-                        className="text-muted hover:text-poor"
+                        className="rounded-full text-muted transition hover:text-poor"
                       >
-                        ✕
+                        <Icon name="x" size={11} strokeWidth={2.4} />
                       </button>
                     </li>
                   ))}
@@ -456,9 +457,9 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       languages: profile.languages.filter((entry) => entry.name !== language.name),
                     })
                   }
-                  className="text-muted hover:text-poor"
+                  className="rounded-full text-muted transition hover:text-poor"
                 >
-                  ✕
+                  <Icon name="x" size={11} strokeWidth={2.4} />
                 </button>
               </li>
             ))}
