@@ -4,12 +4,14 @@ import { applicationSchema, type Application } from '@/types/application';
 import { buildFunnel, dueFollowUps, reachedStage, stampsFor } from '@/core/pipeline/funnel';
 import {
   createApplication,
+  getApplication,
   markSubmitted,
   setApplicationOutcome,
   setFollowUp,
   updateApplication,
 } from '@/database/repositories/applicationRepository';
 import { DAY_MS, formatUntil } from '@/utils/time';
+import { runDueFollowUps, scheduleFollowUpChecks } from '@/background/followUps';
 
 function app(overrides: Partial<Application> = {}): Application {
   return applicationSchema.parse({
@@ -190,5 +192,56 @@ describe('подпись срока напоминания', () => {
 
   it('неполные сутки округляются вверх: «через 0 дн» бессмысленно', () => {
     expect(formatUntil(now + Math.round(1.2 * DAY_MS), now)).toBe('через 2 дн');
+  });
+});
+
+describe('планировщик напоминаний', () => {
+  const alarms = () => (globalThis.chrome.alarms as unknown as { _all: Map<string, unknown> })._all;
+
+  beforeEach(() => alarms().clear());
+
+  it('заводит один периодический будильник', async () => {
+    await scheduleFollowUpChecks();
+    expect(alarms().get('jobpilot:follow-ups')).toMatchObject({ periodInMinutes: 60 });
+  });
+
+  it('не пересоздаёт уже заведённый: иначе отсчёт сбрасывался бы при каждом пробуждении воркера', async () => {
+    await scheduleFollowUpChecks();
+    const first = alarms().get('jobpilot:follow-ups');
+    await scheduleFollowUpChecks();
+    await scheduleFollowUpChecks();
+    expect(alarms().get('jobpilot:follow-ups')).toBe(first);
+    expect(alarms().size).toBe(1);
+  });
+});
+
+describe('срабатывание напоминаний', () => {
+  async function submittedWithReminder(at: number): Promise<Application> {
+    const created = await createApplication('job1');
+    await updateApplication(created.id, { state: 'review' });
+    await updateApplication(created.id, { state: 'ready' });
+    await markSubmitted(created.id, true);
+    return setFollowUp(created.id, at);
+  }
+
+  it('показывает уведомление и снимает срок, чтобы не повторяться каждый час', async () => {
+    const notify = globalThis.chrome.notifications.create as unknown as {
+      mock: { calls: unknown[] };
+    };
+    const before = notify.mock.calls.length;
+    const application = await submittedWithReminder(Date.now() - DAY_MS);
+
+    const shown = await runDueFollowUps();
+
+    expect(shown).toBe(1);
+    expect(notify.mock.calls.length).toBe(before + 1);
+    expect((await getApplication(application.id))?.followUpAt).toBeNull();
+    // Второй проход уже ничего не находит.
+    expect(await runDueFollowUps()).toBe(0);
+  });
+
+  it('не трогает заявку, у которой срок ещё не подошёл', async () => {
+    await submittedWithReminder(Date.now() + 3 * DAY_MS);
+    expect(await runDueFollowUps()).toBe(0);
   });
 });

@@ -25,6 +25,10 @@ const log = createLogger('follow-ups');
 
 export async function scheduleFollowUpChecks(): Promise<void> {
   try {
+    // Пересоздание сбрасывает отсчёт. Воркер просыпается от каждого чиха, и
+    // будильник, заводимый заново при каждом пробуждении, до своего периода бы
+    // не дожил — заводим только если его ещё нет.
+    if (await chrome.alarms.get(ALARM)) return;
     await chrome.alarms.create(ALARM, { periodInMinutes: PERIOD_MINUTES, delayInMinutes: 1 });
   } catch (error) {
     log.debug('будильник недоступен', error);
@@ -42,12 +46,7 @@ export async function runDueFollowUps(now = Date.now()): Promise<number> {
     const days = application.submittedAt
       ? Math.max(0, Math.round((now - application.submittedAt) / DAY_MS))
       : 0;
-    await notifyFollowUp(
-      application.id,
-      job?.title || 'Вакансия',
-      job?.company ?? '',
-      days,
-    );
+    await notifyFollowUp(application.id, job?.title || 'Вакансия', job?.company ?? '', days);
     // Снимаем срок сразу: иначе следующий час покажет то же уведомление снова.
     await setFollowUp(application.id, null);
   }

@@ -69,6 +69,25 @@ globalThis.chrome = {
     clear: vi.fn(async () => true),
     onClicked: { addListener: vi.fn(), removeListener: vi.fn() },
   },
+  alarms: {
+    /** Хранит заведённые будильники, чтобы проверять, не пересоздают ли их зря. */
+    _all: new Map<string, unknown>(),
+    async create(name: string, info: unknown) {
+      (globalThis.chrome.alarms as unknown as { _all: Map<string, unknown> })._all.set(name, info);
+    },
+    async get(name: string) {
+      return (
+        (globalThis.chrome.alarms as unknown as { _all: Map<string, unknown> })._all.get(name) ??
+        undefined
+      );
+    },
+    async clear(name: string) {
+      return (globalThis.chrome.alarms as unknown as { _all: Map<string, unknown> })._all.delete(
+        name,
+      );
+    },
+    onAlarm: { addListener: vi.fn(), removeListener: vi.fn() },
+  },
   scripting: { executeScript: vi.fn(async () => []) },
   sidePanel: { open: vi.fn(async () => undefined), setPanelBehavior: vi.fn(async () => undefined) },
   commands: { onCommand: { addListener: vi.fn(), removeListener: vi.fn() } },
