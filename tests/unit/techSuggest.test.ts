@@ -70,3 +70,31 @@ describe('подсказки технологий', () => {
     expect(searchTech('s', 3).length).toBeLessThanOrEqual(3);
   });
 });
+
+describe('подсказки при пустом поле', () => {
+  it('без категории показывают начало словаря', () => {
+    expect(searchTech('', 5).length).toBe(5);
+  });
+
+  it('с категорией показывают только её технологии', () => {
+    for (const category of ['backend', 'devops', 'database'] as const) {
+      const shown = searchTech('', 8, category);
+      expect(shown.length, category).toBeGreaterThan(0);
+      expect(
+        shown.every((row) => row.entry.category === category),
+        `в подсказках ${category} попало чужое`,
+      ).toBe(true);
+    }
+  });
+
+  it('выбранный бэкенд не подсовывает фронтенд', () => {
+    const names = searchTech('', 8, 'backend').map((row) => row.entry.canonical);
+    expect(names).not.toContain('React');
+    expect(names).not.toContain('Vue');
+  });
+
+  it('набранное слово важнее категории: ищем по всему словарю', () => {
+    // Человек выбрал «бэкенд», но печатает «vue» — значит нужен именно Vue.
+    expect(searchTech('vue', 5, 'backend')[0]?.entry.canonical).toBe('Vue');
+  });
+});

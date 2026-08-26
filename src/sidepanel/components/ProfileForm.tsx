@@ -84,7 +84,9 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
    */
   const skillOptions: ComboboxOption[] = useMemo(() => {
     const query = splitNameAndVersion(skillDraft.trim()).name || skillDraft.trim();
-    return searchTech(query, 8).map(({ entry, matchedAs }) => ({
+    // Категория задаёт список, пока ничего не набрано. Как только набрали —
+    // ищем по всему словарю: набранное слово говорит о намерении яснее селекта.
+    return searchTech(query, 8, skillCategory).map(({ entry, matchedAs }) => ({
       value: entry.canonical,
       hint: SKILL_CATEGORY_LABEL[entry.category],
       // Показываем, по какому написанию нашлось: «js → JavaScript» объясняет,
@@ -94,7 +96,7 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
           ? undefined
           : `по «${matchedAs}»`,
     }));
-  }, [skillDraft]);
+  }, [skillDraft, skillCategory]);
 
   /** Категории, в которых что-то есть: фильтровать по пустым незачем. */
   const usedCategories = SKILL_CATEGORIES.filter((category) =>
@@ -438,7 +440,11 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 }}
                 onCommit={(picked) => addSkill(picked)}
                 options={skillOptions}
-                caption="Выберите из списка — тогда навык точно совпадёт с вакансией"
+                caption={
+                  skillDraft.trim()
+                    ? 'Выберите из списка — тогда навык точно совпадёт с вакансией'
+                    : `Частые технологии: ${SKILL_CATEGORY_LABEL[skillCategory]}`
+                }
                 placeholder="React, Vue 3, Postgres…"
                 ariaLabel="Название технологии"
               />

@@ -471,9 +471,19 @@ export interface TechSuggestion {
  * Пустой запрос возвращает начало словаря, чтобы список было видно сразу при
  * фокусе, а не только после набора.
  */
-export function searchTech(query: string, limit = 8): TechSuggestion[] {
+export function searchTech(
+  query: string,
+  limit = 8,
+  category?: SkillCategory,
+): TechSuggestion[] {
   if (!query.trim()) {
-    return TECH_DICTIONARY.slice(0, limit).map((entry) => ({
+    // Пустой запрос — это «покажи, что бывает». Показывать при этом начало
+    // словаря бессмысленно: там подряд идёт фронтенд, и выбравший «бэкенд»
+    // видел бы React с Vue. Раз категория задана, список берётся из неё.
+    const source = category
+      ? TECH_DICTIONARY.filter((entry) => entry.category === category)
+      : TECH_DICTIONARY;
+    return source.slice(0, limit).map((entry) => ({
       entry,
       matchedAs: entry.canonical,
       score: 0,
