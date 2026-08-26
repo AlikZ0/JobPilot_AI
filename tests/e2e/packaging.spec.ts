@@ -1,6 +1,10 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DIST, expect, readManifest, test } from './fixtures';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 test.describe('собранное расширение', () => {
   test('это сборка Manifest V3 с ожидаемыми точками входа', () => {
@@ -52,23 +56,65 @@ test.describe('собранное расширение', () => {
     expect(source).not.toMatch(/^\s*export\s/m);
   });
 
-  test('ни в одном бандле нет eval и загрузки удалённых скриптов', () => {
+  test('ни в одном нашем бандле нет eval и загрузки удалённых скриптов', () => {
     const files: string[] = [];
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory()) walk(resolve(dir, entry.name));
-        else if (entry.name.endsWith('.js')) files.push(resolve(dir, entry.name));
+        else if (/\.m?js$/.test(entry.name)) files.push(resolve(dir, entry.name));
       }
     };
     walk(DIST);
     expect(files.length).toBeGreaterThan(2);
+
     for (const file of files) {
       const source = readFileSync(file, 'utf8');
+      if (isVendoredPdfJs(file)) continue;
       expect(source, file).not.toMatch(/\beval\(/);
       expect(source, file).not.toMatch(/new Function\(/);
       expect(source, file).not.toMatch(/https?:\/\/[^"'\s]*\.js["'\s]/);
     }
   });
+
+  /**
+   * pdf.js — единственная вендорная библиотека в сборке, и в ней есть места с
+   * динамическим кодом: проба `new Function("")` внутри try/catch и компилятор
+   * PostScript-функций, закрытый флагом isEvalSupported. Под нашим CSP
+   * (script-src 'self', без unsafe-eval) проба всегда возвращает false, поэтому
+   * компилятор не запускается; вдобавок мы передаём isEvalSupported: false.
+   *
+   * Тест закрепляет это состояние: если новая версия библиотеки принесёт другие
+   * места с динамическим кодом, он упадёт и мы это заметим.
+   */
+  test('динамический код в pdf.js закрыт флагом и заблокирован политикой', () => {
+    // Только код, без карт исходников: в .map попадает исходный текст библиотеки.
+    const vendored = readdirSync(resolve(DIST, 'assets')).filter((name) =>
+      /^pdf[.-].*\.m?js$/.test(name),
+    );
+    expect(vendored.length).toBeGreaterThan(0);
+
+    for (const name of vendored) {
+      const source = readFileSync(resolve(DIST, 'assets', name), 'utf8');
+      const dynamicCalls = (source.match(/new Function\(/g) ?? []).length;
+      // Одна проба + не больше одного места за флагом на файл.
+      expect(dynamicCalls, `${name}: мест с new Function`).toBeLessThanOrEqual(2);
+      expect(source, `${name}: проба на eval`).toMatch(/new Function\(""\)/);
+      // Наличие флага доказывает, что остальные вызовы за ним и спрятаны.
+      expect(source, `${name}: флаг isEvalSupported`).toMatch(/isEvalSupported/);
+      expect(source, name).not.toMatch(/\beval\(/);
+    }
+
+    // Даже если бы проба сработала, CSP не даст выполнить сгенерированный код.
+    expect(readManifest().content_security_policy.extension_pages).not.toContain('unsafe-eval');
+    // И мы явно просим pdf.js не пользоваться eval.
+    expect(readFileSync(resolve(HERE, '../../src/core/resume/pdfText.ts'), 'utf8')).toContain(
+      'isEvalSupported: false',
+    );
+  });
+
+  function isVendoredPdfJs(file: string): boolean {
+    return /[/\\]pdf[.-][^/\\]*\.m?js$/.test(file);
+  }
 
   test('в сборке нет захардкоженного API-ключа', () => {
     const files = readdirSync(resolve(DIST, 'assets')).filter((name) => name.endsWith('.js'));

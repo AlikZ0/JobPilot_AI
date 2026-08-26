@@ -36,15 +36,37 @@ export type Seniority = (typeof SENIORITY_LEVELS)[number];
 export const LANGUAGE_LEVELS = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2', 'native'] as const;
 export type LanguageLevel = (typeof LANGUAGE_LEVELS)[number];
 
+/** Уровень владения навыком — со слов пользователя, AI его не выставляет. */
+export const SKILL_LEVELS = ['basic', 'intermediate', 'advanced', 'expert'] as const;
+export type SkillLevel = (typeof SKILL_LEVELS)[number];
+
 export const skillSchema = z.object({
   name: z.string().min(1).max(60),
   category: z.enum(SKILL_CATEGORIES),
+  /**
+   * Мажорная версия, если она важна: «3» для Vue 3, «18» для React 18.
+   * Пустая строка означает «версия не важна» и совпадает с любой.
+   */
+  version: z.string().max(20).default(''),
+  level: z.enum(SKILL_LEVELS).default('intermediate'),
   /** Годы практики со слов пользователя. Необязательно — AI это никогда не придумывает. */
   years: z.number().min(0).max(50).optional(),
   /** Отмечает навык, который пользователь считает ключевым. */
   primary: z.boolean().default(false),
 });
 export type Skill = z.infer<typeof skillSchema>;
+
+/** Собирает навык с значениями по умолчанию (версия пустая, уровень средний). */
+export function makeSkill(input: {
+  name: string;
+  category: SkillCategory;
+  version?: string;
+  level?: SkillLevel;
+  primary?: boolean;
+  years?: number;
+}): Skill {
+  return skillSchema.parse(input);
+}
 
 export const languageSchema = z.object({
   code: z.string().min(2).max(8),
@@ -178,6 +200,8 @@ export const aiProfileSchema = z.object({
   summary: z.string(),
   skills: z.record(z.enum(SKILL_CATEGORIES), z.array(z.string())),
   primarySkills: z.array(z.string()),
+  /** Навыки с версией и уровнем — строками вида «Vue 3 (продвинутый)». */
+  skillDetails: z.array(z.string()).default([]),
   languages: z.array(z.object({ name: z.string(), level: z.enum(LANGUAGE_LEVELS) })),
   location: z.object({
     country: z.string(),

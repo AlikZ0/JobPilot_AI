@@ -83,6 +83,10 @@ export interface ResumeAnalysisInput {
   language: string;
 }
 
+export type { ResumeTailoringInput } from './prompts/resumeTailoring';
+import type { ResumeTailoringInput } from './prompts/resumeTailoring';
+import type { TailoredResume } from '@/types/resume';
+
 /**
  * Каждый провайдер реализует один и тот же набор задач. Сами задачи описаны в
  * BaseAIProvider; конкретному провайдеру достаточно реализовать `chat`.
@@ -104,6 +108,7 @@ export interface AIProvider {
   ): Promise<TaskResult<ApplicationAnswer>>;
   askAssistant(input: AssistantInput, ctx: TaskContext): Promise<TaskResult<AssistantReply>>;
   analyzeResume(input: ResumeAnalysisInput, ctx: TaskContext): Promise<TaskResult<ResumeAnalysis>>;
+  tailorResume(input: ResumeTailoringInput, ctx: TaskContext): Promise<TaskResult<TailoredResume>>;
 }
 
 export interface TaskContext {

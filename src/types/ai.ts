@@ -19,6 +19,7 @@ export const AI_TASKS = [
   'assistant',
   'job_extraction',
   'resume_analysis',
+  'resume_tailoring',
 ] as const;
 export type AITask = (typeof AI_TASKS)[number];
 
@@ -103,6 +104,16 @@ export const jobAnalysisSchema = z.object({
   matchedSkills: z.array(z.string()),
   missingSkills: z.array(z.string()),
   bonusSkills: z.array(z.string()),
+  /** Навык есть, но мажорная версия другая: вакансия просит Vue 3, в профиле Vue 2. */
+  versionMismatches: z
+    .array(
+      z.object({
+        skill: z.string(),
+        required: z.string(),
+        have: z.array(z.string()).default([]),
+      }),
+    )
+    .default([]),
   seniorityMatch: z.boolean(),
   salaryMatch: z.boolean(),
   locationMatch: z.boolean(),

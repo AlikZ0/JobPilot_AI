@@ -22,6 +22,7 @@ export interface ScoringOutput {
   matchedSkills: string[];
   missingSkills: string[];
   bonusSkills: string[];
+  versionMismatches: SkillMatch['versionMismatches'];
   seniorityMatch: boolean;
   salaryMatch: boolean;
   locationMatch: boolean;
@@ -82,6 +83,8 @@ function mergeSkillFindings(
     bonus: unique([...base.bonus, ...findings.bonusSkills.map(canonicalizeTech)]).filter(
       (skill) => !required.includes(skill),
     ),
+    // Версии считает только детерминированный слой: модель их не выдумывает.
+    versionMismatches: base.versionMismatches,
     missingMandatory,
     required,
     coverage: required.length === 0 ? 0 : matched.size / required.length,
@@ -90,22 +93,40 @@ function mergeSkillFindings(
   };
 }
 
+/**
+ * Доля балла, которую теряет совпавший навык с другой мажорной версией.
+ * Vue 2 против Vue 3 — это не «нет навыка», но и не полное совпадение.
+ */
+export const VERSION_MISMATCH_PENALTY = 0.3;
+
 function scoreTechnical(match: SkillMatch): { earned: number; detail: string } {
   const max = SCORE_WEIGHTS.technicalSkills;
   if (match.required.length === 0) {
     return {
       earned: max * 0.5,
-      detail: 'No technologies detected in the posting — scored as neutral.',
+      detail: 'В вакансии не нашлось технологий — компонент оценён нейтрально.',
     };
   }
   // Основной вес — за покрытие; за незакрытые обязательные навыки штрафуем.
-  const coverageScore = match.coverage * max * 0.75;
+  const effectiveMatched = Math.max(
+    0,
+    match.matched.length - match.versionMismatches.length * VERSION_MISMATCH_PENALTY,
+  );
+  const coverage = effectiveMatched / match.required.length;
+  const coverageScore = coverage * max * 0.75;
   const mandatoryScore = match.mandatoryCoverage * max * 0.25;
   const earned = Math.max(0, Math.min(max, coverageScore + mandatoryScore));
-  const detail = `${match.matched.length}/${match.required.length} required technologies${
-    match.missingMandatory.length ? `, missing must-have: ${match.missingMandatory.join(', ')}` : ''
-  }`;
-  return { earned: round(earned), detail };
+
+  const parts = [`${match.matched.length} из ${match.required.length} требуемых технологий`];
+  if (match.missingMandatory.length) {
+    parts.push(`нет обязательных: ${match.missingMandatory.join(', ')}`);
+  }
+  for (const mismatch of match.versionMismatches) {
+    parts.push(
+      `${mismatch.skill}: вакансия просит ${mismatch.required}, в профиле ${mismatch.have.join('/') || 'без версии'}`,
+    );
+  }
+  return { earned: round(earned), detail: parts.join('; ') };
 }
 
 function scoreExperience(
@@ -521,6 +542,7 @@ export function scoreJob(input: ScoringInput): ScoringOutput {
     band: bandForScore(score),
     breakdown,
     matchedSkills: match.matched,
+    versionMismatches: match.versionMismatches,
     missingSkills: match.missing,
     bonusSkills: match.bonus,
     seniorityMatch: seniority.match,
