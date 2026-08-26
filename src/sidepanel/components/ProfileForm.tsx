@@ -73,6 +73,8 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
   const [skillDraft, setSkillDraft] = useState('');
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('intermediate');
   const [skillCategory, setSkillCategory] = useState<SkillCategory>('frontend');
+  /** Какие категории показывать в списке. К выбору категории нового навыка отношения не имеет. */
+  const [skillFilter, setSkillFilter] = useState<'all' | SkillCategory>('all');
   const [languageDraft, setLanguageDraft] = useState('');
   const [languageLevel, setLanguageLevel] = useState<LanguageLevel>('b2');
 
@@ -93,6 +95,15 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
           : `по «${matchedAs}»`,
     }));
   }, [skillDraft]);
+
+  /** Категории, в которых что-то есть: фильтровать по пустым незачем. */
+  const usedCategories = SKILL_CATEGORIES.filter((category) =>
+    profile.skills.some((skill) => skill.category === category),
+  );
+  // Выбранная категория могла опустеть — тогда её кнопка исчезает, и остаться
+  // на ней значило бы смотреть в пустой список без возможности выйти.
+  const activeFilter =
+    skillFilter !== 'all' && usedCategories.includes(skillFilter) ? skillFilter : 'all';
 
   const addSkill = (picked?: string) => {
     // «Vue 3» в поле имени разбирается на название и версию.
@@ -471,7 +482,33 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               работа.
             </p>
           </div>
-          {SKILL_CATEGORIES.map((category) => {
+          {usedCategories.length > 1 ? (
+            <div className="-mx-3.5 overflow-x-auto px-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="jp-segmented w-max">
+                <button
+                  type="button"
+                  aria-pressed={activeFilter === 'all'}
+                  onClick={() => setSkillFilter('all')}
+                >
+                  все
+                </button>
+                {usedCategories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    aria-pressed={activeFilter === category}
+                    onClick={() => setSkillFilter(category)}
+                    className="whitespace-nowrap"
+                  >
+                    {SKILL_CATEGORY_LABEL[category]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {SKILL_CATEGORIES.filter(
+            (category) => activeFilter === 'all' || activeFilter === category,
+          ).map((category) => {
             // Индекс в исходном списке — единственная стабильная примета навыка:
             // своего идентификатора у него нет, а имя с версией меняются прямо
             // во время правки.
@@ -506,22 +543,21 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       >
                         ★
                       </button>
+                      {/*
+                        Версия стоит в подписи и только там: отдельное поле
+                        рядом с названием повторяло её вторым разом. Меняется
+                        она пересозданием навыка — «Vue 3» пишется в строке
+                        добавления, и меняют версию куда реже, чем читают список.
+                      */}
                       <span
                         className={`min-w-0 flex-1 truncate text-[12px] ${
                           skill.primary ? 'font-medium' : ''
                         }`}
-                        title={skill.name}
+                        title={skill.version ? `${skill.name} ${skill.version}` : skill.name}
                       >
                         {skill.name}
+                        {skill.version ? ` ${skill.version}` : ''}
                       </span>
-                      <input
-                        className="jp-input w-11 flex-shrink-0 px-1 py-0.5 text-center text-[11px]"
-                        value={skill.version}
-                        placeholder="—"
-                        title="Мажорная версия, например 3 для Vue 3. Пусто — версия не важна."
-                        onChange={(event) => patchSkillAt(index, { version: event.target.value })}
-                        aria-label={`Версия ${skill.name}`}
-                      />
                       <select
                         className="jp-input w-auto flex-shrink-0 py-0.5 pl-2 text-[11px]"
                         value={skill.level}
