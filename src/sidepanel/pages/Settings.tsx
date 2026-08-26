@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AI_PROVIDER_IDS, type AIProviderId } from '@/types/ai';
 import { MESSAGE_TYPES } from '@/types/messages';
 import { sendToBackground } from '@/utils/messaging';
-import { listProviders, getProvider } from '@/providers/registry';
+import { getProvider } from '@/providers/registry';
 import {
   addApiKey,
   clearApiKeys,
@@ -74,6 +74,7 @@ export function SettingsPage() {
   if (!settings) return null;
   const activeProvider = settings.aiMode === 'cloud' ? 'cloud' : settings.activeProvider;
   const provider = getProvider(activeProvider);
+  const modelListId = `jp-models-${activeProvider}`;
   const providerConfig = settings.providers[activeProvider] ?? {
     model: '',
     baseUrl: '',
@@ -338,18 +339,22 @@ export function SettingsPage() {
         >
           <input
             className="jp-input w-44 py-1"
-            list="jp-models"
+            list={modelListId}
             value={providerConfig.model}
             placeholder={provider.suggestedModels[0] ?? 'model-id'}
             onChange={(event) => patchProvider({ model: event.target.value })}
           />
         </Row>
-        <datalist id="jp-models">
-          {listProviders()
-            .flatMap((entry) => entry.suggestedModels)
-            .map((model) => (
-              <option key={model} value={model} />
-            ))}
+        {/*
+          Только модели выбранного провайдера: чужие идентификаторы он всё
+          равно не примет, а вместе они превращали список в свалку из сорока
+          строк. id меняется вместе с провайдером — иначе Chrome оставляет в
+          подсказках прежний набор.
+        */}
+        <datalist id={modelListId}>
+          {provider.suggestedModels.map((model) => (
+            <option key={model} value={model} />
+          ))}
         </datalist>
         <Row label="Базовый URL" hint="Переопределение для прокси или собственного сервера.">
           <input
