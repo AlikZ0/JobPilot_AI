@@ -4,6 +4,8 @@ import { PageActions } from '../components/PageActions';
 import { JobCard } from '../components/JobCard';
 import { Empty } from '../components/Empty';
 import { formatRelative, isToday } from '@/utils/time';
+import { buildFunnel } from '@/core/pipeline/funnel';
+import { FUNNEL_STEP_LABEL } from '../labels';
 import { useJobActions } from '../hooks/useJobActions';
 import { Icon, type IconName } from '../components/Icon';
 
@@ -95,6 +97,9 @@ export function Dashboard() {
     };
   }, [jobs, analyses, applications, submissions]);
 
+  /** Что стало с отправленными откликами. Считается по всей истории, не за день. */
+  const funnel = useMemo(() => buildFunnel(applications), [applications]);
+
   const recent = jobs.slice(0, 5);
   const recentSubmissions = submissions.slice(0, 3);
 
@@ -122,6 +127,40 @@ export function Dashboard() {
           <Stat label="Средний балл" value={`${stats.average}%`} icon="trending" accent="brand" />
         </div>
       </section>
+
+      {funnel.submitted > 0 ? (
+        <section className="jp-card">
+          <h2 className="jp-section-title mb-2">
+            <Icon name="trending" size={12} />
+            Воронка откликов
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {funnel.steps.map((step) => (
+              <li key={step.stage}>
+                <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                  <span className="font-medium">{FUNNEL_STEP_LABEL[step.stage]}</span>
+                  <span className="tabular-nums">
+                    {step.count}
+                    {step.stage !== 'submitted' ? (
+                      <span className="ml-1.5 text-[11px] text-muted">{step.share}%</span>
+                    ) : null}
+                  </span>
+                </div>
+                <div className="jp-track mt-1">
+                  <div
+                    className={step.stage === 'offer' ? 'bg-excellent' : 'bg-brand'}
+                    style={{ width: `${step.share}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] leading-relaxed text-muted">
+            Ждут ответа: {funnel.awaiting} · отказов: {funnel.rejected}. Ступень засчитывается, даже
+            если потом пришёл отказ, — интервью было.
+          </p>
+        </section>
+      ) : null}
 
       {submissions.length > 0 ? (
         <section className="jp-card">

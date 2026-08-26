@@ -4,9 +4,11 @@ import {
   type Application,
   type ApplicationEvent,
   type ApplicationEventType,
+  type ApplicationOutcome,
   type ApplicationState,
 } from '@/types/application';
 import { assertApplicationTransition } from '@/core/state/applicationState';
+import { stampsFor } from '@/core/pipeline/funnel';
 import { createId } from '@/utils/id';
 import { getJob } from './jobRepository';
 import { recordSubmission } from './submissionRepository';
@@ -157,6 +159,48 @@ export async function revertAutoSubmission(id: string): Promise<Application> {
     application.jobId,
     'user_edited',
     'Пользователь отменил автоматическую отметку об отправке',
+  );
+  return application;
+}
+
+/**
+ * Отметка того, что ответил работодатель. Ставит её всегда человек: узнать это
+ * расширению неоткуда — письма оно не читает.
+ */
+export async function setApplicationOutcome(
+  id: string,
+  outcome: ApplicationOutcome,
+): Promise<Application> {
+  const current = await getApplication(id);
+  if (!current) throw new Error(`Заявка не найдена: ${id}`);
+  if (current.submittedAt === null) {
+    throw new Error('Отметить ответ можно только у отправленной заявки.');
+  }
+
+  const now = Date.now();
+  const application = await updateApplication(id, {
+    outcome,
+    outcomeAt: stampsFor(outcome, current.outcomeAt, now),
+    // Ответ пришёл — догонять больше некого.
+    ...(outcome === 'awaiting' ? {} : { followUpAt: null }),
+  });
+  await logApplicationEvent(
+    id,
+    application.jobId,
+    'outcome_changed',
+    `${current.outcome} → ${outcome}`,
+  );
+  return application;
+}
+
+/** Когда напомнить написать повторно. `null` снимает напоминание. */
+export async function setFollowUp(id: string, at: number | null): Promise<Application> {
+  const application = await updateApplication(id, { followUpAt: at });
+  await logApplicationEvent(
+    id,
+    application.jobId,
+    'follow_up_set',
+    at === null ? 'напоминание снято' : `напомнить ${new Date(at).toLocaleDateString('ru-RU')}`,
   );
   return application;
 }

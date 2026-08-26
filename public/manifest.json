@@ -36,7 +36,8 @@
     "activeTab",
     "scripting",
     "tabs",
-    "notifications"
+    "notifications",
+    "alarms"
   ],
   "optional_permissions": ["downloads"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],

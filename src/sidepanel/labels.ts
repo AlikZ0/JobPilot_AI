@@ -1,5 +1,10 @@
 import type { JobPriority, JobState } from '@/types/job';
-import type { ApplicationState, FillDecision } from '@/types/application';
+import type {
+  ApplicationOutcome,
+  ApplicationState,
+  FillDecision,
+  OutcomeStage,
+} from '@/types/application';
 import type {
   EmploymentType,
   LanguageLevel,
@@ -128,6 +133,23 @@ export const APPLICATION_STATE_LABEL: Record<ApplicationState, string> = {
   submitted: 'Отправлена',
   failed: 'Ошибка',
   cancelled: 'Отменена',
+};
+
+/** Что ответил работодатель. */
+export const APPLICATION_OUTCOME_LABEL: Record<ApplicationOutcome, string> = {
+  awaiting: 'Ждём ответа',
+  replied: 'Ответили',
+  interview: 'Интервью',
+  offer: 'Оффер',
+  rejected: 'Отказ',
+};
+
+/** Подписи ступеней воронки на обзоре — во множественном числе. */
+export const FUNNEL_STEP_LABEL: Record<OutcomeStage | 'submitted', string> = {
+  submitted: 'Отправлено',
+  replied: 'Ответов',
+  interview: 'Интервью',
+  offer: 'Офферов',
 };
 
 export const SENIORITY_LABEL: Record<Seniority, string> = {

@@ -6,15 +6,19 @@ import {
   getApplication,
   markSubmitted,
   revertAutoSubmission,
+  setApplicationOutcome,
+  setFollowUp,
   updateApplication,
 } from '@/database/repositories/applicationRepository';
+import { OUTCOME_STAGES, type ApplicationOutcome } from '@/types/application';
 import { markApplicationReady } from '@/core/application/applicationService';
 import { createId } from '@/utils/id';
-import { formatDateTime } from '@/utils/time';
+import { DAY_MS, formatDateTime } from '@/utils/time';
 import { useStore, withBusy } from '../state/store';
 import { Empty } from '../components/Empty';
 import { MatchScore } from '../components/MatchScore';
 import {
+  APPLICATION_OUTCOME_LABEL,
   APPLICATION_STATE_LABEL,
   FILL_DECISION_LABEL,
   MAPPING_SOURCE_LABEL,
@@ -190,6 +194,26 @@ export function ApplicationReview() {
       pushToast({
         level: 'info',
         message: 'Отметка снята. Запись в истории откликов осталась — удалите её там, если нужно.',
+      });
+    });
+
+  const markOutcome = (outcome: ApplicationOutcome) =>
+    void withBusy('Отмечаем ответ', async () => {
+      await setApplicationOutcome(application.id, outcome);
+      await refreshData();
+      pushToast({ level: 'success', message: `Отмечено: ${APPLICATION_OUTCOME_LABEL[outcome]}.` });
+    });
+
+  const remindIn = (days: number | null) =>
+    void withBusy('Сохраняем напоминание', async () => {
+      await setFollowUp(application.id, days === null ? null : Date.now() + days * DAY_MS);
+      await refreshData();
+      pushToast({
+        level: days === null ? 'info' : 'success',
+        message:
+          days === null
+            ? 'Напоминание снято.'
+            : `Напомним через ${days} дн., если ответа не будет.`,
       });
     });
 
@@ -407,6 +431,119 @@ export function ApplicationReview() {
               Отклик записан в историю, но заявку он не отметил — автоматическая отметка выключена в
               настройках. Подтвердите отправку галочкой ниже.
             </p>
+          </div>
+        ) : null}
+
+        {/*
+          Воронка появляется только у отправленной заявки: до отправки отвечать
+          работодателю не на что. Ступени отмечает человек — писем расширение
+          не читает и узнать ответ ему неоткуда.
+        */}
+        {application.submittedAt !== null ? (
+          <div className="rounded-control border border-border p-3">
+            <p className="text-[12px] font-medium">Что было дальше</p>
+            <ol className="mt-2 flex flex-col gap-1.5">
+              <li className="flex items-center gap-2 text-[12px]">
+                <span className="text-excellent">
+                  <Icon name="checkCircle" size={13} />
+                </span>
+                <span className="flex-1">Отправлена</span>
+                <span className="text-[11px] text-muted">
+                  {formatDateTime(application.submittedAt)}
+                </span>
+              </li>
+              {OUTCOME_STAGES.map((stage) => {
+                const at = application.outcomeAt[stage];
+                return (
+                  <li key={stage} className="flex items-center gap-2 text-[12px]">
+                    <span className={at ? 'text-excellent' : 'text-muted'}>
+                      <Icon name={at ? 'checkCircle' : 'clock'} size={13} />
+                    </span>
+                    <span className={`flex-1 ${at ? '' : 'text-muted'}`}>
+                      {APPLICATION_OUTCOME_LABEL[stage]}
+                    </span>
+                    <span className="text-[11px] text-muted">{at ? formatDateTime(at) : '—'}</span>
+                  </li>
+                );
+              })}
+              {application.outcome === 'rejected' ? (
+                <li className="flex items-center gap-2 text-[12px] text-poor">
+                  <Icon name="xCircle" size={13} />
+                  <span className="flex-1">Отказ</span>
+                  <span className="text-[11px]">
+                    {application.outcomeAt.rejected
+                      ? formatDateTime(application.outcomeAt.rejected)
+                      : ''}
+                  </span>
+                </li>
+              ) : null}
+            </ol>
+
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {(['replied', 'interview', 'offer', 'rejected'] as const).map((outcome) => (
+                <button
+                  key={outcome}
+                  type="button"
+                  className={
+                    outcome === 'rejected'
+                      ? 'jp-button-danger jp-button-sm'
+                      : 'jp-button jp-button-sm'
+                  }
+                  onClick={() => markOutcome(outcome)}
+                  disabled={application.outcome === outcome}
+                >
+                  {APPLICATION_OUTCOME_LABEL[outcome]}
+                </button>
+              ))}
+              {application.outcome !== 'awaiting' ? (
+                <button
+                  type="button"
+                  className="jp-button-ghost jp-button-sm"
+                  onClick={() => markOutcome('awaiting')}
+                  title="Снять отметку и вернуть заявку в ожидание"
+                >
+                  Сбросить
+                </button>
+              ) : null}
+            </div>
+
+            {application.outcome === 'awaiting' ? (
+              <div className="mt-2.5 border-t border-border pt-2.5">
+                {application.followUpAt !== null ? (
+                  <p className="flex flex-wrap items-center gap-2 text-[11px]">
+                    <span className="flex items-center gap-1.5 text-brand">
+                      <Icon name="bell" size={12} />
+                      Напомним {formatDateTime(application.followUpAt)}
+                    </span>
+                    <button
+                      type="button"
+                      className="jp-button-ghost jp-button-sm"
+                      onClick={() => remindIn(null)}
+                    >
+                      Отменить
+                    </button>
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-muted">Напомнить написать повторно:</span>
+                    {[3, 7, 14].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        className="jp-button jp-button-sm"
+                        onClick={() => remindIn(days)}
+                      >
+                        через {days} дн.
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-1.5 text-[10px] leading-relaxed text-muted">
+                  Уведомление придёт один раз и погаснет, как только вы отметите любой ответ.
+                  Написать письмо всё равно придётся самому — JobPilot ничего никому не отправляет.
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

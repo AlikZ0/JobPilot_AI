@@ -52,3 +52,27 @@ export async function notifyScanComplete(progress: ScanProgress): Promise<void> 
     priority: 0,
   });
 }
+
+const FOLLOW_UP_PREFIX = 'jobpilot:followup:';
+
+/** Восстанавливает по id уведомления заявку, для которой оно создано. */
+export function applicationIdFromNotification(notificationId: string): string | null {
+  return notificationId.startsWith(FOLLOW_UP_PREFIX)
+    ? notificationId.slice(FOLLOW_UP_PREFIX.length)
+    : null;
+}
+
+export async function notifyFollowUp(
+  applicationId: string,
+  title: string,
+  company: string,
+  daysSinceSubmit: number,
+): Promise<void> {
+  await create(`${FOLLOW_UP_PREFIX}${applicationId}`, {
+    type: 'basic',
+    iconUrl: ICON,
+    title: 'Пора напомнить о себе',
+    message: `${title}${company ? ` · ${company}` : ''}\nОтклик отправлен ${daysSinceSubmit} дн. назад, ответа нет.`,
+    priority: 1,
+  });
+}

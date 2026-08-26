@@ -1,10 +1,27 @@
-import type { ApplicationState } from '@/types/application';
+import type { ApplicationOutcome, ApplicationState } from '@/types/application';
 import { useStore } from '../state/store';
 import { Empty } from '../components/Empty';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { SubmissionHistory } from '../components/SubmissionHistory';
-import { formatRelative } from '@/utils/time';
-import { APPLICATION_STATE_LABEL } from '../labels';
+import { formatRelative, formatUntil } from '@/utils/time';
+import { APPLICATION_OUTCOME_LABEL, APPLICATION_STATE_LABEL } from '../labels';
+
+/** Цвет ответа: оффер — успех, отказ — конец, остальное нейтрально. */
+const OUTCOME_STYLE: Record<ApplicationOutcome, string> = {
+  awaiting: '',
+  replied: 'text-good',
+  interview: 'text-brand',
+  offer: 'text-excellent',
+  rejected: 'text-poor',
+};
+
+const OUTCOME_ICON: Record<ApplicationOutcome, IconName> = {
+  awaiting: 'clock',
+  replied: 'message',
+  interview: 'user',
+  offer: 'checkCircle',
+  rejected: 'xCircle',
+};
 
 /** Цвет статуса заявки повторяет шкалу «черновик → готово → отправлено». */
 const STATE_STYLE: Record<ApplicationState, string> = {
@@ -102,6 +119,22 @@ export function Applications() {
                   </span>
                 </div>
                 <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+                  {/* Ответ работодателя — отдельная ось от состояния заявки,
+                      поэтому и показывается отдельной пометкой. */}
+                  {application.submittedAt !== null ? (
+                    <span
+                      className={`flex items-center gap-1 ${OUTCOME_STYLE[application.outcome]}`}
+                    >
+                      <Icon name={OUTCOME_ICON[application.outcome]} size={11} />
+                      {APPLICATION_OUTCOME_LABEL[application.outcome].toLowerCase()}
+                    </span>
+                  ) : null}
+                  {application.followUpAt !== null ? (
+                    <span className="flex items-center gap-1 text-brand">
+                      <Icon name="bell" size={11} />
+                      напомнить {formatUntil(application.followUpAt)}
+                    </span>
+                  ) : null}
                   <span
                     className={`flex items-center gap-1 ${
                       application.coverLetter ? 'text-excellent' : ''

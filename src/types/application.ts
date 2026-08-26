@@ -14,6 +14,30 @@ export const APPLICATION_STATES = [
 ] as const;
 export type ApplicationState = (typeof APPLICATION_STATES)[number];
 
+/**
+ * Что случилось с откликом после отправки. Отдельная ось от `ApplicationState`:
+ * та описывает подготовку заявки (черновик → готова → отправлена), эта — ответ
+ * работодателя. Смешивать их в одном перечислении нельзя: заявка бывает
+ * отправлена и без ответа, а отказ приходит на любой ступени.
+ *
+ * `replied`, `interview` и `offer` — ступени, идущие по нарастающей: до
+ * интервью и оффера без ответа не доходят, поэтому эти ступени подразумевают
+ * `replied`. `rejected` — отметка конца, она ставится с любой ступени и сама
+ * ничего не подразумевает: молчание тоже заканчивается отказом.
+ */
+export const APPLICATION_OUTCOMES = [
+  'awaiting',
+  'replied',
+  'interview',
+  'offer',
+  'rejected',
+] as const;
+export type ApplicationOutcome = (typeof APPLICATION_OUTCOMES)[number];
+
+/** Ступени воронки по порядку. `awaiting` и `rejected` в неё не входят. */
+export const OUTCOME_STAGES = ['replied', 'interview', 'offer'] as const;
+export type OutcomeStage = (typeof OUTCOME_STAGES)[number];
+
 export const FORM_CONTROL_KINDS = [
   'input',
   'textarea',
@@ -123,6 +147,16 @@ export const applicationSchema = z.object({
   submittedByUser: z.boolean().default(false),
   /** Как заявка оказалась отправленной: подтвердил человек или заметила автоматика. */
   submissionSource: z.enum(['manual', 'auto']).default('manual'),
+  /** Что ответил работодатель. Имеет смысл только у отправленной заявки. */
+  outcome: z.enum(APPLICATION_OUTCOMES).default('awaiting'),
+  /**
+   * Когда заявка впервые дошла до каждой ступени. Хранится по ступеням, а не
+   * одной датой: воронке нужно знать, что ступень была пройдена, даже если
+   * потом пришёл отказ.
+   */
+  outcomeAt: z.record(z.enum(APPLICATION_OUTCOMES), z.number()).default({}),
+  /** Когда напомнить написать повторно. Null — напоминание не поставлено. */
+  followUpAt: z.number().nullable().default(null),
 });
 export type Application = z.infer<typeof applicationSchema>;
 
@@ -136,6 +170,8 @@ export const APPLICATION_EVENT_TYPES = [
   'user_edited',
   'review_opened',
   'submit_confirmed',
+  'outcome_changed',
+  'follow_up_set',
   'error',
 ] as const;
 export type ApplicationEventType = (typeof APPLICATION_EVENT_TYPES)[number];
