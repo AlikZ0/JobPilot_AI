@@ -151,7 +151,14 @@ export async function listJobs(
   });
   // Сортируем до схлопывания: из пары дублей должна остаться та запись,
   // которую выбрал бы текущий порядок, а не та, что попалась первой в базе.
-  return dedupeJobs(jobs).slice(0, limit);
+  //
+  // Схема прогоняется на выходе, как в остальных списках: записи, сделанные до
+  // появления очередного поля, иначе приходят в интерфейс без него — а он
+  // вправе рассчитывать на валидную вакансию, а не на то, что было в базе год
+  // назад.
+  return dedupeJobs(jobs)
+    .slice(0, limit)
+    .map((job) => jobSchema.parse(job));
 }
 
 export async function updateJob(id: string, patch: Partial<Job>): Promise<Job> {

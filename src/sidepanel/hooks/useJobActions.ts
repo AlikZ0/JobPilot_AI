@@ -44,8 +44,14 @@ export function useJobActions() {
 
     restore: (job: Job) =>
       void withBusy('Возвращаем', async () => {
-        // Проанализированная возвращается в свой разбор, остальные — в найденные.
-        await setJobState(job.id, job.score !== null ? 'analyzed' : 'discovered');
+        // Отправленная возвращается отправленной: архив не отменяет того, что
+        // отклик был. Дальше по убыванию: проанализированная — в свой разбор,
+        // остальные — в найденные.
+        const submitted = store.applications.some(
+          (application) => application.jobId === job.id && application.submittedAt !== null,
+        );
+        const next = submitted ? 'submitted' : job.score !== null ? 'analyzed' : 'discovered';
+        await setJobState(job.id, next);
         await store.refreshData();
       }),
 

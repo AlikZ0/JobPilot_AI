@@ -33,6 +33,9 @@ export function Jobs() {
   const [tag, setTag] = useState('');
 
   const tags = useMemo(() => collectTags(jobs), [jobs]);
+  // Пометку могли снять с последней вакансии, пока фильтр по ней включён. Тогда
+  // чип исчезает, а список остаётся пустым и снять фильтр уже нечем.
+  const activeTag = tags.includes(tag) ? tag : '';
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -40,7 +43,7 @@ export function Jobs() {
       // Архив не мешается в общем списке: чтобы его увидеть, его надо выбрать.
       if (stateFilter !== 'rejected' && isArchived(job)) return false;
       if (stateFilter !== 'all' && job.state !== stateFilter) return false;
-      if (tag && !job.tags.includes(tag)) return false;
+      if (activeTag && !job.tags.includes(activeTag)) return false;
       if ((job.score ?? 0) < minScore) return false;
       if (!needle) return true;
       return (
@@ -52,7 +55,7 @@ export function Jobs() {
     return filtered.sort((a, b) =>
       sort === 'score' ? (b.score ?? -1) - (a.score ?? -1) : b.discoveredAt - a.discoveredAt,
     );
-  }, [jobs, search, stateFilter, minScore, sort, tag]);
+  }, [jobs, search, stateFilter, minScore, sort, activeTag]);
 
   if (jobs.length === 0) {
     return (
@@ -119,9 +122,9 @@ export function Jobs() {
                 <button
                   key={entry}
                   type="button"
-                  className={`jp-chip whitespace-nowrap ${tag === entry ? 'jp-chip-active' : ''}`}
-                  aria-pressed={tag === entry}
-                  onClick={() => setTag(tag === entry ? '' : entry)}
+                  className={`jp-chip whitespace-nowrap ${activeTag === entry ? 'jp-chip-active' : ''}`}
+                  aria-pressed={activeTag === entry}
+                  onClick={() => setTag(activeTag === entry ? '' : entry)}
                 >
                   {entry}
                 </button>

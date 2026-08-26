@@ -20,7 +20,9 @@ export const JOB_TRANSITIONS: Record<JobState, readonly JobState[]> = {
   application_preparing: ['application_ready', 'submitted', 'saved', 'error', 'rejected'],
   application_ready: ['submitted', 'application_preparing', 'rejected', 'error'],
   submitted: ['rejected', 'saved'],
-  rejected: ['saved', 'analyzed', 'discovered'],
+  // В `submitted` из архива — это возврат к правде, а не новый шаг: отклик по
+  // такой вакансии действительно был отправлен.
+  rejected: ['saved', 'analyzed', 'discovered', 'submitted'],
   error: ['queued', 'analyzing', 'discovered', 'rejected'],
 };
 
