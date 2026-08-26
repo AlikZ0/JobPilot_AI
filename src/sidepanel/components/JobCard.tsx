@@ -14,6 +14,8 @@ interface Props {
   onOpen(): void;
   onPrepare(): void;
   onSelect(): void;
+  onArchive?(): void;
+  onRestore?(): void;
   busy?: boolean;
 }
 
@@ -57,6 +59,8 @@ export function JobCard({
   onOpen,
   onPrepare,
   onSelect,
+  onArchive,
+  onRestore,
   busy,
 }: Props) {
   const matched = analysis?.matchedSkills.slice(0, 6) ?? [];
@@ -110,6 +114,22 @@ export function JobCard({
           {missing.map((skill) => (
             <SkillBadge key={`x-${skill}`} name={skill} kind="missing" />
           ))}
+        </div>
+      ) : null}
+
+      {job.tags.length > 0 || job.notes ? (
+        <div className="flex flex-wrap items-center gap-1">
+          {job.tags.map((tag) => (
+            <span key={tag} className="jp-badge">
+              {tag}
+            </span>
+          ))}
+          {job.notes ? (
+            <span className="flex items-center gap-1 text-[11px] text-muted" title={job.notes}>
+              <Icon name="message" size={11} />
+              есть заметка
+            </span>
+          ) : null}
         </div>
       ) : null}
 
@@ -182,6 +202,28 @@ export function JobCard({
           >
             <Icon name="external" size={13} />
           </button>
+          {job.state === 'rejected' && onRestore ? (
+            <button
+              type="button"
+              className="jp-button-ghost jp-button-sm flex-shrink-0 px-2.5"
+              onClick={onRestore}
+              title="Вернуть из архива"
+              aria-label="Вернуть из архива"
+            >
+              <Icon name="refresh" size={13} />
+            </button>
+          ) : null}
+          {job.state !== 'rejected' && onArchive ? (
+            <button
+              type="button"
+              className="jp-button-ghost jp-button-sm flex-shrink-0 px-2.5"
+              onClick={onArchive}
+              title="Не интересно — убрать в архив"
+              aria-label="Не интересно — убрать в архив"
+            >
+              <Icon name="eraser" size={13} />
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

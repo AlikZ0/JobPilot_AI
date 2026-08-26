@@ -83,6 +83,12 @@ export const jobSchema = extractedJobSchema.extend({
   /** Идентификатор записи, признанной той же самой вакансией. */
   duplicateOf: z.string().nullable().default(null),
   notes: z.string().max(4000).default(''),
+  /**
+   * Свои пометки для разбора списка: «удалёнка», «хорошая зп», «спросить про
+   * овертаймы». Свободный текст, а не перечисление: чужой набор ярлыков всё
+   * равно не совпадёт с тем, как человек делит вакансии у себя в голове.
+   */
+  tags: z.array(z.string().max(30)).max(20).default([]),
   error: z.string().max(600).default(''),
   scanSessionId: z.string().nullable().default(null),
 });

@@ -5,6 +5,7 @@ import { JobCard } from '../components/JobCard';
 import { Empty } from '../components/Empty';
 import { Icon } from '../components/Icon';
 import { useJobActions } from '../hooks/useJobActions';
+import { collectTags, isArchived } from '@/core/pipeline/triage';
 
 type SortKey = 'score' | 'recent';
 
@@ -14,23 +15,32 @@ const STATE_FILTERS: { value: 'all' | JobState; label: string }[] = [
   { value: 'saved', label: 'Сохранённые' },
   { value: 'application_ready', label: 'Заявка готова' },
   { value: 'submitted', label: 'Отправленные' },
+  // Архив последним и только по явному запросу: он для того и архив.
+  { value: 'rejected', label: 'В архиве' },
 ];
 
 export function Jobs() {
   const jobs = useStore((state) => state.jobs);
   const analyses = useStore((state) => state.analyses);
   const navigate = useStore((state) => state.navigate);
+  const hiddenByCompany = useStore((state) => state.hiddenByCompany);
   const actions = useJobActions();
 
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState<'all' | JobState>('all');
   const [minScore, setMinScore] = useState(0);
   const [sort, setSort] = useState<SortKey>('score');
+  const [tag, setTag] = useState('');
+
+  const tags = useMemo(() => collectTags(jobs), [jobs]);
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
     const filtered = jobs.filter((job) => {
+      // Архив не мешается в общем списке: чтобы его увидеть, его надо выбрать.
+      if (stateFilter !== 'rejected' && isArchived(job)) return false;
       if (stateFilter !== 'all' && job.state !== stateFilter) return false;
+      if (tag && !job.tags.includes(tag)) return false;
       if ((job.score ?? 0) < minScore) return false;
       if (!needle) return true;
       return (
@@ -42,7 +52,7 @@ export function Jobs() {
     return filtered.sort((a, b) =>
       sort === 'score' ? (b.score ?? -1) - (a.score ?? -1) : b.discoveredAt - a.discoveredAt,
     );
-  }, [jobs, search, stateFilter, minScore, sort]);
+  }, [jobs, search, stateFilter, minScore, sort, tag]);
 
   if (jobs.length === 0) {
     return (
@@ -101,6 +111,25 @@ export function Jobs() {
           </div>
         </div>
 
+        {tags.length > 0 ? (
+          <div className="-mx-3.5 overflow-x-auto px-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max items-center gap-1">
+              <span className="mr-1 flex-shrink-0 text-[11px] text-muted">Пометки:</span>
+              {tags.map((entry) => (
+                <button
+                  key={entry}
+                  type="button"
+                  className={`jp-chip whitespace-nowrap ${tag === entry ? 'jp-chip-active' : ''}`}
+                  aria-pressed={tag === entry}
+                  onClick={() => setTag(tag === entry ? '' : entry)}
+                >
+                  {entry}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <label className="flex items-center gap-2.5 text-[11px] text-muted">
           <span className="flex-shrink-0">Мин. балл</span>
           <input
@@ -122,6 +151,7 @@ export function Jobs() {
       <div className="flex items-center justify-between gap-2 px-0.5">
         <p className="text-[11px] text-muted">
           Показано {visible.length} из {jobs.length}
+          {hiddenByCompany > 0 ? ` · скрыто компаний: ${hiddenByCompany}` : ''}
         </p>
         <label className="flex flex-shrink-0 items-center">
           <span className="sr-only">Сортировка</span>
@@ -157,6 +187,8 @@ export function Jobs() {
               onOpen={() => actions.open(job)}
               onPrepare={() => actions.prepare(job)}
               onSelect={() => navigate('job', job.id)}
+              onArchive={() => actions.archive(job)}
+              onRestore={() => actions.restore(job)}
             />
           ))}
         </div>

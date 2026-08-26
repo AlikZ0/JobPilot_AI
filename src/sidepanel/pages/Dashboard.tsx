@@ -277,6 +277,8 @@ export function Dashboard() {
                 onOpen={() => actions.open(job)}
                 onPrepare={() => actions.prepare(job)}
                 onSelect={() => navigate('job', job.id)}
+                onArchive={() => actions.archive(job)}
+                onRestore={() => actions.restore(job)}
               />
             ))}
           </div>

@@ -88,6 +88,11 @@ export const settingsSchema = z.object({
     .array(z.object({ host: z.string().max(200), enabled: z.boolean().default(true) }))
     .default([]),
   defaultResumeId: z.string().nullable().default(null),
+  /**
+   * Компании, вакансии которых не показываются. Сравнение по нормализованному
+   * названию, поэтому «Acme» и «Acme Inc.» — это одна компания.
+   */
+  hiddenCompanies: z.array(z.string().max(200)).max(500).default([]),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 

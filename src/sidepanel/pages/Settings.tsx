@@ -27,6 +27,7 @@ import { DAY_MS } from '@/utils/time';
 import { useStore, withBusy } from '../state/store';
 import { Icon } from '../components/Icon';
 import { SiteAccess } from '../components/SiteAccess';
+import { hideCompanies, showCompany } from '@/core/pipeline/triage';
 import { GENERATION_LANGUAGES } from '../labels';
 
 function Row({
@@ -55,6 +56,7 @@ export function SettingsPage() {
   const pushToast = useStore((state) => state.pushToast);
   const refreshData = useStore((state) => state.refreshData);
 
+  const [companyDraft, setCompanyDraft] = useState('');
   const [keyDraft, setKeyDraft] = useState('');
   const [keyLabelDraft, setKeyLabelDraft] = useState('');
   const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
@@ -105,6 +107,13 @@ export function SettingsPage() {
         message: `«${added.label}» сохранён для «${provider.label}».`,
       });
     });
+
+  const hideCompany = () => {
+    const value = companyDraft.trim();
+    if (!value || !settings) return;
+    setCompanyDraft('');
+    void updateSettings({ hiddenCompanies: hideCompanies(settings.hiddenCompanies, value) });
+  };
 
   const switchKey = (id: string) =>
     void withBusy('Переключаем ключ', async () => {
@@ -738,6 +747,64 @@ export function SettingsPage() {
             За 30 дней: запросов к AI — {usage.requests} · примерно ${usage.cost.toFixed(4)}
           </p>
         ) : null}
+      </section>
+
+      <section className="jp-card flex flex-col gap-2">
+        <h2 className="jp-section-title mb-1">
+          <Icon name="eraser" size={12} />
+          Скрытые компании
+        </h2>
+        <p className="text-[11px] leading-relaxed text-muted">
+          Их вакансии не попадают ни в список, ни в счётчики обзора. Название сверяется без правовых
+          форм, поэтому «Acme» скроет и «Acme Inc.». Сами записи остаются в базе — уберите компанию
+          отсюда, и они вернутся.
+        </p>
+        {settings.hiddenCompanies.length > 0 ? (
+          <ul className="flex flex-wrap gap-1">
+            {settings.hiddenCompanies.map((company) => (
+              <li key={company} className="jp-badge gap-1.5">
+                {company}
+                <button
+                  type="button"
+                  aria-label={`Показывать вакансии ${company}`}
+                  className="rounded-full text-muted transition hover:text-poor"
+                  onClick={() =>
+                    void updateSettings({
+                      hiddenCompanies: showCompany(settings.hiddenCompanies, company),
+                    })
+                  }
+                >
+                  <Icon name="x" size={11} strokeWidth={2.4} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[11px] text-muted">Список пуст — показываются все компании.</p>
+        )}
+        <div className="flex gap-1.5">
+          <input
+            className="jp-input"
+            placeholder="Название компании"
+            aria-label="Компания, которую не показывать"
+            value={companyDraft}
+            onChange={(event) => setCompanyDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              hideCompany();
+            }}
+          />
+          <button
+            type="button"
+            className="jp-button flex-shrink-0"
+            onClick={hideCompany}
+            disabled={!companyDraft.trim()}
+          >
+            <Icon name="plus" size={13} />
+            Скрыть
+          </button>
+        </div>
       </section>
 
       <section id="sites" className="jp-card flex flex-col gap-2">

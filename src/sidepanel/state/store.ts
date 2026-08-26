@@ -17,6 +17,7 @@ import { listJobs } from '@/database/repositories/jobRepository';
 import { listAnalyses } from '@/database/repositories/analysisRepository';
 import { listApplications } from '@/database/repositories/applicationRepository';
 import { listSubmissions } from '@/database/repositories/submissionRepository';
+import { isHiddenCompany } from '@/core/pipeline/triage';
 
 export type Route =
   | 'dashboard'
@@ -47,6 +48,8 @@ interface JobPilotState {
   analyses: Record<string, JobAnalysis>;
   applications: Application[];
   submissions: SubmissionRecord[];
+  /** Сколько вакансий не показано из-за чёрного списка компаний. */
+  hiddenByCompany: number;
   pageInfo: PageInfo | null;
   activeTabId: number | null;
   hasHostPermission: boolean;
@@ -84,6 +87,7 @@ export const useStore = create<JobPilotState>((set, get) => ({
   analyses: {},
   applications: [],
   submissions: [],
+  hiddenByCompany: 0,
   pageInfo: null,
   activeTabId: null,
   hasHostPermission: false,
@@ -121,7 +125,7 @@ export const useStore = create<JobPilotState>((set, get) => ({
   },
 
   async refreshData() {
-    const [jobs, analyses, applications, submissions] = await Promise.all([
+    const [allJobs, analyses, applications, submissions] = await Promise.all([
       listJobs({ limit: 500, sortBy: 'discoveredAt' }),
       listAnalyses(500),
       listApplications(),
@@ -132,7 +136,17 @@ export const useStore = create<JobPilotState>((set, get) => ({
       const current = byJob[analysis.jobId];
       if (!current || current.createdAt < analysis.createdAt) byJob[analysis.jobId] = analysis;
     }
-    set({ jobs, analyses: byJob, applications, submissions });
+    // Скрытые компании отсекаются здесь, а не в каждом экране: иначе вакансия
+    // из чёрного списка всё равно попадала бы в счётчики обзора.
+    const hidden = get().settings?.hiddenCompanies ?? [];
+    const jobs = allJobs.filter((job) => !isHiddenCompany(job, hidden));
+    set({
+      jobs,
+      hiddenByCompany: allJobs.length - jobs.length,
+      analyses: byJob,
+      applications,
+      submissions,
+    });
   },
 
   async refreshTabContext() {
@@ -158,6 +172,8 @@ export const useStore = create<JobPilotState>((set, get) => ({
   async updateSettings(patch) {
     const settings = await saveSettings(patch);
     set({ settings });
+    // Чёрный список решает, какие вакансии вообще попадают в состояние.
+    if (patch.hiddenCompanies) await get().refreshData();
   },
 
   setBusy(label) {
