@@ -8,8 +8,8 @@ import { getProfile } from '@/database/repositories/profileRepository';
 import { getSettings } from '@/database/repositories/settingsRepository';
 import {
   getJob,
+  markJobSaved,
   setJobState,
-  updateJob,
   upsertExtractedJob,
 } from '@/database/repositories/jobRepository';
 import { getApplication, updateApplication } from '@/database/repositories/applicationRepository';
@@ -21,6 +21,7 @@ import {
 } from '@/core/application/applicationService';
 import { buildDeterministicPlan, mergeAIMappings } from '@/core/application/fieldMapper';
 import { runAITask, testProviderConnection } from '@/core/ai/aiService';
+import { tailorResume, tailorWithoutAI } from '@/core/resume/tailorResume';
 import { answerAssistantQuestion } from '@/core/assistant/assistantService';
 import { ensureContentScript, getActiveTab } from './tabManager';
 import { getPageMarks, getTrackerConfig, handleSubmissionDetected } from './submissionTracker';
@@ -137,7 +138,7 @@ export function registerBackgroundHandlers(): void {
       const target = await resolveTabId(tabId);
       const extracted = await extractFromTab(target.tabId, target.url);
       const { job } = await upsertExtractedJob(extracted);
-      const saved = await updateJob(job.id, { state: 'saved', savedAt: Date.now() });
+      const saved = await markJobSaved(job.id);
       broadcast(MESSAGE_TYPES.EVENT_JOB_UPDATED, { job: saved });
       return { job: saved };
     },
@@ -291,6 +292,27 @@ export function registerBackgroundHandlers(): void {
         { settings },
       );
       return result.data;
+    },
+
+    [MESSAGE_TYPES.TAILOR_RESUME]: async ({ jobId, resumeText, useAI }) => {
+      const job = await getJob(jobId);
+      if (!job) throw new JobPilotError(ERROR_CODES.NOT_FOUND, 'Вакансия не найдена.');
+      const [profile, settings] = await Promise.all([getProfile(), getSettings()]);
+
+      // Без AI (или когда он не настроен) отдаём детерминированный вариант:
+      // исходное резюме плюс подтверждённые профилем навыки.
+      if (useAI === false || !settings.privacy.allowAIRequests) {
+        const outcome = tailorWithoutAI(job, profile, resumeText);
+        return { ...outcome, usedAI: false };
+      }
+      try {
+        const outcome = await tailorResume({ job, profile, settings, resumeText });
+        return { ...outcome, usedAI: true };
+      } catch (error) {
+        log.warn('AI-подгонка резюме не удалась, отдаём детерминированный вариант', error);
+        const outcome = tailorWithoutAI(job, profile, resumeText);
+        return { ...outcome, usedAI: false };
+      }
     },
 
     [MESSAGE_TYPES.TEST_AI_PROVIDER]: () => testProviderConnection(),

@@ -9,6 +9,7 @@ import { Profile } from './pages/Profile';
 import { Applications } from './pages/Applications';
 import { ApplicationReview } from './pages/ApplicationReview';
 import { Assistant } from './pages/Assistant';
+import { Resume } from './pages/Resume';
 import { SettingsPage } from './pages/Settings';
 import { Onboarding } from './pages/Onboarding';
 import { ScanBar } from './components/ScanBar';
@@ -18,6 +19,7 @@ const TABS: { route: Route; label: string; icon: IconName }[] = [
   { route: 'dashboard', label: 'Обзор', icon: 'dashboard' },
   { route: 'jobs', label: 'Вакансии', icon: 'briefcase' },
   { route: 'applications', label: 'Заявки', icon: 'send' },
+  { route: 'resume', label: 'Резюме', icon: 'file' },
   { route: 'assistant', label: 'Ассистент', icon: 'sparkles' },
   { route: 'profile', label: 'Профиль', icon: 'user' },
   { route: 'settings', label: 'Настройки', icon: 'settings' },
@@ -159,13 +161,14 @@ export default function App() {
         {route === 'job' ? <JobDetail /> : null}
         {route === 'applications' ? <Applications /> : null}
         {route === 'application' ? <ApplicationReview /> : null}
+        {route === 'resume' ? <Resume /> : null}
         {route === 'assistant' ? <Assistant /> : null}
         {route === 'profile' ? <Profile /> : null}
         {route === 'settings' ? <SettingsPage /> : null}
       </main>
 
       <nav
-        className="grid grid-cols-6 border-t border-border bg-surface-2"
+        className="grid grid-cols-7 border-t border-border bg-surface-2"
         aria-label="Основная навигация"
       >
         {TABS.map((tab) => {

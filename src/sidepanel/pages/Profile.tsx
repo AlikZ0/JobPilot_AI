@@ -3,6 +3,7 @@ import { MESSAGE_TYPES } from '@/types/messages';
 import type { UserProfile } from '@/types/profile';
 import { sendToBackground } from '@/utils/messaging';
 import { canonicalizeTech, categoryOf } from '@/core/extraction/techDictionary';
+import { makeSkill } from '@/types/profile';
 import { useStore, withBusy } from '../state/store';
 import { ProfileForm } from '../components/ProfileForm';
 import { AttachmentManager } from '../components/AttachmentManager';
@@ -47,7 +48,7 @@ export function Profile() {
       patch({
         skills: [
           ...current.skills,
-          ...suggested.map((name) => ({ name, category: categoryOf(name), primary: false })),
+          ...suggested.map((name) => makeSkill({ name, category: categoryOf(name) })),
         ],
       });
       pushToast({

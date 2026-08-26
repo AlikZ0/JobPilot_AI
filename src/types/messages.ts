@@ -2,6 +2,8 @@ import type { DetectedFormField, FieldMapping, FillPlan, FillResult } from './ap
 import type { ExtractedJob, Job, JobState, JobSummary } from './job';
 import type { SubmissionSignal } from './submission';
 import type { JobAnalysis, ResumeAnalysis } from './ai';
+import type { TailoredResume } from './resume';
+import type { ResumeGaps } from '@/core/resume/gapAnalysis';
 import type { ScanProgress } from './scan';
 import type { UserProfile } from './profile';
 import type { Settings } from './settings';
@@ -31,6 +33,7 @@ export const MESSAGE_TYPES = {
   GENERATE_ANSWER: 'generate_answer',
   ASK_ASSISTANT: 'ask_assistant',
   ANALYZE_RESUME: 'analyze_resume',
+  TAILOR_RESUME: 'tailor_resume',
   TEST_AI_PROVIDER: 'test_ai_provider',
   REQUEST_HOST_PERMISSION: 'request_host_permission',
   GET_ACTIVE_TAB_CONTEXT: 'get_active_tab_context',
@@ -170,6 +173,16 @@ export type MessageDefs =
       { answer: string; referencedJobIds: string[]; followUps: string[] }
     >
   | Def<typeof MESSAGE_TYPES.ANALYZE_RESUME, { text: string }, ResumeAnalysis>
+  | Def<
+      typeof MESSAGE_TYPES.TAILOR_RESUME,
+      { jobId: string; resumeText: string; useAI?: boolean },
+      {
+        resume: TailoredResume;
+        gaps: ResumeGaps;
+        rejectedSkills: string[];
+        usedAI: boolean;
+      }
+    >
   | Def<typeof MESSAGE_TYPES.TEST_AI_PROVIDER, undefined, { ok: boolean; message: string }>
   | Def<typeof MESSAGE_TYPES.REQUEST_HOST_PERMISSION, { url: string }, { granted: boolean }>
   | Def<

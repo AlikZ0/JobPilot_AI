@@ -3,9 +3,20 @@ import type { ExtractedJob } from '@/types/job';
 import {
   canonicalizeTech,
   detectTechnologies,
+  detectTechnologiesDetailed,
   expandImplied,
+  majorVersion,
 } from '@/core/extraction/techDictionary';
 import { normalizeToken, unique } from '@/utils/text';
+
+/** Навык есть, но версия не та: вакансия просит Vue 3, а в профиле Vue 2. */
+export interface VersionMismatch {
+  skill: string;
+  /** Версия, которую просит вакансия. */
+  required: string;
+  /** Версии, которые указаны в профиле. */
+  have: string[];
+}
 
 export interface SkillMatch {
   matched: string[];
@@ -14,8 +25,52 @@ export interface SkillMatch {
   /** Обязательные по вакансии навыки, которых нет у пользователя. */
   missingMandatory: string[];
   required: string[];
+  /** Совпавшие навыки, у которых расходится мажорная версия. */
+  versionMismatches: VersionMismatch[];
   coverage: number;
   mandatoryCoverage: number;
+}
+
+/**
+ * Версии навыков из профиля: название -> набор мажорных версий. Пустая строка
+ * означает «версия не указана» и совпадает с любым требованием.
+ */
+export function profileSkillVersions(profile: UserProfile): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
+  const add = (name: string, version: string) => {
+    const key = normalizeToken(canonicalizeTech(name));
+    if (!key) return;
+    const set = map.get(key) ?? new Set<string>();
+    set.add(majorVersion(version));
+    map.set(key, set);
+  };
+  for (const skill of profile.skills) add(skill.name, skill.version);
+
+  // Технологии из опыта работы — источник послабее: они дополняют список
+  // навыков, но не стирают версию, которую пользователь указал явно.
+  for (const entry of profile.experience) {
+    for (const tech of entry.technologies) {
+      const parsed = detectTechnologiesDetailed(tech)[0];
+      const name = parsed?.name ?? tech;
+      if (map.has(normalizeToken(canonicalizeTech(name)))) continue;
+      add(name, parsed?.version ?? '');
+    }
+  }
+  return map;
+}
+
+/** Версии, которые требует вакансия: название -> мажорная версия. */
+export function jobSkillVersions(job: ExtractedJob): Map<string, string> {
+  const map = new Map<string, string>();
+  const text = [job.title, ...job.requirements, ...job.responsibilities, job.description].join(
+    '\n',
+  );
+  for (const detected of detectTechnologiesDetailed(text)) {
+    if (!detected.version) continue;
+    const key = normalizeToken(detected.name);
+    if (!map.has(key)) map.set(key, detected.version);
+  }
+  return map;
 }
 
 const MANDATORY_MARKERS =
@@ -117,9 +172,37 @@ export function matchSkills(job: ExtractedJob, profile: UserProfile): SkillMatch
     matched,
     missing,
     bonus,
+    versionMismatches: findVersionMismatches(job, profile, matched),
     missingMandatory,
     required,
     coverage: required.length === 0 ? 0 : matched.length / required.length,
     mandatoryCoverage: mandatory.length === 0 ? 1 : matchedMandatory.length / mandatory.length,
   };
+}
+
+/**
+ * Находит навыки, которые у пользователя есть, но другой мажорной версии.
+ * Навык без указанной версии в профиле считается подходящим под любую версию:
+ * пользователь просто не стал уточнять.
+ */
+export function findVersionMismatches(
+  job: ExtractedJob,
+  profile: UserProfile,
+  matched: string[],
+): VersionMismatch[] {
+  const required = jobSkillVersions(job);
+  const have = profileSkillVersions(profile);
+  const out: VersionMismatch[] = [];
+
+  for (const skill of matched) {
+    const key = normalizeToken(skill);
+    const wanted = required.get(key);
+    if (!wanted) continue;
+    const versions = have.get(key);
+    if (!versions || versions.size === 0) continue;
+    // Пустая версия в профиле = «любая», это не расхождение.
+    if (versions.has('') || versions.has(wanted)) continue;
+    out.push({ skill, required: wanted, have: [...versions].filter(Boolean).sort() });
+  }
+  return out;
 }

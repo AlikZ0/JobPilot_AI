@@ -25,12 +25,21 @@ describe('машина состояний вакансии', () => {
     expect(canTransitionJob('application_ready', 'submitted')).toBe(true);
   });
 
-  it('не даёт прыгнуть сразу в «отправлено»', () => {
+  it('не даёт прыгнуть в «отправлено» с непрочитанной вакансии', () => {
+    // Вакансию ещё не открывали — отправлять было нечего.
     expect(canTransitionJob('discovered', 'submitted')).toBe(false);
-    expect(canTransitionJob('analyzed', 'submitted')).toBe(false);
-    expect(() => assertJobTransition('analyzed', 'submitted')).toThrow(
+    expect(canTransitionJob('queued', 'submitted')).toBe(false);
+    expect(() => assertJobTransition('discovered', 'submitted')).toThrow(
       /Недопустимый переход вакансии/,
     );
+  });
+
+  it('пускает в «отправлено» с любого шага после анализа', () => {
+    // Откликаются и прямо на сайте, без черновика заявки в JobPilot.
+    expect(canTransitionJob('analyzed', 'submitted')).toBe(true);
+    expect(canTransitionJob('saved', 'submitted')).toBe(true);
+    expect(canTransitionJob('application_preparing', 'submitted')).toBe(true);
+    expect(canTransitionJob('application_ready', 'submitted')).toBe(true);
   });
 
   it('считает переход в то же состояние допустимым', () => {
@@ -45,16 +54,20 @@ describe('машина состояний заявки', () => {
     }
   });
 
-  it('в «отправлено» попадает только из «готово»', () => {
+  it('в «отправлено» попадает с любого рабочего шага, но не из отменённой', () => {
+    // Человек часто дозаполняет форму руками и жмёт «Откликнуться», не доводя
+    // черновик до `ready`; отменённая заявка — обратное решение пользователя.
     for (const state of APPLICATION_STATES) {
       const allowed = canTransitionApplication(state, 'submitted');
-      expect(allowed).toBe(state === 'ready' || state === 'submitted');
+      expect(allowed).toBe(state !== 'cancelled');
     }
-    expect(() => assertApplicationTransition('draft', 'submitted')).toThrow();
+    expect(() => assertApplicationTransition('cancelled', 'submitted')).toThrow();
   });
 
-  it('после отправки состояние конечное', () => {
-    expect(APPLICATION_TRANSITIONS.submitted).toHaveLength(0);
+  it('из «отправлено» есть только откат ошибочной автоматической отметки', () => {
+    expect(APPLICATION_TRANSITIONS.submitted).toEqual(['ready']);
+    expect(canTransitionApplication('submitted', 'ready')).toBe(true);
     expect(canTransitionApplication('submitted', 'draft')).toBe(false);
+    expect(canTransitionApplication('submitted', 'cancelled')).toBe(false);
   });
 });

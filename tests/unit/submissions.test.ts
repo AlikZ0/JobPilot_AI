@@ -3,7 +3,10 @@ import { JobPilotDatabase, getDb, setDb } from '@/database/db';
 import { upsertExtractedJob, updateJob } from '@/database/repositories/jobRepository';
 import {
   createApplication,
+  listApplicationEvents,
   markSubmitted,
+  markSubmittedAutomatically,
+  revertAutoSubmission,
   updateApplication,
 } from '@/database/repositories/applicationRepository';
 import {
@@ -125,6 +128,65 @@ describe('журнал откликов', () => {
     expect(summary.month).toBe(3);
     expect(summary.today).toBe(1);
     expect(summary.auto).toBe(2);
+  });
+
+  it('автоматика отмечает заявку отправленной прямо из черновика', async () => {
+    const job = await seedJob();
+    const application = await createApplication(job.id);
+
+    const submitted = await markSubmittedAutomatically(application.id, {
+      signal: 'form_submit',
+      url: 'https://jobs.example.com/1',
+    });
+
+    expect(submitted.state).toBe('submitted');
+    expect(submitted.submissionSource).toBe('auto');
+    // Кнопку на сайте нажал человек — это по-прежнему его отправка.
+    expect(submitted.submittedByUser).toBe(true);
+    expect(submitted.submittedAt).toBeTypeOf('number');
+
+    const events = await listApplicationEvents(application.id);
+    expect(events.some((event) => event.type === 'submit_confirmed')).toBe(true);
+  });
+
+  it('повторный сигнал не перезаписывает уже отправленную заявку', async () => {
+    const job = await seedJob();
+    const application = await createApplication(job.id);
+    const first = await markSubmittedAutomatically(application.id, {
+      signal: 'form_submit',
+      url: 'https://jobs.example.com/1',
+    });
+    const second = await markSubmittedAutomatically(application.id, {
+      signal: 'success_page',
+      url: 'https://jobs.example.com/1',
+    });
+    expect(second.submittedAt).toBe(first.submittedAt);
+  });
+
+  it('ошибочную автоматическую отметку можно откатить', async () => {
+    const job = await seedJob();
+    const application = await createApplication(job.id);
+    await markSubmittedAutomatically(application.id, {
+      signal: 'site_marker',
+      url: 'https://jobs.example.com/1',
+    });
+
+    const reverted = await revertAutoSubmission(application.id);
+    expect(reverted.state).toBe('ready');
+    expect(reverted.submittedAt).toBeNull();
+    expect(reverted.submittedByUser).toBe(false);
+  });
+
+  it('подтверждённую человеком отправку откатить нельзя', async () => {
+    const job = await seedJob();
+    const application = await createApplication(job.id);
+    await updateApplication(application.id, { state: 'review' });
+    await updateApplication(application.id, { state: 'ready' });
+    await markSubmitted(application.id, true);
+
+    await expect(revertAutoSubmission(application.id)).rejects.toThrow(
+      /только автоматическую отметку/,
+    );
   });
 
   it('запись можно удалить — автоматика ошибается, и это должно быть поправимо', async () => {

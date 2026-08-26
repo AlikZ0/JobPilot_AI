@@ -214,6 +214,44 @@ test.describe('боковая панель', () => {
     ).toBeDisabled();
   });
 
+  test('показывает вкладку «Резюме» с ATS-аудитом и разбором пробелов', async ({ panel }) => {
+    await completeOnboarding(panel);
+    await seedJob(panel);
+    await panel.reload();
+
+    await panel.getByRole('button', { name: 'Резюме', exact: true }).click();
+    await expect(panel.getByText('1 · Ваше резюме')).toBeVisible();
+
+    // Вставляем резюме, в котором Node.js есть, а Vue забыли указать.
+    await panel
+      .getByPlaceholder('Загрузите PDF или вставьте текст резюме сюда')
+      .fill(
+        [
+          'Алекс Доу',
+          'alex@example.com · +1 555 0100',
+          '',
+          'ОПЫТ РАБОТЫ',
+          'Developer — Example Inc. (2020 — 2024)',
+          '- Делал сервисы на Node.js',
+          '',
+          'НАВЫКИ',
+          'Node.js, PostgreSQL, Git',
+          '',
+          'ОБРАЗОВАНИЕ',
+          'Ягеллонский университет',
+        ].join('\n'),
+      );
+
+    // ATS-аудит считается сразу, без обращения к AI.
+    await expect(panel.getByText('2 · Совместимость с ATS')).toBeVisible();
+    await expect(panel.getByText('Контакты')).toBeVisible();
+
+    await panel.getByLabel('Вакансия').selectOption({ index: 1 });
+    await panel.getByRole('button', { name: 'Сравнить с вакансией' }).click();
+
+    await expect(panel.getByText('Чего не хватает в резюме')).toBeVisible();
+  });
+
   test('держит подтверждение отправки постоянно включённым', async ({ panel }) => {
     await completeOnboarding(panel);
     await panel.getByRole('button', { name: 'Настройки' }).click();

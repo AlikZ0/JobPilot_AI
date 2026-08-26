@@ -90,7 +90,18 @@ export function Applications() {
                       {formatRelative(application.updatedAt)}
                     </p>
                   </div>
-                  <span className={`jp-badge flex-shrink-0 ${STATE_STYLE[application.state]}`}>
+                  <span
+                    className={`jp-badge flex-shrink-0 ${STATE_STYLE[application.state]}`}
+                    title={
+                      application.state === 'submitted' && application.submissionSource === 'auto'
+                        ? 'Отметил JobPilot, заметив отправку формы на сайте'
+                        : undefined
+                    }
+                  >
+                    {application.state === 'submitted' &&
+                    application.submissionSource === 'auto' ? (
+                      <Icon name="bolt" size={10} />
+                    ) : null}
                     {APPLICATION_STATE_LABEL[application.state]}
                   </span>
                 </div>

@@ -7,6 +7,7 @@ import {
 } from '@/core/scoring/engine';
 import { matchSkills, classifyJobSkills } from '@/core/scoring/skillMatcher';
 import { SCORE_WEIGHTS, TOTAL_WEIGHT, bandForScore } from '@/core/scoring/weights';
+import { makeSkill } from '@/types/profile';
 import { makeProfile } from '../fixtures/profile';
 import { makeJob } from '../fixtures/jobs';
 
@@ -41,7 +42,7 @@ describe('сопоставление навыков', () => {
 
   it('учитывает подразумеваемые навыки (Nuxt подразумевает Vue)', () => {
     const profile = makeProfile({
-      skills: [{ name: 'Nuxt', category: 'frontend', primary: true }],
+      skills: [makeSkill({ name: 'Nuxt', category: 'frontend', primary: true })],
     });
     const job = makeJob({ technologies: ['Vue'], requirements: ['Vue experience'] });
     const match = matchSkills(job, profile);
@@ -50,7 +51,7 @@ describe('сопоставление навыков', () => {
 
   it('сообщает о недостающих обязательных технологиях', () => {
     const profile = makeProfile({
-      skills: [{ name: 'Node.js', category: 'backend', primary: true }],
+      skills: [makeSkill({ name: 'Node.js', category: 'backend', primary: true })],
     });
     const match = matchSkills(makeJob(), profile);
     expect(match.missingMandatory).toContain('TypeScript');

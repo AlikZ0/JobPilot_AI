@@ -254,6 +254,76 @@ export function expandImplied(name: string, seen = new Set<string>()): string[] 
 }
 
 /**
+ * Разбирает строку вида «Vue 3», «React 18», «PHP 8.1» на название и мажорную
+ * версию. Если версии нет, возвращает пустую строку — такой навык совпадает с
+ * любой версией.
+ */
+export function splitNameAndVersion(input: string): { name: string; version: string } {
+  const value = input.trim();
+  // Версия — последнее «слово» из цифр, возможно с точкой: 3, 18, 8.1, v3.
+  const match = value.match(/^(.*?)([\s./-]*)v?(\d{1,2}(?:\.\d{1,2})?)\s*(?:\+|\.x)?$/i);
+  if (!match) return { name: value, version: '' };
+
+  const name = (match[1] ?? '').trim();
+  const separator = match[2] ?? '';
+  const version = match[3] ?? '';
+  if (!name) return { name: value, version: '' };
+
+  // Если само название известно словарю — цифры рядом это версия («Vue 3»).
+  if (lookupTech(name)) return { name, version };
+  // «ES6», «S3», «Web3» словарь знает целиком: цифра — часть имени.
+  if (lookupTech(value)) return { name: value, version: '' };
+  // Незнакомая технология: версией считаем только явно отделённые цифры.
+  return separator ? { name, version } : { name: value, version: '' };
+}
+
+/** Только мажорная часть версии: «3.2» -> «3». */
+export function majorVersion(version: string): string {
+  const match = version.trim().match(/^(\d{1,2})/);
+  return match?.[1] ?? '';
+}
+
+export interface DetectedTech {
+  name: string;
+  /** Версия, указанная рядом с названием в тексте; пустая, если не указана. */
+  version: string;
+}
+
+const VERSION_AFTER = /^[\s.]{0,3}v?(\d{1,2})(?:\.\d{1,2})?(?:\s*\+|\.x)?/i;
+
+/**
+ * Как detectTechnologies, но дополнительно вытаскивает версию, стоящую рядом с
+ * названием: «Vue 3», «React 18», «Angular 15+».
+ */
+export function detectTechnologiesDetailed(text: string): DetectedTech[] {
+  if (!text) return [];
+  const haystack = text.replace(/[\n\r\t]+/g, ' ');
+  const out = new Map<string, DetectedTech>();
+
+  for (const entry of TECH_DICTIONARY) {
+    for (const candidate of [entry.canonical, ...entry.aliases]) {
+      const needle = candidate.toLowerCase();
+      if (needle.length < 2) continue;
+      const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const boundary = /^[a-z0-9]/.test(needle) ? '(?<![a-z0-9+#.])' : '';
+      const tail = /[a-z0-9]$/.test(needle) ? '(?![a-z0-9+#])' : '';
+      const re = new RegExp(`${boundary}${escaped}${tail}`, 'gi');
+      let match: RegExpExecArray | null;
+      while ((match = re.exec(haystack)) !== null) {
+        const after = haystack.slice(match.index + match[0].length);
+        const version = majorVersion(after.match(VERSION_AFTER)?.[1] ?? '');
+        const existing = out.get(entry.canonical);
+        // Версия, найденная явно, важнее записи без версии.
+        if (!existing || (!existing.version && version)) {
+          out.set(entry.canonical, { name: entry.canonical, version });
+        }
+      }
+    }
+  }
+  return [...out.values()];
+}
+
+/**
  * Находит технологии в свободном тексте. Совпадение учитывает границы слов,
  * поэтому «Go» не срабатывает на «Google», а «R» не срабатывает вовсе.
  */

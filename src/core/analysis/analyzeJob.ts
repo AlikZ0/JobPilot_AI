@@ -104,6 +104,7 @@ export async function analyzeJob(
     band: scored.band,
     breakdown: scored.breakdown,
     matchedSkills: scored.matchedSkills,
+    versionMismatches: scored.versionMismatches,
     missingSkills: scored.missingSkills,
     bonusSkills: scored.bonusSkills,
     seniorityMatch: scored.seniorityMatch,
