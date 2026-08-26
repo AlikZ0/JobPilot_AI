@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dedupeJobs,
   descriptionHash,
   findDuplicate,
   fingerprintOf,
@@ -115,5 +116,66 @@ describe('поиск дублей', () => {
       description: 'Marketing role with no engineering content at all.',
     });
     expect(findDuplicate(candidate, [existing])).toBeNull();
+  });
+});
+
+describe('схлопывание дублей в списке', () => {
+  it('одинаковая вакансия показывается один раз', () => {
+    const first = toJob({ title: 'Vue Developer', company: 'Acme', location: 'Yerevan' });
+    const second = toJob({ title: 'Vue Developer', company: 'Acme', location: 'Yerevan' });
+    expect(first.fingerprint).toBe(second.fingerprint);
+
+    const list = dedupeJobs([first, second]);
+    expect(list).toHaveLength(1);
+  });
+
+  it('разные вакансии остаются на месте', () => {
+    const a = toJob({ title: 'Vue Developer', company: 'Acme' });
+    const b = toJob({ title: 'Go Developer', company: 'Acme' });
+    const c = toJob({ title: 'Vue Developer', company: 'Globex' });
+    expect(dedupeJobs([a, b, c])).toHaveLength(3);
+  });
+
+  it('дубль по адресу схлопывается даже с другим отпечатком', () => {
+    const url = 'https://jobs.example.com/vacancy/42?utm_source=x';
+    const a = toJob({ title: 'Vue Developer', company: 'Acme', url });
+    const b = toJob({
+      title: 'Vue 3 Developer',
+      company: 'Acme Inc.',
+      url: 'https://jobs.example.com/vacancy/42',
+    });
+    expect(a.fingerprint).not.toBe(b.fingerprint);
+    expect(dedupeJobs([a, b])).toHaveLength(1);
+  });
+
+  it('остаётся запись, по которой уже проделана работа', () => {
+    const bare = toJob({ title: 'Vue Developer', company: 'Acme' });
+    const saved = {
+      ...toJob({ title: 'Vue Developer', company: 'Acme' }),
+      state: 'saved' as const,
+      savedAt: Date.now(),
+      score: 88,
+    };
+    // Порядок не должен решать: побеждает та, где есть что терять.
+    expect(dedupeJobs([bare, saved])[0]?.id).toBe(saved.id);
+    expect(dedupeJobs([saved, bare])[0]?.id).toBe(saved.id);
+  });
+
+  it('при равных правах остаётся обновлённая последней', () => {
+    const older = { ...toJob({ title: 'Vue Developer', company: 'Acme' }), updatedAt: 1000 };
+    const newer = { ...toJob({ title: 'Vue Developer', company: 'Acme' }), updatedAt: 2000 };
+    expect(dedupeJobs([older, newer])[0]?.id).toBe(newer.id);
+  });
+
+  it('порядок оставшихся вакансий не меняется', () => {
+    const a = toJob({ title: 'A', company: 'Acme' });
+    const dup = toJob({ title: 'A', company: 'Acme' });
+    const b = toJob({ title: 'B', company: 'Acme' });
+    const list = dedupeJobs([a, dup, b]);
+    expect(list.map((job) => job.title)).toEqual(['A', 'B']);
+  });
+
+  it('пустой список остаётся пустым', () => {
+    expect(dedupeJobs([])).toEqual([]);
   });
 });

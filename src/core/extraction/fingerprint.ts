@@ -140,3 +140,97 @@ export function listingIdFromUrl(url: string): string {
   const numeric = parsed.pathname.match(/(\d{6,})/);
   return numeric?.[1] ?? '';
 }
+
+/**
+ * Насколько далеко продвинута работа по вакансии. Из двух одинаковых записей
+ * показываем ту, где есть что терять: сохранённую, проанализированную,
+ * с готовой заявкой — а не пустой дубль, найденный вторым проходом.
+ */
+function progressRank(job: Job): number {
+  const byState: Record<string, number> = {
+    submitted: 6,
+    application_ready: 5,
+    application_preparing: 4,
+    saved: 3,
+    analyzed: 2,
+    analyzing: 1,
+  };
+  let rank = byState[job.state] ?? 0;
+  if (job.savedAt !== null) rank += 3;
+  if (job.score !== null) rank += 2;
+  if (job.notes) rank += 1;
+  return rank;
+}
+
+/**
+ * Один ли это адрес и одна ли вакансия. Совпадения URL мало: у части сайтов
+ * извлечение отдаёт общую страницу карьеры сразу нескольким вакансиям, и по
+ * одному адресу их бы склеило в одну. Поэтому рядом проверяется, что это
+ * действительно та же должность у того же работодателя.
+ */
+const SAME_URL_TITLE_MATCH = 0.6;
+
+function sameVacancyAtUrl(a: Job, b: Job): boolean {
+  if (normalizeCompany(a.company) !== normalizeCompany(b.company)) return false;
+  // Порог ниже, чем при сверке между сайтами (`findDuplicate`): там название —
+  // единственная зацепка, здесь адрес уже почти всё сказал, и от заголовка
+  // требуется только не быть заведомо чужим. «Vue Developer» и «Vue 3
+  // Developer» по одной ссылке — одно объявление, «Vue» и «Go» — разные.
+  return similarity(normalizeTitle(a.title), normalizeTitle(b.title)) >= SAME_URL_TITLE_MATCH;
+}
+
+/** Из двух одинаковых записей оставляем ту, где больше проделанной работы. */
+function preferred(a: Job, b: Job): Job {
+  const rankA = progressRank(a);
+  const rankB = progressRank(b);
+  if (rankA !== rankB) return rankA > rankB ? a : b;
+  return a.updatedAt >= b.updatedAt ? a : b;
+}
+
+/**
+ * Убирает из списка повторы одной и той же вакансии.
+ *
+ * При сохранении дубли схлопываются в одну запись (`upsertExtractedJob`), но в
+ * базе они всё равно заводятся: импорт резервной копии, записи, сделанные до
+ * появления отпечатков, промах эвристики на слегка разном написании должности.
+ * Показывать человеку две одинаковых карточки нельзя, а удалять записи молча
+ * тем более — к дублю может быть привязана заявка. Поэтому лишние просто не
+ * попадают в список.
+ *
+ * Признаком одинаковости считается совпадение отпечатка — того самого, по
+ * которому вакансии сверяются при сохранении, — либо общий адрес при похожей
+ * должности у того же работодателя.
+ */
+export function dedupeJobs(jobs: Job[]): Job[] {
+  const kept: Job[] = [];
+  const byFingerprint = new Map<string, number>();
+  const byUrl = new Map<string, number[]>();
+
+  for (const job of jobs) {
+    const url = normalizeUrl(job.url);
+    let at = job.fingerprint ? byFingerprint.get(job.fingerprint) : undefined;
+
+    if (at === undefined && url) {
+      for (const index of byUrl.get(url) ?? []) {
+        if (sameVacancyAtUrl(job, kept[index] as Job)) {
+          at = index;
+          break;
+        }
+      }
+    }
+
+    if (at === undefined) {
+      const index = kept.push(job) - 1;
+      if (job.fingerprint) byFingerprint.set(job.fingerprint, index);
+      if (url) byUrl.set(url, [...(byUrl.get(url) ?? []), index]);
+      continue;
+    }
+
+    kept[at] = preferred(job, kept[at] as Job);
+    // Отпечаток проигравшего тоже должен вести сюда: третья такая же запись
+    // обязана найти пару независимо от того, чей отпечаток она повторяет.
+    if (job.fingerprint) byFingerprint.set(job.fingerprint, at);
+  }
+
+  return kept;
+}

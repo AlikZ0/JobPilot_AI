@@ -7,7 +7,7 @@ import {
   type JobState,
 } from '@/types/job';
 import { assertJobTransition } from '@/core/state/jobState';
-import { fingerprintOf, findDuplicate } from '@/core/extraction/fingerprint';
+import { dedupeJobs, fingerprintOf, findDuplicate } from '@/core/extraction/fingerprint';
 import { createId } from '@/utils/id';
 import { normalizeUrl } from '@/utils/url';
 
@@ -149,7 +149,9 @@ export async function listJobs(
     if (sortBy === 'updatedAt') return b.updatedAt - a.updatedAt;
     return b.discoveredAt - a.discoveredAt;
   });
-  return jobs.slice(0, limit);
+  // Сортируем до схлопывания: из пары дублей должна остаться та запись,
+  // которую выбрал бы текущий порядок, а не та, что попалась первой в базе.
+  return dedupeJobs(jobs).slice(0, limit);
 }
 
 export async function updateJob(id: string, patch: Partial<Job>): Promise<Job> {
