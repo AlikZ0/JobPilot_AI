@@ -14,12 +14,16 @@ import {
   suggestedFileName,
 } from '@/core/resume/render';
 import {
-  BASE_RESUME_ID,
-  getBaseResume,
+  createResumeVersion,
+  deleteResumeVersion,
   getTailoredResume,
-  saveBaseResume,
+  listResumeVersions,
   saveTailoredResume,
+  setPrimaryResume,
+  updateResumeVersion,
 } from '@/database/repositories/resumeRepository';
+import { rankResumeVersions, type ResumeVersionMatch } from '@/core/resume/matchVersions';
+import type { ResumeRecord } from '@/types/resume';
 import { useStore, withBusy } from '../state/store';
 import { Empty } from '../components/Empty';
 import { Icon } from '../components/Icon';
@@ -45,6 +49,12 @@ export function Resume() {
   const pushToast = useStore((state) => state.pushToast);
   const reportError = useStore((state) => state.reportError);
 
+  const [versions, setVersions] = useState<ResumeRecord[]>([]);
+  const [activeId, setActiveId] = useState('');
+  /** Открытое поле ввода названия: создание нового варианта или переименование. */
+  const [nameDraft, setNameDraft] = useState<{ mode: 'create' | 'rename'; value: string } | null>(
+    null,
+  );
   const [resumeText, setResumeText] = useState('');
   const [fileName, setFileName] = useState('');
   const [charsPerPage, setCharsPerPage] = useState(0);
@@ -55,14 +65,52 @@ export function Resume() {
   const [rejected, setRejected] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const active = versions.find((row) => row.id === activeId) ?? null;
+  /** Текст в редакторе разошёлся с сохранённым вариантом. */
+  const dirty = active
+    ? active.text !== resumeText || active.fileName !== fileName
+    : resumeText.trim().length > 0;
+
+  const loadInto = (version: ResumeRecord | null) => {
+    setActiveId(version?.id ?? '');
+    setResumeText(version?.text ?? '');
+    setFileName(version?.fileName ?? '');
+    setCharsPerPage(version?.charsPerPage ?? 0);
+  };
+
+  /**
+   * Перечитывает список. Редактор при этом намеренно не трогается: список
+   * обновляется и после переименования, и после смены основного, а сбрасывать
+   * из-за этого несохранённый текст нельзя.
+   */
+  const refreshList = async () => {
+    const rows = await listResumeVersions();
+    setVersions(rows);
+    return rows;
+  };
+
+  const openDefault = async () => {
+    const rows = await refreshList();
+    loadInto(rows.find((row) => row.primary) ?? rows[0] ?? null);
+  };
+
   useEffect(() => {
-    void getBaseResume().then((record) => {
-      if (!record) return;
-      setResumeText(record.text);
-      setFileName(record.fileName);
-      setCharsPerPage(record.charsPerPage);
-    });
+    void openDefault();
+    // Список читается один раз при открытии экрана.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const openVersion = (id: string) => {
+    if (id === activeId) return;
+    void withBusy('Открываем вариант', async () => {
+      // Правки принадлежат тому варианту, который открыт. Сохраняем их, а не
+      // теряем молча: человек не обязан помнить, что перед переключением надо
+      // было нажать «Сохранить».
+      if (dirty && activeId) await updateResumeVersion(activeId, { text: resumeText, fileName });
+      const rows = await refreshList();
+      loadInto(rows.find((row) => row.id === id) ?? null);
+    });
+  };
 
   useEffect(() => {
     if (!jobId) {
@@ -74,6 +122,12 @@ export function Resume() {
   }, [jobId]);
 
   const job = jobs.find((entry) => entry.id === jobId);
+
+  /** Насколько каждый вариант закрывает требования выбранной вакансии. */
+  const ranking: ResumeVersionMatch[] = useMemo(
+    () => (job && profile && versions.length > 0 ? rankResumeVersions(job, profile, versions) : []),
+    [job, profile, versions],
+  );
   const audit: AtsAudit | null = useMemo(
     () => (resumeText ? auditResume({ text: resumeText, charsPerPage, fileName }) : null),
     [resumeText, charsPerPage, fileName],
@@ -86,13 +140,19 @@ export function Resume() {
       setResumeText(extracted.text);
       setFileName(file.name);
       setCharsPerPage(extracted.charsPerPage);
-      await saveBaseResume({
+      const patch = {
         text: extracted.text,
         fileName: file.name,
-        source: 'pdf',
+        source: 'pdf' as const,
         pages: extracted.pages,
         charsPerPage: extracted.charsPerPage,
-      });
+      };
+      // PDF может быть загружен и до того, как заведён хоть один вариант.
+      const saved = activeId
+        ? await updateResumeVersion(activeId, patch)
+        : await createResumeVersion({ name: file.name.replace(/\.pdf$/i, ''), ...patch });
+      const rows = await refreshList();
+      loadInto(rows.find((row) => row.id === saved.id) ?? null);
       if (extracted.looksScanned) {
         pushToast({
           level: 'warning',
@@ -105,15 +165,66 @@ export function Resume() {
 
   const saveText = () =>
     void withBusy('Сохраняем резюме', async () => {
-      await saveBaseResume({
+      const patch = {
         text: resumeText,
-        fileName: fileName || '',
-        source: 'text',
+        fileName,
+        source: 'text' as const,
         pages: 0,
         charsPerPage: 0,
-      });
-      setCharsPerPage(0);
-      pushToast({ level: 'success', message: 'Резюме сохранено.' });
+      };
+      const saved = activeId
+        ? await updateResumeVersion(activeId, patch)
+        : await createResumeVersion({ name: 'Основное', ...patch });
+      const rows = await refreshList();
+      loadInto(rows.find((row) => row.id === saved.id) ?? null);
+      pushToast({ level: 'success', message: `Вариант «${saved.name}» сохранён.` });
+    });
+
+  /**
+   * Название вводится в самой панели, а не системным окном: остальной интерфейс
+   * работает так же, и поведение не зависит от того, как боковая панель
+   * обходится с модальными диалогами.
+   */
+  const submitName = () =>
+    void withBusy('Сохраняем', async () => {
+      const draft = nameDraft;
+      const name = draft?.value.trim() ?? '';
+      if (!draft || !name) return;
+      if (draft.mode === 'create') {
+        // Пустой вариант бесполезен: за основу берём то, что открыто сейчас.
+        const created = await createResumeVersion({
+          name,
+          text: resumeText,
+          fileName,
+          charsPerPage,
+        });
+        const rows = await refreshList();
+        loadInto(rows.find((row) => row.id === created.id) ?? null);
+        pushToast({ level: 'success', message: `Вариант «${created.name}» создан.` });
+      } else if (activeId) {
+        await updateResumeVersion(activeId, { name });
+        await refreshList();
+      }
+      setNameDraft(null);
+    });
+
+  const removeVersion = () =>
+    void withBusy('Удаляем вариант', async () => {
+      if (!active) return;
+      const ok = window.confirm(
+        `Удалить вариант «${active.name}» и собранные из него резюме под вакансии?`,
+      );
+      if (!ok) return;
+      await deleteResumeVersion(active.id);
+      await openDefault();
+      pushToast({ level: 'info', message: `Вариант «${active.name}» удалён.` });
+    });
+
+  const makePrimary = () =>
+    void withBusy('Сохраняем', async () => {
+      if (!activeId) return;
+      await setPrimaryResume(activeId);
+      await refreshList();
     });
 
   /** Подгонка через AI — единственное, что требует фонового воркера. */
@@ -129,7 +240,7 @@ export function Resume() {
       setGaps(result.gaps);
       setUsedAI(result.usedAI);
       setRejected(result.rejectedSkills);
-      await saveTailoredResume(jobId, result.resume);
+      await saveTailoredResume(jobId, result.resume, { baseId: activeId });
       if (result.rejectedSkills.length > 0) {
         pushToast({
           level: 'warning',
@@ -150,7 +261,7 @@ export function Resume() {
       setGaps(outcome.gaps);
       setUsedAI(false);
       setRejected([]);
-      await saveTailoredResume(job.id, outcome.resume);
+      await saveTailoredResume(job.id, outcome.resume, { baseId: activeId });
     });
 
   const analyzeGapsOnly = () => {
@@ -193,7 +304,107 @@ export function Resume() {
   return (
     <div className="flex flex-col gap-3">
       <section className="jp-card flex flex-col gap-2">
-        <h2 className="jp-section-title">1 · Ваше резюме</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="jp-section-title">1 · Ваше резюме</h2>
+          <button
+            type="button"
+            className="jp-button jp-button-sm"
+            onClick={() => setNameDraft({ mode: 'create', value: '' })}
+          >
+            <Icon name="plus" size={12} />
+            Вариант
+          </button>
+        </div>
+
+        {versions.length > 0 ? (
+          <>
+            {/* Под разные роли ищут по-разному, поэтому вариантов может быть
+                несколько, а «основной» — тот, с которого начинается работа. */}
+            <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-control border border-border">
+              {versions.map((version) => (
+                <li key={version.id}>
+                  <button
+                    type="button"
+                    onClick={() => openVersion(version.id)}
+                    aria-pressed={version.id === activeId}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] transition-colors ${
+                      version.id === activeId
+                        ? 'bg-brand/10 font-medium text-brand'
+                        : 'hover:bg-surface-3'
+                    }`}
+                  >
+                    <Icon name={version.id === activeId ? 'checkCircle' : 'file'} size={13} />
+                    <span className="min-w-0 flex-1 truncate">{version.name}</span>
+                    {version.primary ? (
+                      <span className="jp-badge flex-shrink-0 text-[10px]">основной</span>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {nameDraft ? (
+              <div className="flex gap-1.5">
+                <input
+                  className="jp-input"
+                  autoFocus
+                  placeholder="Например: Фронтенд, Фулстек, Тимлид"
+                  aria-label="Название варианта"
+                  value={nameDraft.value}
+                  onChange={(event) => setNameDraft({ ...nameDraft, value: event.target.value })}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      submitName();
+                    }
+                    if (event.key === 'Escape') setNameDraft(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  className="jp-button-primary flex-shrink-0"
+                  onClick={submitName}
+                  disabled={!nameDraft.value.trim()}
+                >
+                  {nameDraft.mode === 'create' ? 'Создать' : 'Сохранить'}
+                </button>
+                <button
+                  type="button"
+                  className="jp-button-ghost flex-shrink-0"
+                  onClick={() => setNameDraft(null)}
+                >
+                  Отмена
+                </button>
+              </div>
+            ) : null}
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                className="jp-button jp-button-sm"
+                onClick={() => setNameDraft({ mode: 'rename', value: active?.name ?? '' })}
+                disabled={!active}
+              >
+                Переименовать
+              </button>
+              <button
+                type="button"
+                className="jp-button jp-button-sm"
+                onClick={makePrimary}
+                disabled={versions.find((row) => row.id === activeId)?.primary ?? true}
+              >
+                Сделать основным
+              </button>
+              <button
+                type="button"
+                className="jp-button-danger jp-button-sm ml-auto"
+                onClick={removeVersion}
+                disabled={!activeId}
+              >
+                <Icon name="trash" size={12} />
+                Удалить
+              </button>
+            </div>
+          </>
+        ) : null}
         <input
           ref={fileInput}
           type="file"
@@ -211,11 +422,11 @@ export function Resume() {
           </button>
           <button
             type="button"
-            className="jp-button"
+            className={dirty ? 'jp-button-primary' : 'jp-button'}
             onClick={saveText}
-            disabled={resumeText.trim().length < 50}
+            disabled={resumeText.trim().length < 50 || !dirty}
           >
-            Сохранить текст
+            {dirty ? 'Сохранить текст' : 'Сохранено'}
           </button>
           {fileName ? <span className="jp-badge">{fileName}</span> : null}
         </div>
@@ -304,6 +515,38 @@ export function Resume() {
             Без AI
           </button>
         </div>
+        {ranking.length > 1 ? (
+          <div className="rounded-control border border-border p-2.5">
+            <p className="text-[11px] font-medium">Какой вариант ближе к этой вакансии</p>
+            <ul className="mt-1.5 flex flex-col gap-1">
+              {ranking.map((entry, index) => (
+                <li key={entry.id} className="flex items-center gap-2 text-[12px]">
+                  <button
+                    type="button"
+                    onClick={() => openVersion(entry.id)}
+                    className={`min-w-0 flex-1 truncate text-left transition-colors hover:text-brand ${
+                      entry.id === activeId ? 'font-medium text-brand' : ''
+                    }`}
+                  >
+                    {index === 0 ? '★ ' : ''}
+                    {entry.name}
+                  </button>
+                  <span className="flex-shrink-0 text-[11px] text-muted">
+                    {entry.missingCount > 0 ? `не хватает ${entry.missingCount}` : 'всё на месте'}
+                  </span>
+                  <span className="w-9 flex-shrink-0 text-right font-medium tabular-nums">
+                    {entry.score}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-[10px] leading-relaxed text-muted">
+              Процент — доля требований вакансии, про которые в тексте варианта действительно
+              написано. Считается правилами, без AI, поэтому рядом видно, скольких подтверждённых
+              профилем навыков в тексте не хватает.
+            </p>
+          </div>
+        ) : null}
         {jobs.length === 0 ? (
           <p className="text-[11px] text-muted">
             Сначала проанализируйте хотя бы одну вакансию — тогда её можно будет выбрать здесь.
@@ -418,14 +661,13 @@ export function Resume() {
         </section>
       ) : null}
 
-      {!resumeText ? (
+      {versions.length === 0 && !resumeText ? (
         <Empty
+          icon="file"
           title="Резюме пока нет"
-          hint="Загрузите PDF или вставьте текст — дальше JobPilot проверит его на совместимость с ATS и сравнит с вакансией."
+          hint="Загрузите PDF или вставьте текст — дальше JobPilot проверит его на совместимость с ATS и сравнит с вакансией. Вариантов под разные роли можно завести несколько."
         />
       ) : null}
     </div>
   );
 }
-
-export { BASE_RESUME_ID };

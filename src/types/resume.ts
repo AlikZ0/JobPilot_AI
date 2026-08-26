@@ -42,6 +42,12 @@ export type ResumeSource = (typeof RESUME_SOURCES)[number];
 
 export interface ResumeRecord {
   id: string;
+  /**
+   * Название варианта: «Frontend (Vue)», «Тимлид». Вариантов может быть
+   * несколько — под разные роли ищут по-разному, и одно резюме на всё сразу
+   * проигрывает и там, и там. У подогнанных под вакансию копий пусто.
+   */
+  name: string;
   /** Исходное резюме, из которого всё считается. */
   text: string;
   fileName: string;
@@ -50,8 +56,12 @@ export interface ResumeRecord {
   charsPerPage: number;
   createdAt: number;
   updatedAt: number;
-  /** Вакансия, под которую подогнано, или null для исходного резюме. */
+  /** Вакансия, под которую подогнано, или null у самого варианта. */
   jobId: string | null;
+  /** Вариант, из которого собрана подгонка. Null у самих вариантов. */
+  baseId: string | null;
+  /** Вариант по умолчанию: с него начинается работа. Такой ровно один. */
+  primary: boolean;
   tailored: TailoredResume | null;
   /** Правки пользователя поверх сгенерированного текста. */
   userEdited: boolean;
