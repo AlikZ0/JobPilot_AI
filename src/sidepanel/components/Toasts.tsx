@@ -2,10 +2,10 @@ import { useStore } from '../state/store';
 import { Icon, type IconName } from './Icon';
 
 const LEVEL_STYLE = {
-  info: 'border-border bg-surface text-content',
-  success: 'border-excellent/40 bg-surface text-content',
-  warning: 'border-potential/40 bg-surface text-content',
-  error: 'border-poor/40 bg-surface text-content',
+  info: 'border-border',
+  success: 'border-excellent/35',
+  warning: 'border-potential/35',
+  error: 'border-poor/35',
 } as const;
 
 const LEVEL_ACCENT = {
@@ -34,7 +34,7 @@ export function Toasts() {
           key={toast.id}
           role="status"
           aria-live="polite"
-          className={`jp-animate-in pointer-events-auto flex items-start gap-2 rounded-xl border px-2.5 py-2 text-[12px] shadow-pop ${LEVEL_STYLE[toast.level]}`}
+          className={`jp-animate-in jp-bar pointer-events-auto flex items-start gap-2.5 rounded-card border px-3 py-2.5 text-[12px] text-content shadow-pop ${LEVEL_STYLE[toast.level]}`}
         >
           <span
             className={`mt-px flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${LEVEL_ACCENT[toast.level]}`}
@@ -44,7 +44,7 @@ export function Toasts() {
           <p className="flex-1 leading-snug">{toast.message}</p>
           <button
             type="button"
-            className="mt-px flex-shrink-0 rounded p-0.5 text-muted transition hover:bg-surface-3 hover:text-content"
+            className="mt-px flex-shrink-0 rounded-full p-0.5 text-muted transition hover:bg-surface-3 hover:text-content"
             onClick={() => dismiss(toast.id)}
             aria-label="Закрыть уведомление"
           >

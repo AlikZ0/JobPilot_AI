@@ -30,17 +30,19 @@ function Stat({
   accent: Accent;
 }) {
   return (
-    <div className="jp-card flex flex-col gap-1.5 p-2.5">
+    <div className="jp-card flex flex-col gap-2 p-3">
       <span
-        className={`flex h-6 w-6 items-center justify-center rounded-md ${ACCENT[accent]}`}
+        className={`flex h-6 w-6 items-center justify-center rounded-full ${ACCENT[accent]}`}
         aria-hidden="true"
       >
         <Icon name={icon} size={13} />
       </span>
-      <p className="text-[20px] font-bold leading-none tabular-nums">{value}</p>
+      <p className="text-[22px] font-semibold leading-none tracking-[-0.03em] tabular-nums">
+        {value}
+      </p>
       <div>
         <p className="text-[11px] font-medium leading-tight">{label}</p>
-        {hint ? <p className="text-[10px] text-muted">{hint}</p> : null}
+        {hint ? <p className="mt-0.5 text-[10px] text-muted">{hint}</p> : null}
       </div>
     </div>
   );
@@ -171,7 +173,7 @@ export function Dashboard() {
           </h2>
           <ul className="flex flex-wrap gap-1">
             {stats.topMissing.map(([skill, count]) => (
-              <li key={skill} className="jp-badge border-weak/40 bg-weak/10 text-weak">
+              <li key={skill} className="jp-badge bg-weak/10 text-weak">
                 {skill} <span className="opacity-70">×{count}</span>
               </li>
             ))}

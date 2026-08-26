@@ -107,10 +107,10 @@ export function Popup() {
     : 'страницу не удалось прочитать';
 
   return (
-    <div className="flex w-[320px] flex-col gap-2.5 p-3">
-      <header className="flex items-center gap-2">
+    <div className="flex w-[320px] flex-col gap-2 bg-surface-2 p-3.5">
+      <header className="mb-0.5 flex items-center gap-2">
         <Logo />
-        <h1 className="text-[13px] font-semibold">JobPilot AI</h1>
+        <h1 className="text-[14px] font-semibold tracking-[-0.02em]">JobPilot AI</h1>
         <span className="jp-badge ml-auto text-muted" title="Проанализировано сегодня">
           <Icon name="target" size={11} />
           {state.jobsToday}
@@ -218,7 +218,7 @@ export function Popup() {
         </p>
       ) : null}
 
-      <p className="border-t border-border pt-2 text-[10px] leading-relaxed text-muted">
+      <p className="mt-1 border-t border-border pt-2.5 text-[10px] leading-relaxed text-muted">
         Alt+Shift+A — анализ · Alt+Shift+S — сохранить · Alt+Shift+P — панель
       </p>
     </div>

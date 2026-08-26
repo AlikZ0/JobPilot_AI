@@ -32,14 +32,14 @@ function salaryLabel(job: Job): string {
 const STATE_STYLE: Record<JobState, string> = {
   discovered: '',
   queued: '',
-  analyzing: 'border-good/40 bg-good/10 text-good',
-  analyzed: 'border-good/40 bg-good/10 text-good',
-  saved: 'border-brand/40 bg-brand/10 text-brand',
-  application_preparing: 'border-potential/40 bg-potential/10 text-potential',
-  application_ready: 'border-potential/40 bg-potential/10 text-potential',
-  submitted: 'border-excellent/40 bg-excellent/10 text-excellent',
-  rejected: 'border-poor/40 bg-poor/10 text-poor',
-  error: 'border-poor/40 bg-poor/10 text-poor',
+  analyzing: 'bg-good/10 text-good',
+  analyzed: 'bg-good/10 text-good',
+  saved: 'bg-brand/10 text-brand',
+  application_preparing: 'bg-potential/10 text-potential',
+  application_ready: 'bg-potential/10 text-potential',
+  submitted: 'bg-excellent/10 text-excellent',
+  rejected: 'bg-poor/10 text-poor',
+  error: 'bg-poor/10 text-poor',
 };
 
 /** Заявка по вакансии уже начата — предлагаем вернуться к ней, а не создавать. */
@@ -67,13 +67,13 @@ export function JobCard({
   const prepareLabel = PREPARE_LABEL[job.state] ?? 'Подготовить заявку';
 
   return (
-    <article className="jp-card flex flex-col gap-2.5 transition duration-150 hover:border-border-strong">
-      <div className="flex items-start justify-between gap-2.5">
+    <article className="jp-card flex flex-col gap-3 transition duration-200 ease-apple hover:border-border-strong">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <button
             type="button"
             onClick={onSelect}
-            className="text-left text-[14px] font-semibold leading-snug hover:text-brand hover:underline"
+            className="text-left text-[14.5px] font-semibold leading-snug tracking-[-0.015em] transition-colors hover:text-brand"
           >
             {job.title || 'Вакансия без названия'}
           </button>
@@ -137,44 +137,52 @@ export function JobCard({
         </div>
       </dl>
 
-      <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
+      {/*
+        Четыре кнопки в строку не помещаются в узкой панели и разъезжались на
+        три ряда. Главное действие занимает всю ширину, второстепенные делят
+        строку под ним, а «открыть на сайте» остаётся значком.
+      */}
+      <div className="flex flex-col gap-1.5 border-t border-border pt-3">
         <button
           type="button"
-          className="jp-button-primary jp-button-sm"
+          className="jp-button-primary jp-button-sm w-full"
           onClick={onPrepare}
           disabled={busy}
         >
           <Icon name="send" size={13} />
           {prepareLabel}
         </button>
-        <button
-          type="button"
-          className="jp-button jp-button-sm"
-          onClick={onAnalyze}
-          disabled={busy}
-        >
-          <Icon name={analysis ? 'refresh' : 'target'} size={13} />
-          {analysis ? 'Проанализировать заново' : 'Анализировать'}
-        </button>
-        <button
-          type="button"
-          className={`jp-button jp-button-sm ${saved ? 'text-brand' : ''}`}
-          onClick={onSave}
-          disabled={busy || saved}
-          title={saved ? 'Вакансия уже сохранена' : 'Сохранить вакансию'}
-        >
-          <Icon name="bookmark" size={13} />
-          {saved ? 'Сохранена' : 'Сохранить'}
-        </button>
-        <button
-          type="button"
-          className="jp-button-ghost jp-button-sm ml-auto"
-          onClick={onOpen}
-          title="Открыть вакансию на сайте"
-        >
-          <Icon name="external" size={13} />
-          Открыть вакансию
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className="jp-button jp-button-sm flex-1"
+            onClick={onAnalyze}
+            disabled={busy}
+            title={analysis ? 'Проанализировать заново' : 'Проанализировать вакансию'}
+          >
+            <Icon name={analysis ? 'refresh' : 'target'} size={13} />
+            {analysis ? 'Заново' : 'Анализировать'}
+          </button>
+          <button
+            type="button"
+            className={`jp-button jp-button-sm flex-1 ${saved ? 'text-brand' : ''}`}
+            onClick={onSave}
+            disabled={busy || saved}
+            title={saved ? 'Вакансия уже сохранена' : 'Сохранить вакансию'}
+          >
+            <Icon name="bookmark" size={13} />
+            {saved ? 'Сохранена' : 'Сохранить'}
+          </button>
+          <button
+            type="button"
+            className="jp-button-ghost jp-button-sm flex-shrink-0 px-2.5"
+            onClick={onOpen}
+            title="Открыть вакансию на сайте"
+            aria-label="Открыть вакансию на сайте"
+          >
+            <Icon name="external" size={13} />
+          </button>
+        </div>
       </div>
     </article>
   );

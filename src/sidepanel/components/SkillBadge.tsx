@@ -7,9 +7,9 @@ interface Props {
 }
 
 const STYLES: Record<Props['kind'], string> = {
-  matched: 'border-excellent/40 bg-excellent/10 text-excellent',
-  missing: 'border-weak/40 bg-weak/10 text-weak',
-  bonus: 'border-good/40 bg-good/10 text-good',
+  matched: 'bg-excellent/10 text-excellent',
+  missing: 'bg-weak/10 text-weak',
+  bonus: 'bg-good/10 text-good',
   neutral: '',
 };
 

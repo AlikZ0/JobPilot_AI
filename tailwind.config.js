@@ -26,17 +26,30 @@ export default {
         card: 'var(--jp-shadow-md)',
         pop: 'var(--jp-shadow-lg)',
       },
+      borderRadius: {
+        // Радиусы Apple: у крупных поверхностей заметно мягче, чем у элементов.
+        control: '10px',
+        card: '14px',
+        sheet: '18px',
+      },
+      transitionTimingFunction: {
+        // Стандартная кривая системных анимаций macOS/iOS.
+        apple: 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
       fontFamily: {
         sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Text',
+          'SF Pro Display',
           'Inter',
           'system-ui',
-          '-apple-system',
           'Segoe UI',
           'Roboto',
           'Helvetica Neue',
           'sans-serif',
         ],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        mono: ['ui-monospace', 'SF Mono', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
     },
   },

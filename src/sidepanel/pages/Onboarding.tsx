@@ -85,7 +85,7 @@ export function Onboarding() {
 
       <header className="flex items-start gap-2.5">
         <span
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-control bg-brand/10 text-brand"
           aria-hidden="true"
         >
           <Icon name={active.icon} size={18} />
@@ -134,7 +134,7 @@ export function Onboarding() {
         </div>
       </div>
 
-      <p className="flex items-start gap-2 rounded-lg bg-surface-2 p-2.5 text-[11px] leading-snug text-muted">
+      <p className="flex items-start gap-2 rounded-control border border-border bg-surface-2 p-3 text-[11px] leading-relaxed text-muted">
         <span className="mt-px flex-shrink-0 text-brand">
           <Icon name="shield" size={13} />
         </span>

@@ -76,7 +76,7 @@ export function Assistant() {
         </select>
       </div>
 
-      <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-surface-2 p-2">
+      <div className="flex-1 overflow-y-auto rounded-card border border-border bg-surface-2 p-2.5">
         {turns.length === 0 ? (
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-col items-center gap-1.5 px-2 py-3 text-center">
@@ -107,10 +107,8 @@ export function Assistant() {
             {turns.map((turn, index) => (
               <li
                 key={index}
-                className={`jp-animate-in max-w-[92%] rounded-xl px-2.5 py-2 text-[12px] ${
-                  turn.role === 'user'
-                    ? 'ml-auto bg-brand text-brand-fg'
-                    : 'mr-auto border border-border bg-surface'
+                className={`jp-animate-in max-w-[92%] rounded-[16px] px-3 py-2 text-[12px] leading-relaxed ${
+                  turn.role === 'user' ? 'ml-auto bg-brand text-brand-fg' : 'mr-auto bg-surface-3'
                 }`}
               >
                 <p

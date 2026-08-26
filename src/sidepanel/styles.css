@@ -2,89 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Оформление в духе системных приложений Apple: светло-серый фон, белые
+ * карточки, волосяные разделители вместо теней, один акцентный синий и очень
+ * сдержанная типографика. Всё держится на переменных ниже — компоненты цвета
+ * не знают.
+ */
 @layer base {
   :root {
-    --jp-surface: 255 255 255;
-    --jp-surface-2: 250 250 252;
-    --jp-surface-3: 240 242 247;
-    --jp-border: 226 230 238;
-    --jp-border-strong: 205 211 224;
-    --jp-text: 16 19 28;
-    --jp-text-muted: 100 108 128;
-    --jp-brand: 79 70 229;
-    --jp-brand-soft: 238 238 255;
+    --jp-surface: 242 242 247; /* фон приложения, systemGroupedBackground */
+    --jp-surface-2: 255 255 255; /* карточки и поля */
+    --jp-surface-3: 235 235 240; /* заливки, наведение, дорожки */
+    --jp-border: 216 216 222; /* волосяной разделитель */
+    --jp-border-strong: 174 174 178;
+    --jp-text: 29 29 31; /* почти чёрный, как на apple.com */
+    --jp-text-muted: 110 110 115; /* secondaryLabel */
+    --jp-brand: 0 113 227; /* системный синий */
+    --jp-brand-soft: 233 243 255;
     --jp-brand-fg: 255 255 255;
-    --jp-excellent: 21 128 61;
-    --jp-good: 22 101 152;
-    --jp-potential: 161 98 7;
-    --jp-weak: 180 83 9;
-    --jp-poor: 185 28 28;
+    --jp-excellent: 36 138 61;
+    --jp-good: 0 113 227;
+    --jp-potential: 178 80 0;
+    --jp-weak: 201 52 0;
+    --jp-poor: 215 0 21;
 
-    --jp-shadow-sm: 0 1px 2px rgb(16 19 28 / 0.05);
-    --jp-shadow-md: 0 4px 12px -2px rgb(16 19 28 / 0.1), 0 2px 4px -2px rgb(16 19 28 / 0.06);
-    --jp-shadow-lg: 0 12px 28px -6px rgb(16 19 28 / 0.18), 0 4px 10px -4px rgb(16 19 28 / 0.1);
+    /* Глубины почти нет: тень появляется только у всплывающих слоёв. */
+    --jp-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+    --jp-shadow-md: 0 2px 8px rgb(0 0 0 / 0.06);
+    --jp-shadow-lg: 0 12px 32px rgb(0 0 0 / 0.14), 0 2px 8px rgb(0 0 0 / 0.08);
 
     color-scheme: light;
   }
 
   [data-theme='dark'] {
-    --jp-surface: 15 17 23;
-    --jp-surface-2: 21 24 33;
-    --jp-surface-3: 31 35 47;
-    --jp-border: 43 49 64;
-    --jp-border-strong: 62 70 90;
-    --jp-text: 232 236 244;
-    --jp-text-muted: 147 157 178;
-    --jp-brand: 139 132 255;
-    --jp-brand-soft: 33 33 62;
-    --jp-brand-fg: 12 13 20;
-    --jp-excellent: 74 222 128;
-    --jp-good: 96 165 250;
-    --jp-potential: 250 204 21;
-    --jp-weak: 251 146 60;
-    --jp-poor: 248 113 113;
+    --jp-surface: 28 28 30;
+    --jp-surface-2: 44 44 46;
+    --jp-surface-3: 58 58 60;
+    --jp-border: 64 64 67;
+    --jp-border-strong: 99 99 102;
+    --jp-text: 245 245 247;
+    --jp-text-muted: 152 152 157;
+    --jp-brand: 10 132 255;
+    --jp-brand-soft: 22 47 78;
+    --jp-brand-fg: 255 255 255;
+    --jp-excellent: 48 209 88;
+    --jp-good: 100 210 255;
+    --jp-potential: 255 214 10;
+    --jp-weak: 255 159 10;
+    --jp-poor: 255 69 58;
 
-    --jp-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
-    --jp-shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.45);
-    --jp-shadow-lg: 0 12px 28px -6px rgb(0 0 0 / 0.6);
+    --jp-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --jp-shadow-md: 0 2px 8px rgb(0 0 0 / 0.45);
+    --jp-shadow-lg: 0 16px 40px rgb(0 0 0 / 0.65);
 
     color-scheme: dark;
   }
 
-  html,
-  body,
-  #root {
+  /*
+   * Боковая панель Chrome иногда отдаёт документу высоту меньше собственной, и
+   * цепочка процентов рушится: интерфейс сжимается в полоску сверху. Поэтому
+   * высота берётся ещё и напрямую от вьюпорта — она не зависит от родителей.
+   *
+   * Класс нужен, чтобы правило не задело попап: тот делит эти стили с панелью,
+   * но обязан сжиматься по содержимому.
+   */
+  html.jp-viewport,
+  html.jp-viewport body,
+  html.jp-viewport #root {
     height: 100%;
+    min-height: 100dvh;
   }
 
   body {
     @apply bg-surface text-content font-sans text-[13px] antialiased;
     margin: 0;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
+  /* У Apple заголовки заметно плотнее набора — за счёт этого они «весят». */
   h1,
   h2,
   h3,
   h4 {
-    letter-spacing: -0.01em;
+    letter-spacing: -0.022em;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--jp-border-strong)) transparent;
+    scrollbar-color: rgb(var(--jp-border-strong) / 0.7) transparent;
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: rgb(var(--jp-border-strong));
+    background-color: rgb(var(--jp-border-strong) / 0.55);
     border-radius: 999px;
-    border: 2px solid transparent;
+    border: 3px solid transparent;
     background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--jp-border-strong));
   }
 
   ::-webkit-scrollbar-track {
@@ -92,22 +115,43 @@
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-brand;
+    outline: none;
+    box-shadow: 0 0 0 3.5px rgb(var(--jp-brand) / 0.35);
+    border-radius: 8px;
   }
 
-  /* Ползунки диапазона в Chrome по умолчанию выбиваются из палитры. */
   input[type='range'] {
-    @apply h-1.5 cursor-pointer appearance-none rounded-full bg-surface-3;
+    @apply h-1 cursor-pointer appearance-none rounded-full bg-surface-3;
   }
 
   input[type='range']::-webkit-slider-thumb {
-    @apply h-3.5 w-3.5 appearance-none rounded-full border-2 border-surface bg-brand;
-    box-shadow: var(--jp-shadow-sm);
+    @apply h-[18px] w-[18px] appearance-none rounded-full border-0 bg-white;
+    box-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.12),
+      0 2px 5px rgb(0 0 0 / 0.24);
+  }
+
+  /*
+   * Выпадающий список у select рисует не страница, а платформа: без явных
+   * цветов он берёт системную тему, и на светлой ОС внутри тёмной панели текст
+   * пропадает. Прозрачный фон здесь недопустим.
+   */
+  select option,
+  select optgroup {
+    background-color: rgb(var(--jp-surface-2));
+    color: rgb(var(--jp-text));
+  }
+
+  /* У type="search" Chrome рисует свой крестик — рядом с нашим их было два. */
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
   }
 
   input[type='checkbox'],
   input[type='radio'] {
-    @apply h-3.5 w-3.5 cursor-pointer accent-brand;
+    @apply h-[15px] w-[15px] cursor-pointer accent-brand;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -127,59 +171,67 @@
 
   .jp-logo {
     background-image: linear-gradient(
-      135deg,
+      180deg,
       rgb(var(--jp-brand)) 0%,
-      rgb(var(--jp-brand) / 0.72) 100%
+      rgb(var(--jp-brand) / 0.82) 100%
     );
-    box-shadow: var(--jp-shadow-sm);
+    box-shadow: inset 0 0.5px 0 rgb(255 255 255 / 0.4);
   }
 
+  /* Карточка = «группа» из системных настроек: белая, без тени, мягкий угол. */
   .jp-card {
-    @apply rounded-xl border border-border bg-surface-2 p-3;
-    box-shadow: var(--jp-shadow-sm);
+    @apply rounded-card border border-border bg-surface-2 p-3.5;
   }
 
-  /* Карточка-кнопка: реагирует на курсор, поэтому читается как кликабельная. */
   .jp-card-interactive {
-    @apply jp-card cursor-pointer transition duration-150 hover:border-brand/50 hover:bg-surface-3;
+    @apply jp-card cursor-pointer transition-colors duration-200 ease-apple hover:bg-surface-3;
   }
 
+  /* Кнопки-таблетки: заливка вместо обводки, нажатие отдаёт лёгким сжатием. */
   .jp-button {
-    @apply inline-flex min-h-[30px] items-center justify-center gap-1.5 rounded-lg border
-           border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium leading-none text-content
-           transition duration-150 hover:border-border-strong hover:bg-surface-3
-           active:translate-y-px disabled:pointer-events-none disabled:opacity-45;
+    @apply inline-flex min-h-[30px] items-center justify-center gap-1.5 rounded-full border
+           border-transparent bg-surface-3 px-3.5 py-1.5 text-[12px] font-medium leading-none
+           text-content transition duration-200 ease-apple hover:brightness-[0.97]
+           active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40;
   }
 
   .jp-button-primary {
-    @apply jp-button border-transparent bg-brand text-brand-fg hover:bg-brand hover:opacity-90;
-    box-shadow: var(--jp-shadow-sm);
+    @apply jp-button bg-brand text-brand-fg hover:brightness-110;
   }
 
   .jp-button-ghost {
-    @apply jp-button border-transparent bg-transparent text-muted hover:bg-surface-3 hover:text-content;
+    @apply jp-button bg-transparent text-muted hover:bg-surface-3 hover:text-content;
   }
 
+  /* Разрушающее действие подписано красным, но не кричит заливкой. */
   .jp-button-danger {
-    @apply jp-button border-poor/40 text-poor hover:bg-poor/10;
+    @apply jp-button bg-transparent text-poor hover:bg-poor/10;
   }
 
   .jp-button-sm {
-    @apply min-h-[26px] px-2 py-1 text-[11px];
+    @apply min-h-[26px] gap-1 px-3 py-1 text-[11px];
   }
 
   .jp-input {
-    @apply w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[13px]
-           text-content transition placeholder:text-muted hover:border-border-strong
-           focus:border-brand focus:outline-none;
+    @apply w-full rounded-control border border-border bg-surface-2 px-3 py-[7px] text-[13px]
+           text-content transition duration-150 placeholder:text-muted
+           hover:border-border-strong focus:border-brand focus:outline-none;
   }
 
   .jp-input:focus {
-    box-shadow: 0 0 0 3px rgb(var(--jp-brand) / 0.18);
+    box-shadow: 0 0 0 3.5px rgb(var(--jp-brand) / 0.22);
   }
 
   select.jp-input {
-    @apply cursor-pointer pr-6;
+    @apply cursor-pointer appearance-none pr-8;
+    /* Серый systemGray читается и на белом, и на тёмном — второй вариант не нужен. */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8a8e' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+  }
+
+  textarea.jp-input {
+    @apply leading-relaxed;
   }
 
   .jp-label {
@@ -187,25 +239,69 @@
   }
 
   .jp-badge {
-    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-3
-           px-2 py-0.5 text-[11px] font-medium leading-[18px];
+    @apply inline-flex items-center gap-1 rounded-full border border-transparent bg-surface-3
+           px-2.5 py-0.5 text-[11px] font-medium leading-[18px];
   }
 
-  /* Фильтр-чип: та же форма, но с явными состояниями нажатия. */
+  /* Сегмент фильтра: невыбранные растворяются в фоне, выбранный — плотный. */
   .jp-chip {
-    @apply jp-badge cursor-pointer transition duration-150 hover:border-border-strong hover:bg-surface;
+    @apply jp-badge cursor-pointer bg-transparent text-muted transition duration-200 ease-apple
+           hover:bg-surface-3 hover:text-content;
   }
 
   .jp-chip-active {
-    @apply border-brand/60 bg-brand/10 text-brand;
+    @apply bg-brand text-brand-fg hover:bg-brand hover:text-brand-fg;
+  }
+
+  /* Дорожка сегментированного контрола, как в System Settings. */
+  .jp-segmented {
+    @apply inline-flex items-center gap-0.5 rounded-full bg-surface-3 p-0.5;
+  }
+
+  .jp-segmented > button {
+    @apply rounded-full px-3 py-1 text-[11px] font-medium text-muted transition duration-200
+           ease-apple;
+  }
+
+  .jp-segmented > button[aria-pressed='true'],
+  .jp-segmented > button[aria-selected='true'] {
+    @apply bg-surface-2 text-content;
+    box-shadow: var(--jp-shadow-sm);
+  }
+
+  /* Переключатель macOS: капсула с ползунком, включённая — акцентного цвета. */
+  input[type='checkbox'].jp-switch {
+    @apply relative h-[24px] w-[42px] flex-shrink-0 cursor-pointer appearance-none rounded-full
+           bg-surface-3 transition-colors duration-200 ease-apple;
+  }
+
+  input[type='checkbox'].jp-switch::after {
+    content: '';
+    @apply absolute left-[2px] top-[2px] h-[20px] w-[20px] rounded-full bg-white
+           transition-transform duration-200 ease-apple;
+    box-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.1),
+      0 2px 4px rgb(0 0 0 / 0.2);
+  }
+
+  input[type='checkbox'].jp-switch:checked {
+    @apply bg-brand;
+  }
+
+  input[type='checkbox'].jp-switch:checked::after {
+    transform: translateX(18px);
+  }
+
+  input[type='checkbox'].jp-switch:disabled {
+    @apply cursor-not-allowed opacity-40;
   }
 
   .jp-section-title {
-    @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted;
+    @apply flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted;
   }
 
   .jp-heading {
-    @apply text-[14px] font-semibold leading-tight text-content;
+    @apply text-[15px] font-semibold leading-tight tracking-[-0.02em] text-content;
   }
 
   .jp-hint {
@@ -221,7 +317,30 @@
   }
 
   .jp-track > * {
-    @apply h-full rounded-full transition-all duration-300;
+    @apply h-full rounded-full transition-all duration-500 ease-apple;
+  }
+
+  /* Всплывающий слой (подсказки автодополнения) — единственное место с тенью. */
+  .jp-popover {
+    @apply overflow-hidden rounded-card border border-border bg-surface-2;
+    box-shadow: var(--jp-shadow-lg);
+  }
+
+  .jp-option {
+    @apply flex w-full cursor-pointer items-center gap-2 px-3 py-[7px] text-left text-[12px]
+           text-content transition-colors duration-100;
+  }
+
+  .jp-option-active {
+    @apply bg-brand text-brand-fg;
+  }
+
+  .jp-option-active .jp-option-muted {
+    @apply text-brand-fg/70;
+  }
+
+  .jp-option-muted {
+    @apply text-[11px] text-muted;
   }
 
   .jp-spinner {
@@ -230,18 +349,25 @@
   }
 
   .jp-skeleton {
-    @apply rounded-md bg-surface-3;
+    @apply rounded-control bg-surface-3;
     animation: jp-pulse 1.4s ease-in-out infinite;
+  }
+
+  /* Панель, «приклеенная» к краю: как toolbar в приложениях Apple. */
+  .jp-bar {
+    @apply border-border bg-surface/85;
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 }
 
 @layer utilities {
   .jp-animate-in {
-    animation: jp-slide-up 0.18s ease-out both;
+    animation: jp-slide-up 0.24s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
   .jp-fade-in {
-    animation: jp-fade 0.18s ease-out both;
+    animation: jp-fade 0.2s ease-out both;
   }
 }
 

@@ -12,8 +12,8 @@ interface Props {
 
 const SEVERITY_STYLE: Record<'low' | 'medium' | 'high', string> = {
   low: 'border-border bg-surface-3 text-muted',
-  medium: 'border-potential/40 bg-potential/10 text-potential',
-  high: 'border-poor/40 bg-poor/10 text-poor',
+  medium: 'bg-potential/10 text-potential',
+  high: 'bg-poor/10 text-poor',
 };
 
 /** Полное объяснение балла: не просто «92%», а из чего он сложился. */
@@ -106,7 +106,7 @@ export function AnalysisPanel({ job, analysis }: Props) {
       </div>
 
       {analysis.redFlags.length > 0 ? (
-        <div className="jp-card border-weak/40 bg-weak/[0.06]">
+        <div className="jp-card border-weak/30 bg-weak/[0.06]">
           <h3 className="jp-section-title mb-2 text-weak">
             <Icon name="flag" size={12} />
             Красные флаги

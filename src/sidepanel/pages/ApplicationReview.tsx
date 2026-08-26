@@ -304,7 +304,7 @@ export function ApplicationReview() {
           placeholder="Здесь появится сопроводительное письмо. Правьте как угодно — сохранится ваш вариант."
         />
         {application.unverifiedClaims.length > 0 ? (
-          <div className="rounded-md border border-potential/40 bg-potential/10 p-2 text-[11px]">
+          <div className="rounded-control border border-potential/30 bg-potential/10 p-2.5 text-[11px]">
             <p className="font-semibold text-potential">Требуется ваше подтверждение</p>
             <ul className="ml-4 list-disc">
               {application.unverifiedClaims.map((claim, index) => (
@@ -380,7 +380,7 @@ export function ApplicationReview() {
         </dl>
 
         {autoMarked ? (
-          <div className="rounded-lg border border-excellent/40 bg-excellent/10 p-2 text-[11px]">
+          <div className="rounded-control border border-excellent/30 bg-excellent/10 p-2.5 text-[11px]">
             <p className="flex items-center gap-1.5 font-semibold text-excellent">
               <Icon name="bolt" size={12} />
               Отмечено автоматически
@@ -398,7 +398,7 @@ export function ApplicationReview() {
         ) : null}
 
         {detected && application.state !== 'submitted' ? (
-          <div className="rounded-lg border border-potential/40 bg-potential/10 p-2 text-[11px]">
+          <div className="rounded-control border border-potential/30 bg-potential/10 p-2.5 text-[11px]">
             <p className="flex items-center gap-1.5 font-semibold text-potential">
               <Icon name="bolt" size={12} />
               JobPilot заметил отправку {formatDateTime(detected.at)}

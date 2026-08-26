@@ -9,12 +9,12 @@ import { APPLICATION_STATE_LABEL } from '../labels';
 /** Цвет статуса заявки повторяет шкалу «черновик → готово → отправлено». */
 const STATE_STYLE: Record<ApplicationState, string> = {
   draft: '',
-  analyzing: 'border-good/40 bg-good/10 text-good',
-  filling: 'border-good/40 bg-good/10 text-good',
-  review: 'border-potential/40 bg-potential/10 text-potential',
-  ready: 'border-brand/40 bg-brand/10 text-brand',
-  submitted: 'border-excellent/40 bg-excellent/10 text-excellent',
-  failed: 'border-poor/40 bg-poor/10 text-poor',
+  analyzing: 'bg-good/10 text-good',
+  filling: 'bg-good/10 text-good',
+  review: 'bg-potential/10 text-potential',
+  ready: 'bg-brand/10 text-brand',
+  submitted: 'bg-excellent/10 text-excellent',
+  failed: 'bg-poor/10 text-poor',
   cancelled: 'border-border bg-surface-3 text-muted',
 };
 
@@ -35,21 +35,17 @@ export function Applications() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-1 rounded-lg border border-border bg-surface-2 p-1">
+      <div className="jp-segmented flex w-full">
         {tabs.map((entry) => (
           <button
             key={entry.value}
             type="button"
             aria-pressed={tab === entry.value}
             onClick={() => setTab(entry.value)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[12px] font-medium transition ${
-              tab === entry.value
-                ? 'bg-surface text-content shadow-soft'
-                : 'text-muted hover:text-content'
-            }`}
+            className="flex flex-1 items-center justify-center gap-1.5 text-[12px]"
           >
             {entry.label}
-            <span className="tabular-nums opacity-70">{entry.count}</span>
+            <span className="tabular-nums opacity-60">{entry.count}</span>
           </button>
         ))}
       </div>

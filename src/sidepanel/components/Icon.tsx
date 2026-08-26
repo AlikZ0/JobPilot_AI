@@ -146,8 +146,9 @@ export function Logo({ size = 22 }: { size?: number }) {
   return (
     <span
       aria-hidden="true"
-      className="jp-logo inline-flex items-center justify-center rounded-[7px] text-white"
-      style={{ width: size, height: size }}
+      className="jp-logo inline-flex items-center justify-center text-white"
+      // Скруглённый квадрат Apple: радиус ~22 % стороны, а не фиксированный.
+      style={{ width: size, height: size, borderRadius: Math.round(size * 0.26) }}
     >
       <Icon name="compass" size={Math.round(size * 0.62)} strokeWidth={2} />
     </span>

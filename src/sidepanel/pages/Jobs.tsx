@@ -44,77 +44,107 @@ export function Jobs() {
     );
   }, [jobs, search, stateFilter, minScore, sort]);
 
+  if (jobs.length === 0) {
+    return (
+      <div className="flex h-full flex-col justify-center">
+        <Empty
+          icon="briefcase"
+          title="Вакансий пока нет"
+          hint="Откройте вакансию на сайте и нажмите «Анализировать» — она появится здесь."
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2">
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
+        {/* Поле поиска в стиле системного: заливка вместо рамки, круглая форма. */}
         <div className="relative">
-          <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
             <Icon name="search" size={14} />
           </span>
           <input
-            className="jp-input pl-8"
+            className="jp-input rounded-full border-transparent bg-surface-3 pl-9 pr-8 hover:border-transparent"
             type="search"
-            placeholder="Поиск по должности, компании или технологии"
+            placeholder="Должность, компания или технология"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             aria-label="Поиск вакансий"
           />
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATE_FILTERS.map((filter) => (
+          {search ? (
             <button
-              key={filter.value}
               type="button"
-              onClick={() => setStateFilter(filter.value)}
-              aria-pressed={stateFilter === filter.value}
-              className={`jp-chip ${stateFilter === filter.value ? 'jp-chip-active' : ''}`}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full text-muted transition hover:text-content"
+              onClick={() => setSearch('')}
+              aria-label="Очистить поиск"
             >
-              {filter.label}
+              <Icon name="xCircle" size={15} />
             </button>
-          ))}
+          ) : null}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted">
-          <label className="flex flex-1 items-center gap-1.5">
-            <span className="flex-shrink-0">Мин. балл</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={minScore}
-              onChange={(event) => setMinScore(Number(event.target.value))}
-              className="flex-1"
-            />
-            <span className="w-8 flex-shrink-0 text-right font-medium tabular-nums text-content">
-              {minScore}%
-            </span>
-          </label>
-          <label className="flex flex-shrink-0 items-center gap-1">
-            <span className="sr-only">Сортировка</span>
-            <Icon name="sliders" size={12} />
-            <select
-              className="jp-input w-auto py-0.5 text-[11px]"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as SortKey)}
-              aria-label="Сортировка"
-            >
-              <option value="score">Лучшее совпадение</option>
-              <option value="recent">Сначала новые</option>
-            </select>
-          </label>
+
+        {/* Фильтры уезжают вбок, а не переносятся: строка остаётся одной. */}
+        <div className="-mx-3.5 overflow-x-auto px-3.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="jp-segmented w-max">
+            {STATE_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setStateFilter(filter.value)}
+                aria-pressed={stateFilter === filter.value}
+                className="whitespace-nowrap"
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <label className="flex items-center gap-2.5 text-[11px] text-muted">
+          <span className="flex-shrink-0">Мин. балл</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={minScore}
+            onChange={(event) => setMinScore(Number(event.target.value))}
+            className="flex-1"
+          />
+          <span className="w-8 flex-shrink-0 text-right font-medium tabular-nums text-content">
+            {minScore}%
+          </span>
+        </label>
       </div>
 
-      <p className="text-[11px] text-muted">
-        Показано {visible.length} из {jobs.length}
-      </p>
+      {/* Заголовок списка: сколько нашлось и в каком порядке показано. */}
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <p className="text-[11px] text-muted">
+          Показано {visible.length} из {jobs.length}
+        </p>
+        <label className="flex flex-shrink-0 items-center">
+          <span className="sr-only">Сортировка</span>
+          <select
+            className="jp-input w-auto border-transparent bg-surface-3 py-1 pl-3 text-[11px] font-medium hover:border-transparent"
+            value={sort}
+            onChange={(event) => setSort(event.target.value as SortKey)}
+            aria-label="Сортировка"
+          >
+            <option value="score">Лучшее совпадение</option>
+            <option value="recent">Сначала новые</option>
+          </select>
+        </label>
+      </div>
 
       {visible.length === 0 ? (
-        <Empty
-          icon="search"
-          title="Под эти фильтры ничего не подходит"
-          hint="Снизьте минимальный балл или очистите поиск."
-        />
+        <div className="flex flex-1 flex-col justify-center">
+          <Empty
+            icon="search"
+            title="Под эти фильтры ничего не подходит"
+            hint="Снизьте минимальный балл или очистите поиск."
+          />
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {visible.map((job) => (

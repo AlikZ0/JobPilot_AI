@@ -10,6 +10,7 @@ import type {
 } from '@/types/profile';
 import type { FormFieldType } from '@/types/ai';
 import type { Attachment } from '@/types/profile';
+import type { RemotePolicy, RemoteRegion } from './data/remoteCompanies';
 
 /**
  * Русские подписи для значений перечислений. Сами значения остаются
@@ -41,6 +42,62 @@ export const GENERATION_LANGUAGES: ReadonlyArray<{ value: string; label: string 
   { value: 'Chinese', label: 'Китайский — 中文' },
   { value: 'Japanese', label: 'Японский — 日本語' },
 ];
+
+/**
+ * Языки для профиля. Список нужен, чтобы название не приходилось печатать
+ * вручную: «Английсикй» в профиле не совпадёт с требованием вакансии, а код
+ * страны, выведенный из опечатки, испортит и резюме.
+ */
+export const SPOKEN_LANGUAGES: ReadonlyArray<{ code: string; name: string; native: string }> = [
+  { code: 'en', name: 'Английский', native: 'English' },
+  { code: 'ru', name: 'Русский', native: 'Русский' },
+  { code: 'de', name: 'Немецкий', native: 'Deutsch' },
+  { code: 'fr', name: 'Французский', native: 'Français' },
+  { code: 'es', name: 'Испанский', native: 'Español' },
+  { code: 'it', name: 'Итальянский', native: 'Italiano' },
+  { code: 'pt', name: 'Португальский', native: 'Português' },
+  { code: 'nl', name: 'Нидерландский', native: 'Nederlands' },
+  { code: 'pl', name: 'Польский', native: 'Polski' },
+  { code: 'uk', name: 'Украинский', native: 'Українська' },
+  { code: 'cs', name: 'Чешский', native: 'Čeština' },
+  { code: 'sk', name: 'Словацкий', native: 'Slovenčina' },
+  { code: 'sv', name: 'Шведский', native: 'Svenska' },
+  { code: 'no', name: 'Норвежский', native: 'Norsk' },
+  { code: 'da', name: 'Датский', native: 'Dansk' },
+  { code: 'fi', name: 'Финский', native: 'Suomi' },
+  { code: 'tr', name: 'Турецкий', native: 'Türkçe' },
+  { code: 'he', name: 'Иврит', native: 'עברית' },
+  { code: 'ar', name: 'Арабский', native: 'العربية' },
+  { code: 'hy', name: 'Армянский', native: 'Հայերեն' },
+  { code: 'ka', name: 'Грузинский', native: 'ქართული' },
+  { code: 'kk', name: 'Казахский', native: 'Қазақша' },
+  { code: 'zh', name: 'Китайский', native: '中文' },
+  { code: 'ja', name: 'Японский', native: '日本語' },
+  { code: 'ko', name: 'Корейский', native: '한국어' },
+  { code: 'hi', name: 'Хинди', native: 'हिन्दी' },
+  { code: 'ro', name: 'Румынский', native: 'Română' },
+  { code: 'hu', name: 'Венгерский', native: 'Magyar' },
+  { code: 'el', name: 'Греческий', native: 'Ελληνικά' },
+  { code: 'sr', name: 'Сербский', native: 'Српски' },
+];
+
+/** Регион, из которого компания нанимает удалённо. */
+export const REMOTE_REGION_LABEL: Record<RemoteRegion, string> = {
+  worldwide: 'весь мир',
+  americas: 'Америка',
+  europe: 'Европа',
+  'americas-europe': 'Америка и Европа',
+  'asia-pacific': 'Азия и Океания',
+  other: 'другой регион',
+};
+
+/** Насколько компания удалённая — от «только удалённо» до гибрида. */
+export const REMOTE_POLICY_LABEL: Record<RemotePolicy, string> = {
+  'fully-remote': 'полностью удалённая',
+  'remote-first': 'сначала удалённая',
+  'remote-friendly': 'допускает удалёнку',
+  hybrid: 'гибрид',
+};
 
 export const JOB_STATE_LABEL: Record<JobState, string> = {
   discovered: 'найдена',

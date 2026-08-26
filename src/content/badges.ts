@@ -15,15 +15,22 @@ const MARK_ATTR = 'data-jobpilot-mark';
 const HOST_ID = 'jobpilot-page-badge';
 const MAX_LINKS = 300;
 
+/**
+ * Системная палитра Apple в светлых тонах. Цвета заданы непрозрачными: метка
+ * ложится на чужую страницу, фон под ней может быть любым.
+ */
 const COLORS = {
-  submitted: { bg: '#dcfce7', fg: '#15803d', border: '#86efac' },
-  excellent: { bg: '#dcfce7', fg: '#15803d', border: '#86efac' },
-  good: { bg: '#dbeafe', fg: '#1d4ed8', border: '#93c5fd' },
-  potential: { bg: '#fef3c7', fg: '#a16207', border: '#fde047' },
-  weak: { bg: '#ffedd5', fg: '#b45309', border: '#fdba74' },
-  poor: { bg: '#fee2e2', fg: '#b91c1c', border: '#fca5a5' },
-  neutral: { bg: '#eef2ff', fg: '#4338ca', border: '#c7d2fe' },
+  submitted: { bg: '#e7f7ec', fg: '#1c7c3c', border: '#b9e6c8' },
+  excellent: { bg: '#e7f7ec', fg: '#1c7c3c', border: '#b9e6c8' },
+  good: { bg: '#e8f1fd', fg: '#0058b0', border: '#b6d4f7' },
+  potential: { bg: '#fff4e0', fg: '#a35a00', border: '#ffd9a0' },
+  weak: { bg: '#ffeee4', fg: '#b03d00', border: '#ffc9a8' },
+  poor: { bg: '#ffeaea', fg: '#c00013', border: '#ffbdbd' },
+  neutral: { bg: '#eaf2ff', fg: '#0060cc', border: '#c2dbff' },
 } as const;
+
+/** Тот же шрифтовой стек, что и в панели: сначала SF, потом системный. */
+const FONT_STACK = '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif';
 
 function paletteFor(mark: PageMark): (typeof COLORS)[keyof typeof COLORS] {
   if (mark.submittedAt) return COLORS.submitted;
@@ -59,7 +66,8 @@ function styleAsPill(element: HTMLElement, mark: PageMark, size: 'sm' | 'md'): v
     color: palette.fg,
     'font-size': size === 'sm' ? '11px' : '12px',
     'font-weight': '600',
-    'font-family': 'system-ui, sans-serif',
+    'font-family': FONT_STACK,
+    'letter-spacing': '-0.01em',
     'line-height': '1.4',
     'white-space': 'nowrap',
     'vertical-align': 'middle',
@@ -133,13 +141,14 @@ function renderPageBadge(mark: PageMark | undefined): void {
     'display:flex',
     'align-items:center',
     'gap:8px',
-    'padding:8px 10px',
-    'border-radius:12px',
+    'padding:9px 12px',
+    'border-radius:14px',
     `border:1px solid ${palette.border}`,
     `background:${palette.bg}`,
     `color:${palette.fg}`,
-    'font:600 12px/1.4 system-ui, sans-serif',
-    'box-shadow:0 8px 24px rgba(15,17,23,.18)',
+    `font:600 12px/1.4 ${FONT_STACK}`,
+    'letter-spacing:-0.01em',
+    'box-shadow:0 12px 32px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.08)',
   ].join(';');
 
   const text = document.createElement('span');
@@ -155,7 +164,7 @@ function renderPageBadge(mark: PageMark | undefined): void {
     'background:transparent',
     'cursor:pointer',
     'padding:0 2px',
-    'font:600 12px/1 system-ui, sans-serif',
+    `font:600 12px/1 ${FONT_STACK}`,
     `color:${palette.fg}`,
     'opacity:.7',
   ].join(';');

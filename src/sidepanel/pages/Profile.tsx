@@ -59,12 +59,10 @@ export function Profile() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="sticky top-0 z-10 -mx-3 -mt-3 flex items-start justify-between gap-2 border-b border-border bg-surface px-3 pb-2.5 pt-3">
+      <header className="sticky top-0 z-10 -mx-3.5 -mt-4 flex items-start justify-between gap-2 border-b border-border bg-surface px-3.5 pb-3 pt-4 before:absolute before:inset-x-0 before:bottom-full before:h-4 before:bg-surface before:content-['']">
         <div className="min-w-0">
           <h2 className="jp-heading">Ваш профиль</h2>
-          <p className="jp-hint mt-0.5">
-            Версия {profile.version} · каждое сохранение сбрасывает кеш анализов.
-          </p>
+          <p className="jp-hint mt-0.5">Каждое сохранение сбрасывает кеш анализов.</p>
         </div>
         <button
           type="button"

@@ -7,6 +7,13 @@ export interface TechEntry {
   category: SkillCategory;
   /** Синонимы в нижнем регистре — так, как они встречаются в вакансиях. */
   aliases: string[];
+  /**
+   * Кириллические написания для подсказок в интерфейсе. Нужны там, где
+   * транслитерация расходится с оригиналом дальше, чем на опечатку: «вью» даёт
+   * «vyu», а до «vue» отсюда две замены. В поиске по тексту вакансий не
+   * участвуют — там названия почти всегда латиницей.
+   */
+  ru?: string[];
   /** Навыки, которые подразумеваются этим: например, Nuxt подразумевает Vue. */
   implies?: string[];
 }
@@ -22,8 +29,15 @@ export const TECH_DICTIONARY: TechEntry[] = [
     canonical: 'JavaScript',
     category: 'frontend',
     aliases: ['js', 'java script', 'ecmascript', 'es6', 'es2015', 'vanilla js'],
+    ru: ['джаваскрипт', 'жс'],
   },
-  { canonical: 'TypeScript', category: 'frontend', aliases: ['ts'], implies: ['JavaScript'] },
+  {
+    canonical: 'TypeScript',
+    category: 'frontend',
+    aliases: ['ts'],
+    ru: ['тайпскрипт'],
+    implies: ['JavaScript'],
+  },
   {
     canonical: 'React',
     category: 'frontend',
@@ -40,6 +54,7 @@ export const TECH_DICTIONARY: TechEntry[] = [
     canonical: 'Vue',
     category: 'frontend',
     aliases: ['vue.js', 'vuejs', 'vue js', 'vue 3', 'vue2', 'vue3'],
+    ru: ['вью'],
     implies: ['JavaScript'],
   },
   {
@@ -119,14 +134,14 @@ export const TECH_DICTIONARY: TechEntry[] = [
   { canonical: 'FastAPI', category: 'backend', aliases: [], implies: ['Python'] },
   { canonical: 'Flask', category: 'backend', aliases: [], implies: ['Python'] },
   { canonical: 'Go', category: 'backend', aliases: ['golang'] },
-  { canonical: 'Java', category: 'backend', aliases: ['java 17', 'java8'] },
+  { canonical: 'Java', category: 'backend', aliases: ['java 17', 'java8'], ru: ['джава'] },
   {
     canonical: 'Spring',
     category: 'backend',
     aliases: ['spring boot', 'springboot'],
     implies: ['Java'],
   },
-  { canonical: 'C#', category: 'backend', aliases: ['csharp', 'c sharp'] },
+  { canonical: 'C#', category: 'backend', aliases: ['csharp', 'c sharp'], ru: ['сишарп'] },
   {
     canonical: '.NET',
     category: 'backend',
@@ -347,4 +362,174 @@ export function detectTechnologies(text: string): string[] {
     }
   }
   return [...found];
+}
+
+/**
+ * Расстояние Дамерау — Левенштейна с ранним выходом. Нужно ровно для одного:
+ * простить опечатку в подсказках («Postgress», «Kubernets», «Reakt»).
+ */
+function editDistance(a: string, b: string, limit: number): number {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  let beforePrevious: number[] = [];
+
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i, ...Array<number>(b.length).fill(0)];
+    let rowBest = current[0] as number;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let value = Math.min(
+        (current[j - 1] as number) + 1,
+        (previous[j] as number) + 1,
+        (previous[j - 1] as number) + cost,
+      );
+      // Перестановка соседних букв («Rekat» → «React») — это одна ошибка.
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        value = Math.min(value, (beforePrevious[j - 2] as number) + 1);
+      }
+      current[j] = value;
+      if (value < rowBest) rowBest = value;
+    }
+    if (rowBest > limit) return limit + 1;
+    beforePrevious = previous;
+    previous = current;
+  }
+  return previous[b.length] as number;
+}
+
+/** Все буквы запроса встречаются в названии по порядку: «ndjs» → «Node.js». */
+function isSubsequence(needle: string, haystack: string): boolean {
+  let index = 0;
+  for (const char of haystack) {
+    if (char === needle[index]) index++;
+    if (index === needle.length) return true;
+  }
+  return needle.length === 0;
+}
+
+/**
+ * Кириллица в латиницу. Названия технологий пишут и по-русски — «реакт»,
+ * «постгрес», «кубернетес». Без этого `normalizeToken` вырезал бы такой запрос
+ * целиком и подсказки показали бы что попало.
+ */
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'e',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'y',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'c',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'sch',
+  ъ: '',
+  ы: 'y',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+};
+
+function transliterate(value: string): string {
+  let out = '';
+  for (const char of value.toLowerCase()) out += CYRILLIC_TO_LATIN[char] ?? char;
+  return out;
+}
+
+export interface TechSuggestion {
+  entry: TechEntry;
+  /** Написание, по которому нашлось совпадение: показываем «js → JavaScript». */
+  matchedAs: string;
+  score: number;
+}
+
+/**
+ * Подсказки для поля ввода технологий. Пользователь не обязан помнить точное
+ * написание: находим по началу слова, по вхождению, по сокращению из букв и,
+ * если ничего не подошло, — с поправкой на одну-две опечатки.
+ *
+ * Пустой запрос возвращает начало словаря, чтобы список было видно сразу при
+ * фокусе, а не только после набора.
+ */
+export function searchTech(query: string, limit = 8): TechSuggestion[] {
+  if (!query.trim()) {
+    return TECH_DICTIONARY.slice(0, limit).map((entry) => ({
+      entry,
+      matchedAs: entry.canonical,
+      score: 0,
+    }));
+  }
+
+  const needle = normalizeToken(transliterate(query));
+  // Набрано что-то, из чего не осталось ни буквы, ни цифры: подсказывать
+  // нечего, но и весь словарь показывать нельзя — иначе Enter добавит первое
+  // попавшееся вместо того, что человек набрал.
+  if (!needle) return [];
+
+  // Опечатки прощаем от трёх букв: в «go» или «js» одна лишняя буква меняет
+  // смысл, а не портит написание, зато «вью» после транслитерации даёт «vyu» —
+  // до «vue» ровно одна замена. Совпадение по
+  // опечатке всё равно оценивается ниже любого совпадения по подстроке,
+  // поэтому оно не вытесняет точные попадания, а лишь спасает безнадёжный ввод.
+  const typoLimit = needle.length >= 5 ? 2 : needle.length >= 3 ? 1 : 0;
+  const results: TechSuggestion[] = [];
+
+  for (const entry of TECH_DICTIONARY) {
+    let best = 0;
+    let matchedAs = entry.canonical;
+
+    const variants: { text: string; canonical: boolean }[] = [
+      { text: entry.canonical, canonical: true },
+      ...entry.aliases.map((alias) => ({ text: alias, canonical: false })),
+      ...(entry.ru ?? []).map((alias) => ({ text: alias, canonical: false })),
+    ];
+
+    for (const variant of variants) {
+      const candidate = normalizeToken(transliterate(variant.text));
+      if (!candidate) continue;
+      // Совпадение с каноническим именем ценнее, чем с синонимом: при равном
+      // качестве в списке первым окажется «PostgreSQL», а не «postgres».
+      const bonus = variant.canonical ? 4 : 0;
+
+      let score = 0;
+      if (candidate === needle) score = 1000;
+      else if (candidate.startsWith(needle)) score = 800 - (candidate.length - needle.length);
+      else if (candidate.includes(needle)) score = 600 - candidate.indexOf(needle);
+      else if (isSubsequence(needle, candidate)) score = 400 - (candidate.length - needle.length);
+      else if (typoLimit > 0) {
+        const distance = editDistance(needle, candidate, typoLimit);
+        if (distance <= typoLimit) score = 300 - distance * 60;
+      }
+
+      if (score > 0 && score + bonus > best) {
+        best = score + bonus;
+        matchedAs = variant.text;
+      }
+    }
+
+    if (best > 0) results.push({ entry, matchedAs, score: best });
+  }
+
+  results.sort((a, b) => b.score - a.score || a.entry.canonical.localeCompare(b.entry.canonical));
+  return results.slice(0, limit);
 }

@@ -171,13 +171,13 @@ export function PageActions() {
 
       <div className="flex flex-wrap gap-1">
         {pageInfo.looksLikeJobPage ? (
-          <span className="jp-badge border-excellent/40 bg-excellent/10 text-excellent">
+          <span className="jp-badge bg-excellent/10 text-excellent">
             <Icon name="check" size={11} strokeWidth={2.4} />
             вакансия найдена
           </span>
         ) : null}
         {pageInfo.looksLikeListingPage ? (
-          <span className="jp-badge border-good/40 bg-good/10 text-good">
+          <span className="jp-badge bg-good/10 text-good">
             <Icon name="list" size={11} />
             список: {pageInfo.listingCount}
           </span>

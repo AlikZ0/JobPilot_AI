@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   EMPLOYMENT_TYPES,
   LANGUAGE_LEVELS,
@@ -16,12 +16,15 @@ import {
 import {
   canonicalizeTech,
   categoryOf,
+  searchTech,
   splitNameAndVersion,
 } from '@/core/extraction/techDictionary';
+import { normalizeToken } from '@/utils/text';
 import { createId } from '@/utils/id';
 import {
   EMPLOYMENT_TYPE_LABEL,
   LANGUAGE_LEVEL_LABEL,
+  SPOKEN_LANGUAGES,
   SALARY_PERIOD_LABEL,
   SENIORITY_LABEL,
   SKILL_CATEGORY_LABEL,
@@ -29,6 +32,7 @@ import {
   WORK_MODE_LABEL,
 } from '../labels';
 import { Icon } from './Icon';
+import { Combobox, type ComboboxOption } from './Combobox';
 
 interface Props {
   profile: UserProfile;
@@ -67,36 +71,92 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
     'experience',
   ];
   const [skillDraft, setSkillDraft] = useState('');
-  const [skillVersion, setSkillVersion] = useState('');
   const [skillLevel, setSkillLevel] = useState<SkillLevel>('intermediate');
   const [skillCategory, setSkillCategory] = useState<SkillCategory>('frontend');
   const [languageDraft, setLanguageDraft] = useState('');
   const [languageLevel, setLanguageLevel] = useState<LanguageLevel>('b2');
 
-  const addSkill = () => {
+  /**
+   * Подсказки под тем, что уже набрано. Версию из строки убираем: по «Vue 3»
+   * искать нужно «Vue», иначе цифра ломает совпадение.
+   */
+  const skillOptions: ComboboxOption[] = useMemo(() => {
+    const query = splitNameAndVersion(skillDraft.trim()).name || skillDraft.trim();
+    return searchTech(query, 8).map(({ entry, matchedAs }) => ({
+      value: entry.canonical,
+      hint: SKILL_CATEGORY_LABEL[entry.category],
+      // Показываем, по какому написанию нашлось: «js → JavaScript» объясняет,
+      // почему в списке оказалось не то, что набрано.
+      note:
+        normalizeToken(matchedAs) === normalizeToken(entry.canonical)
+          ? undefined
+          : `по «${matchedAs}»`,
+    }));
+  }, [skillDraft]);
+
+  const addSkill = (picked?: string) => {
     // «Vue 3» в поле имени разбирается на название и версию.
-    const parsed = splitNameAndVersion(skillDraft.trim());
+    const typed = splitNameAndVersion(skillDraft.trim());
+    const parsed = splitNameAndVersion((picked ?? skillDraft).trim());
     const name = canonicalizeTech(parsed.name);
     if (!name) return;
-    const version = skillVersion.trim() || parsed.version;
+    // Из подсказки приходит одно название («Vue»), а версию человек набрал
+    // рядом с ним («Vue 3») — иначе цифра потерялась бы при выборе из списка.
+    const version = parsed.version || (picked ? typed.version : '');
     const duplicate = profile.skills.some(
       (skill) =>
         skill.name.toLowerCase() === name.toLowerCase() && (skill.version ?? '') === version,
     );
     if (duplicate) {
       setSkillDraft('');
-      setSkillVersion('');
       return;
     }
-    const skill: Skill = makeSkill({
-      name,
-      category: skillCategory,
-      version,
-      level: skillLevel,
-    });
+    // Категория — свойство самой технологии, а не предпочтение: класть Next.js
+    // в «прочее» нельзя. Раз словарь решает, select обязан показать то же
+    // самое, иначе он противоречит тому, куда навык на самом деле попал.
+    const known = categoryOf(name);
+    const category = known === 'other' ? skillCategory : known;
+    setSkillCategory(category);
+    const skill: Skill = makeSkill({ name, category, version, level: skillLevel });
     onChange({ skills: [...profile.skills, skill] });
     setSkillDraft('');
-    setSkillVersion('');
+  };
+
+  /** Подсказки языков: ищем и по русскому названию, и по самоназванию. */
+  const languageOptions: ComboboxOption[] = useMemo(() => {
+    const needle = languageDraft.trim().toLowerCase();
+    return SPOKEN_LANGUAGES.filter(
+      (language) =>
+        !needle ||
+        language.name.toLowerCase().includes(needle) ||
+        language.native.toLowerCase().includes(needle) ||
+        language.code === needle,
+    )
+      .slice(0, 8)
+      .map((language) => ({
+        value: language.name,
+        note: language.native === language.name ? undefined : language.native,
+        hint: language.code.toUpperCase(),
+      }));
+  }, [languageDraft]);
+
+  const addLanguage = (picked?: string) => {
+    const name = (picked ?? languageDraft).trim();
+    if (!name) return;
+    // Код языка берём из списка; выведенный из первых двух букв он был бы
+    // просто мусором для незнакомого названия.
+    const known = SPOKEN_LANGUAGES.find(
+      (language) => language.name.toLowerCase() === name.toLowerCase(),
+    );
+    onChange({
+      languages: [
+        ...profile.languages.filter(
+          (language) => language.name.toLowerCase() !== name.toLowerCase(),
+        ),
+        { code: known?.code ?? name.slice(0, 2).toLowerCase(), name, level: languageLevel },
+      ],
+    });
+    setLanguageDraft('');
   };
 
   /** Ключ навыка: название плюс версия, чтобы Vue 2 и Vue 3 были разными. */
@@ -352,38 +412,31 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
       {visible.includes('skills') ? (
         <section className="flex flex-col gap-2">
           <h3 className="jp-section-title">Технический стек</h3>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <div className="flex gap-1.5">
-              <input
-                className="jp-input"
-                placeholder="Например: Vue 3, React, Node.js"
+              <Combobox
+                className="flex-1"
                 value={skillDraft}
-                onChange={(event) => {
-                  setSkillDraft(event.target.value);
-                  const guessed = categoryOf(splitNameAndVersion(event.target.value).name);
+                onChange={(next) => {
+                  setSkillDraft(next);
+                  const guessed = categoryOf(splitNameAndVersion(next).name);
                   if (guessed !== 'other') setSkillCategory(guessed);
                 }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    addSkill();
-                  }
-                }}
-                aria-label="Название технологии"
+                onCommit={(picked) => addSkill(picked)}
+                options={skillOptions}
+                caption="Выберите из списка — тогда навык точно совпадёт с вакансией"
+                placeholder="React, Vue 3, Postgres…"
+                ariaLabel="Название технологии"
               />
-              <input
-                className="jp-input w-16"
-                placeholder="верс."
-                value={skillVersion}
-                onChange={(event) => setSkillVersion(event.target.value)}
-                aria-label="Версия"
-                title="Мажорная версия, например 3 для Vue 3. Пусто — версия не важна."
-              />
-              <button type="button" className="jp-button-primary" onClick={addSkill}>
+              <button
+                type="button"
+                className="jp-button-primary flex-shrink-0"
+                onClick={() => addSkill()}
+              >
                 Добавить
               </button>
             </div>
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               <select
                 className="jp-input"
                 value={skillCategory}
@@ -409,9 +462,10 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                 ))}
               </select>
             </div>
-            <p className="text-[10px] text-muted">
-              Версия важна там, где отличается сама работа: Vue 2 и Vue 3, React 16 и 18. Если
-              версия не указана, навык подойдёт под любое требование вакансии.
+            <p className="jp-hint">
+              Список ищет по сокращениям и прощает опечатки, категорию подставляет сам. Версию
+              пишите прямо в названии — «Vue 3», «React 18» — и только если от неё зависит сама
+              работа.
             </p>
           </div>
           {SKILL_CATEGORIES.map((category) => {
@@ -439,14 +493,14 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                         {skill.version ? ` ${skill.version}` : ''}
                       </span>
                       <input
-                        className="w-8 rounded border border-border bg-transparent px-1 text-[10px]"
+                        className="w-8 rounded border border-border bg-surface-2 px-1 text-[10px] text-content"
                         value={skill.version}
                         placeholder="в."
                         onChange={(event) => patchSkill(skill, { version: event.target.value })}
                         aria-label={`Версия ${skill.name}`}
                       />
                       <select
-                        className="rounded border border-border bg-transparent text-[10px]"
+                        className="cursor-pointer rounded border border-border bg-surface-2 text-[10px] text-content"
                         value={skill.level}
                         onChange={(event) =>
                           patchSkill(skill, { level: event.target.value as SkillLevel })
@@ -486,15 +540,18 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
         <section className="flex flex-col gap-2">
           <h3 className="jp-section-title">Языки</h3>
           <div className="flex gap-1.5">
-            <input
-              className="jp-input"
-              placeholder="Английский"
+            <Combobox
+              className="flex-1"
               value={languageDraft}
-              onChange={(event) => setLanguageDraft(event.target.value)}
-              aria-label="Название языка"
+              onChange={setLanguageDraft}
+              onCommit={(picked) => addLanguage(picked)}
+              options={languageOptions}
+              caption="Язык из списка"
+              placeholder="Английский, Deutsch, es…"
+              ariaLabel="Название языка"
             />
             <select
-              className="jp-input w-24"
+              className="jp-input w-[86px] flex-shrink-0"
               value={languageLevel}
               onChange={(event) => setLanguageLevel(event.target.value as LanguageLevel)}
               aria-label="Уровень языка"
@@ -507,20 +564,8 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             </select>
             <button
               type="button"
-              className="jp-button-primary"
-              onClick={() => {
-                const name = languageDraft.trim();
-                if (!name) return;
-                onChange({
-                  languages: [
-                    ...profile.languages.filter(
-                      (language) => language.name.toLowerCase() !== name.toLowerCase(),
-                    ),
-                    { code: name.slice(0, 2).toLowerCase(), name, level: languageLevel },
-                  ],
-                });
-                setLanguageDraft('');
-              }}
+              className="jp-button-primary flex-shrink-0"
+              onClick={() => addLanguage()}
             >
               Добавить
             </button>
@@ -566,10 +611,10 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       },
                     })
                   }
-                  className={`jp-badge ${
+                  className={`jp-badge cursor-pointer transition duration-200 ease-apple ${
                     profile.preferences.employmentTypes.includes(type)
-                      ? 'border-brand text-brand'
-                      : ''
+                      ? 'bg-brand text-brand-fg'
+                      : 'hover:bg-border'
                   }`}
                 >
                   {EMPLOYMENT_TYPE_LABEL[type]}
@@ -593,8 +638,10 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       },
                     })
                   }
-                  className={`jp-badge ${
-                    profile.preferences.workModes.includes(mode) ? 'border-brand text-brand' : ''
+                  className={`jp-badge cursor-pointer transition duration-200 ease-apple ${
+                    profile.preferences.workModes.includes(mode)
+                      ? 'bg-brand text-brand-fg'
+                      : 'hover:bg-border'
                   }`}
                 >
                   {WORK_MODE_LABEL[mode]}

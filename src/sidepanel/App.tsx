@@ -111,7 +111,7 @@ export default function App() {
   if (!ready) {
     return (
       <div
-        className="jp-fade-in flex h-full flex-col items-center justify-center gap-3 text-muted"
+        className="jp-fade-in flex h-[100dvh] flex-col items-center justify-center gap-3 text-muted"
         role="status"
       >
         <Logo size={36} />
@@ -123,7 +123,7 @@ export default function App() {
 
   if (route === 'onboarding') {
     return (
-      <div className="mx-auto h-full w-full max-w-[560px] overflow-y-auto">
+      <div className="mx-auto h-[100dvh] w-full max-w-[560px] overflow-y-auto">
         <Onboarding />
         <Toasts />
       </div>
@@ -133,21 +133,21 @@ export default function App() {
   // max-w удерживает читаемую ширину, когда та же страница открыта во вкладке
   // (options_page), а не в узкой боковой панели.
   return (
-    <div className="mx-auto flex h-full w-full max-w-[560px] flex-col">
-      <header className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
-        <div className="flex min-w-0 items-center gap-2">
+    <div className="mx-auto flex h-[100dvh] w-full max-w-[560px] flex-col">
+      <header className="jp-bar z-20 flex items-center justify-between gap-2 border-b px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <Logo />
           <div className="min-w-0 leading-tight">
-            <h1 className="text-[13px] font-semibold">JobPilot AI</h1>
-            <p className="truncate text-[10px] text-muted">Подбор вакансий по вашему профилю</p>
+            <h1 className="text-[14px] font-semibold tracking-[-0.02em]">JobPilot AI</h1>
+            <p className="truncate text-[10.5px] text-muted">Подбор вакансий по вашему профилю</p>
           </div>
         </div>
         {busy ? (
           <span
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand/10 px-2 py-1 text-[11px] font-medium text-brand"
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-medium text-brand"
             role="status"
           >
-            <span className="jp-spinner h-3 w-3 border-brand/30 border-t-brand" />
+            <span className="jp-spinner h-3 w-3 border-brand/25 border-t-brand" />
             {busy}…
           </span>
         ) : null}
@@ -155,7 +155,7 @@ export default function App() {
 
       <ScanBar />
 
-      <main key={route} className="jp-fade-in flex-1 overflow-y-auto px-3 py-3">
+      <main key={route} className="jp-fade-in flex-1 overflow-y-auto px-3.5 py-4">
         {route === 'dashboard' ? <Dashboard /> : null}
         {route === 'jobs' ? <Jobs /> : null}
         {route === 'job' ? <JobDetail /> : null}
@@ -167,38 +167,31 @@ export default function App() {
         {route === 'settings' ? <SettingsPage /> : null}
       </main>
 
-      <nav
-        className="grid grid-cols-7 border-t border-border bg-surface-2"
-        aria-label="Основная навигация"
-      >
-        {TABS.map((tab) => {
-          const active =
-            route === tab.route ||
-            (route === 'job' && tab.route === 'jobs') ||
-            (route === 'application' && tab.route === 'applications');
-          return (
-            <button
-              key={tab.route}
-              type="button"
-              onClick={() => navigate(tab.route)}
-              aria-current={active ? 'page' : undefined}
-              className={`relative flex flex-col items-center gap-1 py-2 text-[10px] transition duration-150 ${
-                active
-                  ? 'font-semibold text-brand'
-                  : 'text-muted hover:bg-surface-3 hover:text-content'
-              }`}
-            >
-              {active ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-brand"
-                />
-              ) : null}
-              <Icon name={tab.icon} size={17} strokeWidth={active ? 2 : 1.7} />
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Панель вкладок как в приложениях Apple: полупрозрачная, без рамок и
+          подчёркиваний — активную выделяет только цвет. */}
+      <nav className="jp-bar border-t px-1 pb-1 pt-1" aria-label="Основная навигация">
+        <div className="grid grid-cols-7">
+          {TABS.map((tab) => {
+            const active =
+              route === tab.route ||
+              (route === 'job' && tab.route === 'jobs') ||
+              (route === 'application' && tab.route === 'applications');
+            return (
+              <button
+                key={tab.route}
+                type="button"
+                onClick={() => navigate(tab.route)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex flex-col items-center gap-[3px] rounded-control py-1.5 text-[9.5px] leading-none transition duration-200 ease-apple active:scale-95 ${
+                  active ? 'font-semibold text-brand' : 'text-muted hover:text-content'
+                }`}
+              >
+                <Icon name={tab.icon} size={19} strokeWidth={active ? 2.1 : 1.6} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       <Toasts />

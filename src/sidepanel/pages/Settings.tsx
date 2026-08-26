@@ -39,12 +39,12 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0">
+    <div className="flex items-center justify-between gap-3 border-b border-border py-2.5 last:border-0 last:pb-0 first:pt-0">
       <div className="min-w-0">
-        <p className="text-[12px] font-medium">{label}</p>
-        {hint ? <p className="mt-0.5 text-[11px] leading-snug text-muted">{hint}</p> : null}
+        <p className="text-[12.5px] font-medium leading-tight">{label}</p>
+        {hint ? <p className="mt-1 text-[11px] leading-relaxed text-muted">{hint}</p> : null}
       </div>
-      <div className="flex-shrink-0">{children}</div>
+      <div className="flex flex-shrink-0 items-center">{children}</div>
     </div>
   );
 }
@@ -416,6 +416,7 @@ export function SettingsPage() {
           <Row key={key} label={label} hint={hint}>
             <input
               type="checkbox"
+              className="jp-switch"
               checked={settings.automation[key]}
               onChange={(event) =>
                 void updateSettings({
@@ -429,7 +430,14 @@ export function SettingsPage() {
           label="Подтверждение перед отправкой"
           hint="Всегда включено. JobPilot никогда не отправляет заявку сам."
         >
-          <input type="checkbox" checked readOnly disabled aria-label="Всегда обязательно" />
+          <input
+            type="checkbox"
+            className="jp-switch"
+            checked
+            readOnly
+            disabled
+            aria-label="Всегда обязательно"
+          />
         </Row>
         <Row
           label="Вести журнал откликов"
@@ -437,6 +445,7 @@ export function SettingsPage() {
         >
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.automation.trackSubmissions}
             onChange={(event) => void toggleTracking('trackSubmissions', event.target.checked)}
           />
@@ -447,6 +456,7 @@ export function SettingsPage() {
         >
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.automation.autoMarkSubmitted}
             disabled={!settings.automation.trackSubmissions}
             onChange={(event) =>
@@ -462,6 +472,7 @@ export function SettingsPage() {
         >
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.automation.showPageBadges}
             onChange={(event) => void toggleTracking('showPageBadges', event.target.checked)}
           />
@@ -528,6 +539,7 @@ export function SettingsPage() {
         <Row label="Включены">
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.notifications.enabled}
             onChange={(event) =>
               void updateSettings({
@@ -563,6 +575,7 @@ export function SettingsPage() {
         >
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.privacy.allowAIRequests}
             onChange={(event) =>
               void updateSettings({
@@ -577,6 +590,7 @@ export function SettingsPage() {
         >
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.privacy.shareExperienceWithAI}
             onChange={(event) =>
               void updateSettings({
@@ -589,11 +603,12 @@ export function SettingsPage() {
           label="Передавать контакты в AI"
           hint="Никогда. Имя, почта и телефон остаются локально."
         >
-          <input type="checkbox" checked={false} readOnly disabled />
+          <input type="checkbox" className="jp-switch" checked={false} readOnly disabled />
         </Row>
         <Row label="Хранить обоснования AI" hint="Сохраняет объяснения в локальной базе.">
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.privacy.storeAIResponses}
             onChange={(event) =>
               void updateSettings({
@@ -636,6 +651,7 @@ export function SettingsPage() {
         >
           <input
             type="checkbox"
+            className="jp-switch"
             checked={settings.costControl.cacheAnalyses}
             onChange={(event) =>
               void updateSettings({
