@@ -21,6 +21,12 @@ export class OpenAIProvider extends BaseAIProvider {
     'gpt-4o',
     'o4-mini',
   ];
+  readonly apiKeyUrl: string = 'https://platform.openai.com/api-keys';
+  /**
+   * Поле лимита у OpenAI переименовали, а совместимые сервисы почти все знают
+   * только `max_tokens`. Наследники подменяют имя, чтобы не дублировать `chat`.
+   */
+  protected readonly tokenLimitField: string = 'max_completion_tokens';
 
   async chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse> {
     const baseUrl = (credentials.baseUrl || this.defaultBaseUrl).replace(/\/$/, '');
@@ -28,7 +34,7 @@ export class OpenAIProvider extends BaseAIProvider {
       model: credentials.model,
       messages: request.messages,
       temperature: request.temperature,
-      max_completion_tokens: request.maxTokens,
+      [this.tokenLimitField]: request.maxTokens,
     };
     if (request.json) payload.response_format = { type: 'json_object' };
 
@@ -56,6 +62,10 @@ export class CustomOpenAICompatibleProvider extends OpenAIProvider {
   override readonly label = 'Custom (OpenAI-compatible)';
   override readonly defaultBaseUrl = '';
   override readonly suggestedModels: string[] = [];
+  override readonly apiKeyUrl = '';
+  override readonly note = 'Свой сервер: LM Studio, Ollama, vLLM. Ключ может не понадобиться.';
+  // Локальные серверы придерживаются старого имени поля.
+  protected override readonly tokenLimitField = 'max_tokens';
 }
 
 export const openaiProvider = new OpenAIProvider();

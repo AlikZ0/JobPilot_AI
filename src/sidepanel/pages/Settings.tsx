@@ -220,10 +220,12 @@ export function SettingsPage() {
               }
             >
               {AI_PROVIDER_IDS.filter((id) => id !== 'cloud').map((id) => {
+                const entry = getProvider(id);
                 const count = keys.filter((key) => key.providerId === id).length;
                 return (
                   <option key={id} value={id}>
-                    {getProvider(id).label}
+                    {entry.label}
+                    {entry.freeTier ? ' · бесплатный тариф' : ''}
                     {count > 1 ? ` ✓ ${count}` : count === 1 ? ' ✓' : ''}
                   </option>
                 );
@@ -242,10 +244,25 @@ export function SettingsPage() {
         )}
         <div className="border-b border-border py-2">
           <p className="text-[12px] font-medium">Ключи «{provider.label}»</p>
-          <p className="mt-0.5 text-[11px] leading-snug text-muted">
+          {provider.note ? (
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">{provider.note}</p>
+          ) : null}
+          <p className="mt-1 text-[11px] leading-relaxed text-muted">
             Ключей может быть несколько — запросы идут через выбранный. Хранятся только в памяти
             расширения: не уходят на сайты вакансий и не попадают в экспорт.
           </p>
+          {provider.apiKeyUrl ? (
+            <a
+              href={provider.apiKeyUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-brand transition-opacity hover:opacity-80"
+            >
+              <Icon name="key" size={12} />
+              Получить ключ — {provider.label}
+              <Icon name="external" size={11} className="opacity-70" />
+            </a>
+          ) : null}
           {providerKeys.length > 0 ? (
             <ul className="mt-1.5 flex flex-col gap-1">
               {providerKeys.map((key) => (

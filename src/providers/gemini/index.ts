@@ -14,6 +14,9 @@ export class GeminiProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'gemini';
   readonly label = 'Google Gemini';
   readonly defaultBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  readonly apiKeyUrl = 'https://aistudio.google.com/app/apikey';
+  override readonly freeTier = true;
+  override readonly note = 'Бесплатный тариф с лимитом запросов в минуту и в сутки.';
   readonly suggestedModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
 
   async chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse> {

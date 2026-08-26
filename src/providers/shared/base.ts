@@ -46,6 +46,9 @@ export abstract class BaseAIProvider implements AIProvider {
   abstract readonly label: string;
   abstract readonly defaultBaseUrl: string;
   abstract readonly suggestedModels: string[];
+  abstract readonly apiKeyUrl: string;
+  readonly note?: string;
+  readonly freeTier?: boolean;
 
   abstract chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse>;
 

@@ -6,6 +6,10 @@
 interface AIProvider {
   id: AIProviderId;
   label: string;
+  /** Куда отправить человека за ключом; пусто, если ключ не нужен. */
+  apiKeyUrl: string;
+  /** Есть постоянный бесплатный тариф, а не разовый кредит. */
+  freeTier?: boolean;
   chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse>;
   analyzeJob(input, ctx): Promise<TaskResult<AIJobFindings>>;
   generateCoverLetter(input, ctx): Promise<TaskResult<CoverLetter>>;
@@ -40,6 +44,33 @@ export class MyProvider extends BaseAIProvider {
 
 Дальше зарегистрируйте его в `src/providers/registry.ts` и добавьте id в
 `AI_PROVIDER_IDS`.
+
+## Подключённые провайдеры
+
+| Провайдер       | Адрес                               | Доступ                                |
+| --------------- | ----------------------------------- | ------------------------------------- |
+| OpenAI          | `api.openai.com`                    | платный                               |
+| Anthropic       | `api.anthropic.com`                 | платный                               |
+| Google Gemini   | `generativelanguage.googleapis.com` | **бесплатный тариф**                  |
+| xAI (Grok)      | `api.x.ai`                          | платный                               |
+| Groq            | `api.groq.com`                      | **бесплатный тариф**, открытые модели |
+| DeepSeek        | `api.deepseek.com`                  | платный, очень дёшево                 |
+| Zhipu AI (GLM)  | `open.bigmodel.cn`                  | **glm-4-flash бесплатна**             |
+| Moonshot (Kimi) | `api.moonshot.cn`                   | пробный баланс                        |
+| Qwen (Alibaba)  | `dashscope-intl.aliyuncs.com`       | **бесплатная квота**                  |
+| OpenRouter      | `openrouter.ai`                     | **есть модели «:free»**               |
+| Custom          | задаёт пользователь                 | LM Studio, Ollama, vLLM               |
+| Cloud           | свой шлюз                           | ключ хранится на шлюзе                |
+
+Всё, кроме Anthropic, Gemini и облачного шлюза, говорит на диалекте OpenAI Chat
+Completions, поэтому шесть провайдеров из `src/providers/compatible/` — это
+адрес, список моделей и ссылка на консоль поверх `OpenAIProvider`. Списки
+моделей там подсказка для поля ввода, а не ограничение: провайдеры их
+регулярно меняют.
+
+`Groq` и `xAI (Grok)` — разные сервисы с похожими названиями. Первый быстро
+крутит чужие открытые модели и имеет бесплатный тариф, второй даёт собственные
+модели Grok за деньги.
 
 ## Промпты
 

@@ -96,6 +96,15 @@ export interface AIProvider {
   readonly label: string;
   readonly defaultBaseUrl: string;
   readonly suggestedModels: string[];
+  /**
+   * Страница, где заводится ключ. Настройки показывают её ссылкой: без неё
+   * человеку приходится искать нужный раздел консоли самому.
+   */
+  readonly apiKeyUrl: string;
+  /** Чем провайдер интересен: бесплатный тариф, дешевизна, особенности. */
+  readonly note?: string;
+  /** Есть постоянный бесплатный тариф — не разовый стартовый кредит. */
+  readonly freeTier?: boolean;
   /** Прямой вызов модели — используется задачами и кнопкой «Проверить подключение». */
   chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse>;
 

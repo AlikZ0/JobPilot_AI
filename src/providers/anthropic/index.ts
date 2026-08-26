@@ -17,6 +17,7 @@ export class AnthropicProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'anthropic';
   readonly label = 'Anthropic';
   readonly defaultBaseUrl = 'https://api.anthropic.com/v1';
+  readonly apiKeyUrl = 'https://console.anthropic.com/settings/keys';
   readonly suggestedModels = ['claude-sonnet-4-5', 'claude-haiku-4-5', 'claude-opus-4-1'];
 
   async chat(request: ChatRequest, credentials: ProviderCredentials): Promise<ChatResponse> {

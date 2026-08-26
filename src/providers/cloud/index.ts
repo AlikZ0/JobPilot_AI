@@ -17,6 +17,9 @@ interface CloudResponse {
 export class CloudGatewayProvider extends BaseAIProvider {
   readonly id: AIProviderId = 'cloud';
   readonly label = 'JobPilot Cloud';
+  readonly apiKeyUrl = '';
+  override readonly note =
+    'Запросы идут через ваш собственный шлюз — ключ провайдера хранится там.';
   readonly defaultBaseUrl = '';
   readonly suggestedModels: string[] = [];
 
