@@ -5,6 +5,15 @@ import { JobCard } from '../components/JobCard';
 import { Empty } from '../components/Empty';
 import { formatRelative, isToday } from '@/utils/time';
 import { buildFunnel } from '@/core/pipeline/funnel';
+import {
+  buildReportRows,
+  mostDemandedSkills,
+  reportFileName,
+  reportToCsv,
+  reportToMarkdown,
+  statsBySource,
+  summarizeWeek,
+} from '@/core/pipeline/report';
 import { FUNNEL_STEP_LABEL } from '../labels';
 import { useJobActions } from '../hooks/useJobActions';
 import { Icon, type IconName } from '../components/Icon';
@@ -99,6 +108,24 @@ export function Dashboard() {
 
   /** Что стало с отправленными откликами. Считается по всей истории, не за день. */
   const funnel = useMemo(() => buildFunnel(applications), [applications]);
+  const week = useMemo(() => summarizeWeek(jobs, applications), [jobs, applications]);
+  const sources = useMemo(() => statsBySource(jobs, applications), [jobs, applications]);
+  const demanded = useMemo(() => mostDemandedSkills(jobs, 6), [jobs]);
+
+  /** Отчёт скачивается файлом: он нужен в чужой таблице, а не в расширении. */
+  const download = (kind: 'csv' | 'md') => {
+    const rows = buildReportRows(jobs, applications);
+    const content = kind === 'csv' ? reportToCsv(rows) : reportToMarkdown(rows, week);
+    const blob = new Blob([content], {
+      type: kind === 'csv' ? 'text/csv;charset=utf-8' : 'text/markdown;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = reportFileName(kind);
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
 
   const recent = jobs.slice(0, 5);
   const recentSubmissions = submissions.slice(0, 3);
@@ -127,6 +154,107 @@ export function Dashboard() {
           <Stat label="Средний балл" value={`${stats.average}%`} icon="trending" accent="brand" />
         </div>
       </section>
+
+      {jobs.length > 0 ? (
+        <section className="jp-card">
+          <h2 className="jp-section-title mb-2">
+            <Icon name="trending" size={12} />
+            За неделю
+          </h2>
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+            {(
+              [
+                ['Проанализировано', week.analyzed],
+                ['Отправлено', week.submitted],
+                ['Ответов', week.replies],
+                ['Интервью', week.interviews],
+                ['Офферов', week.offers],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="flex items-baseline justify-between gap-2">
+                <dt className="text-muted">{label}</dt>
+                <dd className="font-medium tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {funnel.submitted > 0 ? (
+            <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-border pt-2.5">
+              <button
+                type="button"
+                className="jp-button jp-button-sm"
+                onClick={() => download('csv')}
+              >
+                <Icon name="download" size={12} />
+                Отклики в CSV
+              </button>
+              <button
+                type="button"
+                className="jp-button jp-button-sm"
+                onClick={() => download('md')}
+              >
+                <Icon name="download" size={12} />В Markdown
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {sources.length > 1 ? (
+        <section className="jp-card">
+          <h2 className="jp-section-title mb-2">
+            <Icon name="link" size={12} />
+            Откуда приходят вакансии
+          </h2>
+          <ul className="flex flex-col text-[12px]">
+            {sources.slice(0, 6).map((row) => (
+              <li
+                key={row.source}
+                className="flex items-center gap-2 border-b border-border py-1.5 last:border-0"
+              >
+                <span className="min-w-0 flex-1 truncate">{row.source}</span>
+                <span className="flex-shrink-0 text-[11px] text-muted">
+                  {row.jobs} шт.
+                  {row.submitted > 0 ? ` · откликов ${row.submitted}` : ''}
+                </span>
+                <span className="w-10 flex-shrink-0 text-right font-medium tabular-nums">
+                  {row.averageScore === null ? '—' : `${row.averageScore}%`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[11px] text-muted">
+            Справа — средний балл по проанализированным. Видно, какой сайт приносит вакансии, где вы
+            подходите лучше.
+          </p>
+        </section>
+      ) : null}
+
+      {demanded.length > 0 ? (
+        <section className="jp-card">
+          <h2 className="jp-section-title mb-2">
+            <Icon name="target" size={12} />
+            Чаще всего требуют
+          </h2>
+          <ul className="flex flex-col gap-1.5">
+            {demanded.map((row) => (
+              <li key={row.skill}>
+                <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                  <span>{row.skill}</span>
+                  <span className="tabular-nums text-muted">{row.count}</span>
+                </div>
+                <div className="jp-track mt-0.5">
+                  <div
+                    className="bg-brand"
+                    style={{
+                      width: `${Math.round((row.count / (demanded[0]?.count || 1)) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {funnel.submitted > 0 ? (
         <section className="jp-card">
