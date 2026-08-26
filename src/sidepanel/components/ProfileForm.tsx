@@ -159,15 +159,18 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
     setLanguageDraft('');
   };
 
-  /** Ключ навыка: название плюс версия, чтобы Vue 2 и Vue 3 были разными. */
-  const skillKey = (skill: Skill) => `${skill.name}@${skill.version || '*'}`;
-
-  const patchSkill = (target: Skill, patch: Partial<Skill>) =>
+  /**
+   * Правка по месту в списке. По имени с версией искать нельзя: версия и есть
+   * то, что правят, — ключ менялся бы на каждой набранной цифре, React
+   * пересоздавал бы поле, и фокус слетал бы после первого же символа.
+   */
+  const patchSkillAt = (index: number, patch: Partial<Skill>) =>
     onChange({
-      skills: profile.skills.map((entry) =>
-        skillKey(entry) === skillKey(target) ? { ...entry, ...patch } : entry,
-      ),
+      skills: profile.skills.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)),
     });
+
+  const removeSkillAt = (index: number) =>
+    onChange({ skills: profile.skills.filter((_, i) => i !== index) });
 
   const toggleArray = <T,>(list: T[], value: T): T[] =>
     list.includes(value) ? list.filter((entry) => entry !== value) : [...list, value];
@@ -469,41 +472,61 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
             </p>
           </div>
           {SKILL_CATEGORIES.map((category) => {
-            const items = profile.skills.filter((skill) => skill.category === category);
+            // Индекс в исходном списке — единственная стабильная примета навыка:
+            // своего идентификатора у него нет, а имя с версией меняются прямо
+            // во время правки.
+            const items = profile.skills
+              .map((skill, index) => ({ skill, index }))
+              .filter((entry) => entry.skill.category === category);
             if (items.length === 0) return null;
             return (
               <div key={category}>
-                <p className="text-[11px] font-semibold text-muted">
+                <p className="mb-1 text-[11px] font-semibold text-muted">
                   {SKILL_CATEGORY_LABEL[category]}
                 </p>
-                <ul className="mt-1 flex flex-wrap gap-1">
-                  {items.map((skill) => (
-                    <li key={skillKey(skill)} className="jp-badge gap-1.5">
+                {/*
+                  Строками, а не чипами: у навыка четыре управляющих элемента, и
+                  втиснутые в «тег» они не помещались в узкую панель, а версия
+                  показывалась дважды — в подписи и в своём поле.
+                */}
+                <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-control border border-border">
+                  {items.map(({ skill, index }) => (
+                    <li key={index} className="flex items-center gap-2 px-2.5 py-1.5">
                       <button
                         type="button"
-                        title={skill.primary ? 'Ключевой навык' : 'Отметить как ключевой'}
+                        title={
+                          skill.primary ? 'Ключевой навык — снять отметку' : 'Отметить как ключевой'
+                        }
                         aria-pressed={skill.primary}
-                        onClick={() => patchSkill(skill, { primary: !skill.primary })}
-                        className={skill.primary ? 'text-brand' : 'text-muted'}
+                        aria-label={`Ключевой навык: ${skill.name}`}
+                        onClick={() => patchSkillAt(index, { primary: !skill.primary })}
+                        className={`flex-shrink-0 text-[13px] leading-none transition-colors ${
+                          skill.primary ? 'text-brand' : 'text-muted hover:text-content'
+                        }`}
                       >
                         ★
                       </button>
-                      <span>
+                      <span
+                        className={`min-w-0 flex-1 truncate text-[12px] ${
+                          skill.primary ? 'font-medium' : ''
+                        }`}
+                        title={skill.name}
+                      >
                         {skill.name}
-                        {skill.version ? ` ${skill.version}` : ''}
                       </span>
                       <input
-                        className="w-8 rounded border border-border bg-surface-2 px-1 text-[10px] text-content"
+                        className="jp-input w-11 flex-shrink-0 px-1 py-0.5 text-center text-[11px]"
                         value={skill.version}
-                        placeholder="в."
-                        onChange={(event) => patchSkill(skill, { version: event.target.value })}
+                        placeholder="—"
+                        title="Мажорная версия, например 3 для Vue 3. Пусто — версия не важна."
+                        onChange={(event) => patchSkillAt(index, { version: event.target.value })}
                         aria-label={`Версия ${skill.name}`}
                       />
                       <select
-                        className="cursor-pointer rounded border border-border bg-surface-2 text-[10px] text-content"
+                        className="jp-input w-auto flex-shrink-0 py-0.5 pl-2 text-[11px]"
                         value={skill.level}
                         onChange={(event) =>
-                          patchSkill(skill, { level: event.target.value as SkillLevel })
+                          patchSkillAt(index, { level: event.target.value as SkillLevel })
                         }
                         aria-label={`Уровень владения ${skill.name}`}
                       >
@@ -516,16 +539,10 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
                       <button
                         type="button"
                         aria-label={`Убрать ${skill.name}`}
-                        onClick={() =>
-                          onChange({
-                            skills: profile.skills.filter(
-                              (entry) => skillKey(entry) !== skillKey(skill),
-                            ),
-                          })
-                        }
-                        className="rounded-full text-muted transition hover:text-poor"
+                        onClick={() => removeSkillAt(index)}
+                        className="flex-shrink-0 rounded-full text-muted transition hover:text-poor"
                       >
-                        <Icon name="x" size={11} strokeWidth={2.4} />
+                        <Icon name="x" size={12} strokeWidth={2.4} />
                       </button>
                     </li>
                   ))}
@@ -533,6 +550,12 @@ export function ProfileForm({ profile, onChange, sections }: Props) {
               </div>
             );
           })}
+          {profile.skills.length > 0 ? (
+            <p className="jp-hint">
+              ★ — ключевой навык: AI упоминает его в первую очередь. На балл совпадения это не
+              влияет, балл считается по требованиям вакансии.
+            </p>
+          ) : null}
         </section>
       ) : null}
 
