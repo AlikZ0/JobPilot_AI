@@ -5,18 +5,27 @@ import { SENIORITY_LEVELS } from '@/types/profile';
 import { languageLevelIndex, toMonthly } from '@/core/extraction/normalize';
 import { canonicalizeTech } from '@/core/extraction/techDictionary';
 import { normalizeToken, unique } from '@/utils/text';
+import type { ScoreWeights } from '@/types/settings';
 import { matchSkills, profileSkillSet, type SkillMatch } from './skillMatcher';
-import { SCORE_WEIGHTS, bandForScore } from './weights';
+import { bandForScore, normalizeWeights, weightsKey } from './weights';
 
 export interface ScoringInput {
   job: ExtractedJob;
   profile: UserProfile;
   /** Необязательные качественные выводы AI; скоринг работает и без них. */
   findings?: AIJobFindings | null;
+  /**
+   * Приоритеты пользователя. Приходят как есть с ползунков и приводятся к сотне
+   * здесь же — вызывающему не нужно помнить про нормализацию.
+   */
+  weights?: Partial<ScoreWeights> | null;
 }
 
 export interface ScoringOutput {
   score: number;
+  /** Подпись весов, которыми посчитан этот балл; идёт в ключ кеша анализов. */
+  weightsKey: string;
+  weights: ScoreWeights;
   band: JobAnalysis['band'];
   breakdown: ScoreBreakdown;
   matchedSkills: string[];
@@ -99,8 +108,11 @@ function mergeSkillFindings(
  */
 export const VERSION_MISMATCH_PENALTY = 0.3;
 
-function scoreTechnical(match: SkillMatch): { earned: number; detail: string } {
-  const max = SCORE_WEIGHTS.technicalSkills;
+function scoreTechnical(
+  match: SkillMatch,
+  weights: ScoreWeights,
+): { earned: number; detail: string } {
+  const max = weights.technicalSkills;
   if (match.required.length === 0) {
     return {
       earned: max * 0.5,
@@ -133,8 +145,9 @@ function scoreExperience(
   profile: UserProfile,
   findings: AIJobFindings | null | undefined,
   job: ExtractedJob,
+  weights: ScoreWeights,
 ): { earned: number; detail: string; match: boolean } {
-  const max = SCORE_WEIGHTS.experience;
+  const max = weights.experience;
   const required =
     findings?.requiredExperienceYears ??
     parseRequiredYears(`${job.requirements.join('\n')}\n${job.description}`);
@@ -180,8 +193,9 @@ function scoreSeniority(
   job: ExtractedJob,
   profile: UserProfile,
   findings: AIJobFindings | null | undefined,
+  weights: ScoreWeights,
 ): { earned: number; detail: string; match: boolean } {
-  const max = SCORE_WEIGHTS.seniority;
+  const max = weights.seniority;
   const jobLevel =
     findings?.detectedSeniority && findings.detectedSeniority !== 'unknown'
       ? findings.detectedSeniority
@@ -204,8 +218,9 @@ function scoreSeniority(
 function scoreLocation(
   job: ExtractedJob,
   profile: UserProfile,
+  weights: ScoreWeights,
 ): { earned: number; detail: string; match: boolean } {
-  const max = SCORE_WEIGHTS.location;
+  const max = weights.location;
   const wantsRemote = profile.preferences.workModes.includes('remote');
   const modeAccepted =
     job.workMode === 'unknown' || profile.preferences.workModes.includes(job.workMode);
@@ -260,8 +275,9 @@ function scoreLocation(
 function scoreSalary(
   job: ExtractedJob,
   profile: UserProfile,
+  weights: ScoreWeights,
 ): { earned: number; detail: string; match: boolean } {
-  const max = SCORE_WEIGHTS.salary;
+  const max = weights.salary;
   const expected = profile.salary.expected ?? profile.salary.minimumAcceptable;
   if (job.salary.min === null && job.salary.max === null) {
     return { earned: round(max * 0.5), detail: 'Salary not disclosed.', match: true };
@@ -316,8 +332,9 @@ function scoreLanguage(
   job: ExtractedJob,
   profile: UserProfile,
   findings: AIJobFindings | null | undefined,
+  weights: ScoreWeights,
 ): { earned: number; detail: string; match: boolean } {
-  const max = SCORE_WEIGHTS.language;
+  const max = weights.language;
   const required =
     findings?.languageRequirements.map((entry) => `${entry.language} ${entry.level}`.trim()) ??
     job.languageRequirements;
@@ -352,8 +369,9 @@ function scoreResponsibilities(
   job: ExtractedJob,
   profile: UserProfile,
   findings: AIJobFindings | null | undefined,
+  weights: ScoreWeights,
 ): { earned: number; detail: string } {
-  const max = SCORE_WEIGHTS.responsibilities;
+  const max = weights.responsibilities;
   if (findings) {
     return {
       earned: round(findings.responsibilitiesAlignment * max),
@@ -380,8 +398,9 @@ function scoreOther(
   job: ExtractedJob,
   profile: UserProfile,
   redFlags: RedFlag[],
+  weights: ScoreWeights,
 ): { earned: number; detail: string } {
-  const max = SCORE_WEIGHTS.other;
+  const max = weights.other;
   let earned = max;
   const notes: string[] = [];
 
@@ -493,6 +512,7 @@ export function detectRedFlags(job: ExtractedJob, match: SkillMatch): RedFlag[] 
  */
 export function scoreJob(input: ScoringInput): ScoringOutput {
   const { job, profile, findings } = input;
+  const weights = normalizeWeights(input.weights);
   const baseMatch = matchSkills(job, profile);
   const match = mergeSkillFindings(baseMatch, profile, findings);
 
@@ -502,36 +522,36 @@ export function scoreJob(input: ScoringInput): ScoringOutput {
   );
   const redFlags = [...deterministicFlags, ...aiFlags];
 
-  const technical = scoreTechnical(match);
-  const experience = scoreExperience(profile, findings, job);
-  const seniority = scoreSeniority(job, profile, findings);
-  const location = scoreLocation(job, profile);
-  const salary = scoreSalary(job, profile);
-  const language = scoreLanguage(job, profile, findings);
-  const responsibilities = scoreResponsibilities(job, profile, findings);
-  const other = scoreOther(job, profile, redFlags);
+  const technical = scoreTechnical(match, weights);
+  const experience = scoreExperience(profile, findings, job, weights);
+  const seniority = scoreSeniority(job, profile, findings, weights);
+  const location = scoreLocation(job, profile, weights);
+  const salary = scoreSalary(job, profile, weights);
+  const language = scoreLanguage(job, profile, findings, weights);
+  const responsibilities = scoreResponsibilities(job, profile, findings, weights);
+  const other = scoreOther(job, profile, redFlags, weights);
 
   const breakdown: ScoreBreakdown = {
     technicalSkills: {
       earned: technical.earned,
-      max: SCORE_WEIGHTS.technicalSkills,
+      max: weights.technicalSkills,
       detail: technical.detail,
     },
     experience: {
       earned: experience.earned,
-      max: SCORE_WEIGHTS.experience,
+      max: weights.experience,
       detail: experience.detail,
     },
-    seniority: { earned: seniority.earned, max: SCORE_WEIGHTS.seniority, detail: seniority.detail },
-    location: { earned: location.earned, max: SCORE_WEIGHTS.location, detail: location.detail },
-    salary: { earned: salary.earned, max: SCORE_WEIGHTS.salary, detail: salary.detail },
-    language: { earned: language.earned, max: SCORE_WEIGHTS.language, detail: language.detail },
+    seniority: { earned: seniority.earned, max: weights.seniority, detail: seniority.detail },
+    location: { earned: location.earned, max: weights.location, detail: location.detail },
+    salary: { earned: salary.earned, max: weights.salary, detail: salary.detail },
+    language: { earned: language.earned, max: weights.language, detail: language.detail },
     responsibilities: {
       earned: responsibilities.earned,
-      max: SCORE_WEIGHTS.responsibilities,
+      max: weights.responsibilities,
       detail: responsibilities.detail,
     },
-    other: { earned: other.earned, max: SCORE_WEIGHTS.other, detail: other.detail },
+    other: { earned: other.earned, max: weights.other, detail: other.detail },
   };
 
   const total = Object.values(breakdown).reduce((sum, part) => sum + part.earned, 0);
@@ -539,6 +559,8 @@ export function scoreJob(input: ScoringInput): ScoringOutput {
 
   return {
     score,
+    weightsKey: weightsKey(weights),
+    weights,
     band: bandForScore(score),
     breakdown,
     matchedSkills: match.matched,

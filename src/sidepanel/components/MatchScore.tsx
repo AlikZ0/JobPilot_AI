@@ -1,5 +1,5 @@
 import type { RecommendationBand, ScoreBreakdown } from '@/types/ai';
-import { BAND_GLYPH, labelForBand } from '@/core/scoring/weights';
+import { BAND_GLYPH, SCORE_COMPONENT_LABELS, labelForBand } from '@/core/scoring/weights';
 
 const BAND_TEXT: Record<RecommendationBand, string> = {
   strong_match: 'text-excellent',
@@ -95,16 +95,7 @@ export function MatchScore({ score, band, size = 'sm' }: Props) {
   );
 }
 
-const COMPONENT_LABELS: Record<keyof ScoreBreakdown, string> = {
-  technicalSkills: 'Технические навыки',
-  experience: 'Опыт',
-  seniority: 'Уровень',
-  location: 'Локация',
-  salary: 'Зарплата',
-  language: 'Языки',
-  responsibilities: 'Обязанности',
-  other: 'Прочее',
-};
+const COMPONENT_LABELS: Record<keyof ScoreBreakdown, string> = SCORE_COMPONENT_LABELS;
 
 /** Цвет полоски повторяет шкалу балла: видно, где именно просело совпадение. */
 function barColor(ratio: number): string {
@@ -120,13 +111,17 @@ export function ScoreBreakdownList({ breakdown }: { breakdown: ScoreBreakdown })
     <ul className="flex flex-col gap-2.5">
       {(Object.keys(COMPONENT_LABELS) as (keyof ScoreBreakdown)[]).map((key) => {
         const part = breakdown[key];
-        const ratio = part.earned / part.max;
+        // Вес компонента можно увести в ноль — тогда делить не на что, а строку
+        // всё равно показываем: пропасть без объяснения хуже, чем прочерк.
+        const ratio = part.max > 0 ? part.earned / part.max : 0;
         return (
           <li key={key}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-[12px] font-medium">{COMPONENT_LABELS[key]}</span>
+              <span className={`text-[12px] font-medium ${part.max === 0 ? 'text-muted' : ''}`}>
+                {COMPONENT_LABELS[key]}
+              </span>
               <span className="font-mono text-[11px] tabular-nums text-muted">
-                {part.earned}/{part.max}
+                {part.max === 0 ? 'не учитывается' : `${part.earned}/${part.max}`}
               </span>
             </div>
             <div

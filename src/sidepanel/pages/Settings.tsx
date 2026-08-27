@@ -27,6 +27,7 @@ import { DAY_MS } from '@/utils/time';
 import { useStore, withBusy } from '../state/store';
 import { Icon } from '../components/Icon';
 import { SiteAccess } from '../components/SiteAccess';
+import { ScoringWeights } from '../components/ScoringWeights';
 import { hideCompanies, showCompany } from '@/core/pipeline/triage';
 import { GENERATION_LANGUAGES } from '../labels';
 
@@ -561,6 +562,8 @@ export function SettingsPage() {
           />
         </Row>
       </section>
+
+      <ScoringWeights />
 
       <section className="jp-card flex flex-col gap-1">
         <h2 className="jp-section-title mb-1">

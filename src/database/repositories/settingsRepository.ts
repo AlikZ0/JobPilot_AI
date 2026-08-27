@@ -50,6 +50,13 @@ export async function saveSettings(patch: Partial<Settings>): Promise<Settings> 
         notifications: { ...current.notifications, ...(patch.notifications ?? {}) },
         privacy: { ...current.privacy, ...(patch.privacy ?? {}) },
         costControl: { ...current.costControl, ...(patch.costControl ?? {}) },
+        scoring: {
+          ...current.scoring,
+          ...(patch.scoring ?? {}),
+          // Веса приходят с ползунков по одному — накладываем на текущие, иначе
+          // сдвиг одного ползунка сбрасывал бы остальные к значениям по умолчанию.
+          weights: { ...current.scoring.weights, ...(patch.scoring?.weights ?? {}) },
+        },
         providers: { ...current.providers, ...(patch.providers ?? {}) },
         id: SETTINGS_ID,
         updatedAt: Date.now(),

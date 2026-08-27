@@ -66,6 +66,10 @@ type Def<T, P, R> = { type: T; payload: P; result: R };
 
 `src/core/scoring/engine.ts` — единственное место, где рождается процент.
 
+0. Веса компонентов берутся из настроек и приводятся к сотне
+   (`normalizeWeights()` в `weights.ts`): ползунки задают важность, а максимум
+   балла обязан остаться ровно 100. Подпись весов (`weightsKey()`) уходит в
+   анализ и входит в ключ кеша.
 1. `matchSkills()` приводит обе стороны через словарь технологий
    (`techDictionary.ts`), который знает синонимы (`nodejs` → `Node.js`) и
    следствия (`Nuxt` → `Vue` → `JavaScript`), и делит технологии вакансии на
@@ -92,9 +96,12 @@ type Def<T, P, R> = { type: T; payload: P; result: R };
    → сохранение анализа → вакансия → analyzed
 ```
 
-Ключ кеша — `(jobFingerprint, profileVersion, ANALYSIS_VERSION)`. Правка профиля
+Ключ кеша — `(jobFingerprint, profileVersion, ANALYSIS_VERSION, weightsKey)`. Правка профиля
 увеличивает `profileVersion` и обесценивает весь кеш; при изменении движка
-скоринга нужно увеличить `ANALYSIS_VERSION`.
+скоринга нужно увеличить `ANALYSIS_VERSION`. Смена весов приоритетов меняет
+`weightsKey` и обесценивает кеш сама по себе; уже сохранённые баллы переписывает
+`core/scoring/rescore.ts` — по кнопке в настройках и без обращения к AI: он берёт
+качественную часть из сохранённых в анализе выводов модели.
 
 ## Массовый анализ
 

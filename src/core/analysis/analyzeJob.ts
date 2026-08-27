@@ -3,7 +3,7 @@ import type { Job } from '@/types/job';
 import type { UserProfile } from '@/types/profile';
 import type { Settings } from '@/types/settings';
 import { scoreJob, computePriority } from '@/core/scoring/engine';
-import { labelForBand } from '@/core/scoring/weights';
+import { labelForBand, normalizeWeights, weightsKey } from '@/core/scoring/weights';
 import { buildAIProfile } from '@/core/ai/profileProjection';
 import { runAITask } from '@/core/ai/aiService';
 import {
@@ -43,8 +43,13 @@ export async function analyzeJob(
   settings: Settings,
   options: AnalyzeOptions = {},
 ): Promise<AnalyzeOutcome> {
+  // Веса приоритетов входят в ключ кеша: другой расклад — другой балл, и старый
+  // разбор пришлось бы показывать рядом с максимумами, по которым его не считали.
+  const weights = normalizeWeights(settings.scoring.weights);
+  const currentWeightsKey = weightsKey(weights);
+
   if (!options.force && settings.costControl.cacheAnalyses) {
-    const cached = await findCachedAnalysis(job.fingerprint, profile.version);
+    const cached = await findCachedAnalysis(job.fingerprint, profile.version, currentWeightsKey);
     if (cached) {
       const updated = await syncJobWithAnalysis(job, cached, profile);
       return { job: updated, analysis: cached, fromCache: true };
@@ -92,13 +97,14 @@ export async function analyzeJob(
     }
   }
 
-  const scored = scoreJob({ job: current, profile, findings });
+  const scored = scoreJob({ job: current, profile, findings, weights });
   const analysis: JobAnalysis = {
     id: createId('ana'),
     jobId: current.id,
     jobFingerprint: current.fingerprint,
     profileVersion: profile.version,
     analysisVersion: ANALYSIS_VERSION,
+    weightsKey: scored.weightsKey,
     createdAt: Date.now(),
     score: scored.score,
     band: scored.band,
@@ -116,13 +122,16 @@ export async function analyzeJob(
     reasoning: findings?.reasoning ?? buildDeterministicReasoning(scored),
     summary: findings?.summary ?? `${labelForBand(scored.band)} — ${scored.score}%.`,
     usedAI: Boolean(findings),
+    findings,
     providerId,
     model,
   };
 
+  // Выводы модели — такой же её ответ, как обоснование: при выключенном хранении
+  // они не оседают в базе, и пересчёт под другие веса пойдёт без них.
   const stored = settings.privacy.storeAIResponses
     ? await saveAnalysis(analysis)
-    : await saveAnalysis({ ...analysis, reasoning: '', summary: analysis.summary });
+    : await saveAnalysis({ ...analysis, reasoning: '', findings: null, summary: analysis.summary });
 
   const updatedJob = await syncJobWithAnalysis(current, stored, profile);
   return { job: updatedJob, analysis: stored, fromCache: false };

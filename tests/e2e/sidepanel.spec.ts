@@ -260,10 +260,54 @@ test.describe('боковая панель', () => {
     await expect(checkbox).toBeDisabled();
   });
 
+  test('даёт настроить приоритеты балла и запоминает выбранный расклад', async ({ panel }) => {
+    await completeOnboarding(panel);
+    await panel.getByRole('button', { name: 'Настройки' }).click();
+    await expect(panel.getByRole('heading', { name: 'Что для вас важнее' })).toBeVisible();
+
+    const salary = panel.getByLabel('Зарплата', { exact: true });
+    await expect(salary).toHaveValue('10');
+
+    await panel.getByRole('button', { name: 'Деньги', exact: true }).click();
+    // Пресет обязан переписать ползунки, а не только подсветить чип.
+    await expect(salary).toHaveValue('30');
+    await expect(panel.getByRole('button', { name: 'Деньги', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await panel.getByRole('button', { name: 'Вернуть веса по умолчанию' }).click();
+    await expect(salary).toHaveValue('10');
+  });
+
+  test('пересчитывает сохранённые баллы под новые приоритеты', async ({ panel }) => {
+    await completeOnboarding(panel);
+    await seedJob(panel);
+    await panel.reload();
+
+    await panel.getByRole('button', { name: 'Вакансии', exact: true }).click();
+    await expect(panel.getByText('92%')).toBeVisible();
+
+    await panel.getByRole('button', { name: 'Настройки' }).click();
+    await panel.getByRole('button', { name: 'Деньги', exact: true }).click();
+    await panel.getByRole('button', { name: 'Пересчитать сохранённые баллы' }).click();
+    await expect(panel.getByText('Пересчитано 1 из 1', { exact: false })).toBeVisible();
+
+    // Балл в списке переписан, а разбор показывает новые максимумы — в вакансии,
+    // чей анализ лежал в базе ещё до появления настраиваемых весов.
+    await panel.getByRole('button', { name: 'Вакансии', exact: true }).click();
+    await expect(panel.getByText('92%')).toBeHidden();
+    await panel.getByRole('button', { name: 'Senior Node.js Developer' }).click();
+    await expect(panel.getByText('Из чего сложился балл')).toBeVisible();
+    await expect(panel.getByText('/30').first()).toBeVisible();
+  });
+
   test('показывает настройки AI-провайдера, и по умолчанию AI выключен', async ({ panel }) => {
     await completeOnboarding(panel);
     await panel.getByRole('button', { name: 'Настройки' }).click();
-    await expect(panel.getByText('AI-провайдер')).toBeVisible();
+    // Ищем именно заголовок раздела: слово «AI-провайдер» встречается в настройках
+    // и в пояснениях, и поиск по тексту цеплял бы их тоже.
+    await expect(panel.getByRole('heading', { name: 'AI-провайдер' })).toBeVisible();
     await expect(panel.getByText('По умолчанию выключено', { exact: false })).toBeVisible();
   });
 });

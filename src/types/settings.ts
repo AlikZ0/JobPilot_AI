@@ -58,6 +58,57 @@ export const privacySettingsSchema = z.object({
 });
 export type PrivacySettings = z.infer<typeof privacySettingsSchema>;
 
+/**
+ * Компоненты балла. Порядок фиксирован: по нему строится подпись весов, из
+ * которой берётся ключ кеша анализов.
+ */
+export const SCORE_COMPONENTS = [
+  'technicalSkills',
+  'experience',
+  'seniority',
+  'location',
+  'salary',
+  'language',
+  'responsibilities',
+  'other',
+] as const;
+export type ScoreComponent = (typeof SCORE_COMPONENTS)[number];
+
+/** Веса из README. В сумме обязаны давать 100. */
+export const DEFAULT_SCORE_WEIGHTS = {
+  technicalSkills: 40,
+  experience: 15,
+  seniority: 10,
+  location: 10,
+  salary: 10,
+  language: 5,
+  responsibilities: 5,
+  other: 5,
+} as const;
+
+export const scoreWeightsSchema = z.object({
+  technicalSkills: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.technicalSkills),
+  experience: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.experience),
+  seniority: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.seniority),
+  location: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.location),
+  salary: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.salary),
+  language: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.language),
+  responsibilities: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.responsibilities),
+  other: z.number().min(0).max(100).default(DEFAULT_SCORE_WEIGHTS.other),
+});
+export type ScoreWeights = z.infer<typeof scoreWeightsSchema>;
+
+export const scoringSettingsSchema = z.object({
+  /**
+   * Что для вас важнее. Ползунки хранятся как есть, а к сотне приводятся при
+   * подсчёте: иначе сдвиг одного ползунка молча менял бы все остальные.
+   */
+  weights: scoreWeightsSchema.default({}),
+  /** id пресета или `custom`, если ползунки трогали руками. */
+  preset: z.string().max(40).default('balanced'),
+});
+export type ScoringSettings = z.infer<typeof scoringSettingsSchema>;
+
 export const costControlSchema = z.object({
   maxDescriptionChars: z.number().int().min(500).max(20_000).default(6000),
   cacheAnalyses: z.boolean().default(true),
@@ -84,6 +135,7 @@ export const settingsSchema = z.object({
   notifications: notificationSettingsSchema.default({}),
   privacy: privacySettingsSchema.default({}),
   costControl: costControlSchema.default({}),
+  scoring: scoringSettingsSchema.default({}),
   jobSites: z
     .array(z.object({ host: z.string().max(200), enabled: z.boolean().default(true) }))
     .default([]),

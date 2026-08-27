@@ -26,6 +26,7 @@ import {
   listApplicationEvents,
 } from '@/database/repositories/applicationRepository';
 import { exportAllData, importData } from '@/database/transfer';
+import { DEFAULT_WEIGHTS_KEY, weightsKey } from '@/core/scoring/weights';
 import { makeJob } from '../fixtures/jobs';
 import { makeProfile } from '../fixtures/profile';
 
@@ -157,6 +158,8 @@ describe('кеш анализов', () => {
       jobFingerprint: job.fingerprint,
       profileVersion: 3,
       analysisVersion: ANALYSIS_VERSION,
+      weightsKey: DEFAULT_WEIGHTS_KEY,
+      findings: null,
       createdAt: Date.now(),
       score: 88,
       band: 'good_match',
@@ -189,6 +192,19 @@ describe('кеш анализов', () => {
 
     expect(await findCachedAnalysis(job.fingerprint, 3)).not.toBeNull();
     expect(await findCachedAnalysis(job.fingerprint, 4)).toBeNull();
+    // Другие приоритеты — другой балл: старый разбор переиспользовать нельзя.
+    const otherWeights = weightsKey({
+      technicalSkills: 30,
+      experience: 10,
+      seniority: 10,
+      location: 30,
+      salary: 10,
+      language: 4,
+      responsibilities: 3,
+      other: 3,
+    });
+    expect(await findCachedAnalysis(job.fingerprint, 3, otherWeights)).toBeNull();
+    expect(await findCachedAnalysis(job.fingerprint, 3, DEFAULT_WEIGHTS_KEY)).not.toBeNull();
   });
 });
 

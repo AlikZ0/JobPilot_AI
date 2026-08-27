@@ -85,15 +85,25 @@ export const aiJobFindingsSchema = z.object({
 });
 export type AIJobFindings = z.infer<typeof aiJobFindingsSchema>;
 
+/**
+ * `max` — число, а не литерал: веса компонентов настраиваются, и разбор обязан
+ * показывать тот максимум, по которому балл действительно считали.
+ */
+const scorePartSchema = z.object({
+  earned: z.number(),
+  max: z.number().min(0).max(100),
+  detail: z.string(),
+});
+
 export const scoreBreakdownSchema = z.object({
-  technicalSkills: z.object({ earned: z.number(), max: z.literal(40), detail: z.string() }),
-  experience: z.object({ earned: z.number(), max: z.literal(15), detail: z.string() }),
-  seniority: z.object({ earned: z.number(), max: z.literal(10), detail: z.string() }),
-  location: z.object({ earned: z.number(), max: z.literal(10), detail: z.string() }),
-  salary: z.object({ earned: z.number(), max: z.literal(10), detail: z.string() }),
-  language: z.object({ earned: z.number(), max: z.literal(5), detail: z.string() }),
-  responsibilities: z.object({ earned: z.number(), max: z.literal(5), detail: z.string() }),
-  other: z.object({ earned: z.number(), max: z.literal(5), detail: z.string() }),
+  technicalSkills: scorePartSchema,
+  experience: scorePartSchema,
+  seniority: scorePartSchema,
+  location: scorePartSchema,
+  salary: scorePartSchema,
+  language: scorePartSchema,
+  responsibilities: scorePartSchema,
+  other: scorePartSchema,
 });
 export type ScoreBreakdown = z.infer<typeof scoreBreakdownSchema>;
 
@@ -103,6 +113,11 @@ export const jobAnalysisSchema = z.object({
   jobFingerprint: z.string(),
   profileVersion: z.number(),
   analysisVersion: z.number(),
+  /**
+   * Подпись весов, которыми посчитан балл. Пустая строка у записей, сделанных до
+   * появления настраиваемых весов, — они считались весами по умолчанию.
+   */
+  weightsKey: z.string().default(''),
   createdAt: z.number(),
   score: z.number().min(0).max(100),
   band: z.enum(RECOMMENDATION_BANDS),
@@ -130,6 +145,11 @@ export const jobAnalysisSchema = z.object({
   summary: z.string(),
   /** false, если анализ выполнен только детерминированным сопоставлением (без AI). */
   usedAI: z.boolean(),
+  /**
+   * Выводы AI как есть. Хранятся, чтобы пересчёт балла под другие веса не терял
+   * качественную часть анализа и не требовал повторного обращения к провайдеру.
+   */
+  findings: aiJobFindingsSchema.nullable().default(null),
   providerId: z.string().nullable().default(null),
   model: z.string().nullable().default(null),
 });

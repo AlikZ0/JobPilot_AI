@@ -4,13 +4,22 @@ import { saveProfile } from '@/database/repositories/profileRepository';
 import { getSettings, saveSettings } from '@/database/repositories/settingsRepository';
 import { upsertExtractedJob } from '@/database/repositories/jobRepository';
 import { countRequestsToday } from '@/database/repositories/usageRepository';
+import { getLatestAnalysis } from '@/database/repositories/analysisRepository';
 import { analyzeJob } from '@/core/analysis/analyzeJob';
+import { rescoreStoredJobs } from '@/core/scoring/rescore';
+import { DEFAULT_WEIGHTS_KEY, WEIGHT_PRESETS } from '@/core/scoring/weights';
 import { setApiKey } from '@/core/ai/keyStore';
 import { PROVIDERS } from '@/providers/registry';
 import { makeProfile } from '../fixtures/profile';
 import { makeJob } from '../fixtures/jobs';
 
 let counter = 0;
+
+const presetWeights = (id: string) => {
+  const preset = WEIGHT_PRESETS.find((entry) => entry.id === id);
+  if (!preset) throw new Error(`в наборе нет пресета «${id}»`);
+  return { ...preset.weights };
+};
 
 const AI_FINDINGS = {
   matchedSkills: ['Node.js', 'TypeScript', 'Docker'],
@@ -78,6 +87,93 @@ describe('конвейер анализа', () => {
     expect(second.fromCache).toBe(true);
     expect(second.analysis.id).toBe(first.analysis.id);
     expect(await getDb().analyses.count()).toBe(1);
+  });
+
+  it('не переиспользует кеш после смены весов приоритетов', async () => {
+    const { job } = await upsertExtractedJob(makeJob());
+    const profile = makeProfile();
+    const first = await analyzeJob(job, profile, await getSettings());
+    expect(first.analysis.weightsKey).toBe(DEFAULT_WEIGHTS_KEY);
+    expect(first.analysis.breakdown.salary.max).toBe(10);
+
+    const moneyFirst = await saveSettings({
+      scoring: {
+        weights: presetWeights('money'),
+        preset: 'money',
+      },
+    });
+    const second = await analyzeJob(first.job, profile, moneyFirst);
+
+    expect(second.fromCache).toBe(false);
+    // Разбор считается по новым максимумам, и это видно в самом разборе.
+    expect(second.analysis.breakdown.salary.max).toBe(30);
+    expect(second.analysis.weightsKey).not.toBe(DEFAULT_WEIGHTS_KEY);
+    expect(await getDb().analyses.count()).toBe(2);
+
+    // Вернули прежний расклад — прежний разбор снова годится, считать нечего.
+    const back = await analyzeJob(
+      second.job,
+      profile,
+      await saveSettings({
+        scoring: { weights: presetWeights('balanced'), preset: 'balanced' },
+      }),
+    );
+    expect(back.fromCache).toBe(true);
+    expect(back.analysis.id).toBe(first.analysis.id);
+  });
+
+  it('сохраняет выводы AI и пересчитывает балл под новые веса без нового запроса', async () => {
+    await enableAI();
+    const chat = vi.spyOn(PROVIDERS.openai, 'chat').mockResolvedValue({
+      text: JSON.stringify(AI_FINDINGS),
+      promptTokens: 900,
+      completionTokens: 120,
+      model: 'gpt-4.1-mini',
+    });
+
+    const { job } = await upsertExtractedJob(makeJob());
+    const profile = makeProfile();
+    const first = await analyzeJob(job, profile, await getSettings());
+    expect(first.analysis.findings?.summary).toBe('Great fit.');
+
+    const remoteFirst = await saveSettings({
+      scoring: {
+        weights: presetWeights('remote'),
+        preset: 'remote',
+      },
+    });
+    const outcome = await rescoreStoredJobs(profile, remoteFirst);
+
+    expect(outcome.rescored).toBe(1);
+    expect(outcome.withoutFindings).toBe(0);
+    // Пересчёт идёт по сохранённым выводам: второго запроса к провайдеру нет.
+    expect(chat).toHaveBeenCalledOnce();
+    expect(await countRequestsToday()).toBe(1);
+
+    const latest = await getLatestAnalysis(job.id);
+    expect(latest?.usedAI).toBe(true);
+    expect(latest?.breakdown.location.max).toBe(30);
+    expect(latest?.score).not.toBe(first.analysis.score);
+  });
+
+  it('не хранит выводы AI, когда хранение ответов выключено', async () => {
+    await enableAI();
+    vi.spyOn(PROVIDERS.openai, 'chat').mockResolvedValue({
+      text: JSON.stringify(AI_FINDINGS),
+      promptTokens: 900,
+      completionTokens: 120,
+      model: 'gpt-4.1-mini',
+    });
+    const settings = await saveSettings({
+      privacy: { ...(await getSettings()).privacy, storeAIResponses: false },
+    });
+
+    const { job } = await upsertExtractedJob(makeJob());
+    const outcome = await analyzeJob(job, makeProfile(), settings);
+
+    expect(outcome.analysis.usedAI).toBe(true);
+    expect(outcome.analysis.findings).toBeNull();
+    expect(outcome.analysis.reasoning).toBe('');
   });
 
   it('пересчитывает при смене версии профиля', async () => {

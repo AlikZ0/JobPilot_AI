@@ -1,5 +1,6 @@
 import { getDb } from '../db';
 import { jobAnalysisSchema, type JobAnalysis } from '@/types/ai';
+import { DEFAULT_WEIGHTS_KEY } from '@/core/scoring/weights';
 
 /** Увеличивайте при изменении движка скоринга, чтобы старые анализы пересчитались. */
 export const ANALYSIS_VERSION = 2;
@@ -19,16 +20,24 @@ export async function getLatestAnalysis(jobId: string): Promise<JobAnalysis | nu
 
 /**
  * Поиск в кеше: анализ можно переиспользовать, только если он сделан для того же
- * содержимого вакансии, той же версии профиля и той же версии скоринга.
+ * содержимого вакансии, той же версии профиля, той же версии скоринга и тех же
+ * весов приоритетов.
+ *
+ * У записей, сделанных до появления настраиваемых весов, подписи нет — они
+ * считались весами по умолчанию, так их и трактуем.
  */
 export async function findCachedAnalysis(
   fingerprint: string,
   profileVersion: number,
+  weightsKey: string = DEFAULT_WEIGHTS_KEY,
 ): Promise<JobAnalysis | null> {
   const rows = await getDb().analyses.where('jobFingerprint').equals(fingerprint).toArray();
   const usable = rows
     .filter(
-      (row) => row.profileVersion === profileVersion && row.analysisVersion === ANALYSIS_VERSION,
+      (row) =>
+        row.profileVersion === profileVersion &&
+        row.analysisVersion === ANALYSIS_VERSION &&
+        (row.weightsKey || DEFAULT_WEIGHTS_KEY) === weightsKey,
     )
     .sort((a, b) => b.createdAt - a.createdAt);
   return usable[0] ? jobAnalysisSchema.parse(usable[0]) : null;
